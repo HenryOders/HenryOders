@@ -53,8 +53,8 @@ h1{font:800 clamp(34px,6vw,54px)/1.05 var(--display);margin:0;text-wrap:balance;
 .body li{color:var(--muted)}
 .body li b{color:var(--fg);font-weight:600}
 .body li::marker{color:var(--gold)}
-.done-when{margin:0;font-size:14px;color:var(--muted);border-top:1px dashed var(--line);padding-top:10px;max-width:65ch}
-.done-when b{color:var(--fg);font-weight:600}
+.scene{margin:0;font-size:14px;color:var(--muted);border-top:1px dashed var(--line);padding-top:10px;max-width:65ch}
+.scene b{color:var(--fg);font-weight:600}
 
 .build.current{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding-inline:18px;margin-block:8px}
 .build.launch .ver{color:var(--fg)}
@@ -75,159 +75,149 @@ footer{color:var(--muted);font-size:13px}
   <header>
     <div class="eyebrow">Entwicklungsplan</div>
     <h1>Gold Master Roadmap</h1>
-    <p class="lede">Gold Master ist eine Wirtschaftssimulation über die Spielebranche. Diese Roadmap zeigt den Weg von der aktuellen Version 0.4.0 über den Steam-Release mit Version 1.0 bis zu den großen Updates danach. Jede Version hat ein klares Ziel und eine Bedingung, ab wann sie als fertig gilt.</p>
+    <p class="lede">Was als Nächstes ins Spiel kommt. Jede Version bringt neue Systeme, Ereignisse und Entscheidungen für dein Studio, von der aktuellen Version 0.4.0 bis zum großen Update 2.0.</p>
     <div class="legend" aria-label="Legende">
-      <span class="chip done">Fertig</span><span class="chip work">In Arbeit</span><span class="chip plan">Geplant</span><span class="chip idea">Idee</span>
+      <span class="chip done">Im Spiel</span><span class="chip work">In Arbeit</span><span class="chip plan">Geplant</span><span class="chip idea">Idee</span>
     </div>
   </header>
 
   <section class="phase">
-    <h2>Phase 1 · Fundament</h2>
-    <p class="phase-intro">Das Spiel ist inhaltlich schon groß. In dieser Phase geht es darum, es verständlich, stabil und bereit für Steam zu machen.</p>
+    <h2>Phase 1 · Das Studio wird lebendig</h2>
+    <p class="phase-intro">Die Menschen in deinem Studio und die Welt um sie herum bekommen mehr Tiefe. Mitarbeiter werden älter, die Wirtschaft schwankt, und nicht jeder spielt nach den Regeln.</p>
     <ol class="track">
       <li class="build current">
         <div class="ver">0.4.0<small>aktuell</small></div>
         <div class="body">
-          <div class="head"><h3>Gründerzeit</h3><span class="chip done">Fertig</span></div>
-          <p class="goal">Das Grundgerüst steht. Man kann ein Studio gründen und es über Jahrzehnte führen, vom ersten Solo-Projekt in der Arcade-Ära bis zum börsennotierten Konzern mit Tochterfirmen.</p>
+          <div class="head"><h3>Gründerzeit</h3><span class="chip done">Im Spiel</span></div>
+          <p class="goal">Das Grundgerüst steht. Du gründest ein Studio und führst es über Jahrzehnte, vom ersten Solo-Projekt in der Arcade-Ära bis zum börsennotierten Konzern.</p>
           <ul>
-            <li><b>Spiele entwickeln:</b> 32 Genres und sieben Plattformen. Während der Entwicklung verteilt man den Schwerpunkt auf Gameplay, Grafik, Technik, Audio, Story und KI.</li>
-            <li><b>Studio führen:</b> sechs Standorte von Berlin bis Seoul, ein Büro aus 20 Raumtypen und Mitarbeiter mit eigenen Fähigkeiten, Persönlichkeiten und Gehaltswünschen.</li>
-            <li><b>Firma lenken:</b> Forschung, eigene Engine, Kredite, Investoren, Publisher, Lizenzen für Filme, Marken und Sportligen, Börsengang und Tochterfirmen.</li>
-            <li><b>Nach dem Release:</b> Patches, DLC, Season Passes, Server für Onlinespiele, Portierungen, Remaster und E-Sport-Ligen.</li>
-            <li><b>Komfort:</b> 21 Automatisierungsregeln, 35 Erfolge, Spielstände, die beim Update auf neue Versionen automatisch umgewandelt werden, und eine Oberfläche in 30 Sprachen.</li>
+            <li><b>Spiele entwickeln:</b> 32 Genres und sieben Plattformen. Du verteilst den Schwerpunkt auf Gameplay, Grafik, Technik, Audio, Story und KI.</li>
+            <li><b>Studio führen:</b> sechs Standorte von Berlin bis Seoul, ein Büro aus 20 Raumtypen und Mitarbeiter mit Fähigkeiten, Persönlichkeit und Gehaltswünschen.</li>
+            <li><b>Firma lenken:</b> Forschung, eigene Engine, Kredite, Investoren, Publisher, Lizenzen, Börsengang und Tochterfirmen.</li>
+            <li><b>Nach dem Release:</b> Patches, DLC, Season Passes, Server, Portierungen, Remaster und E-Sport-Ligen.</li>
           </ul>
         </div>
       </li>
       <li class="build">
         <div class="ver">0.5.0</div>
         <div class="body">
-          <div class="head"><h3>Feinschliff</h3><span class="chip work">In Arbeit</span></div>
-          <p class="goal">Gold Master hat viele Systeme. Neue Spieler dürfen davon nicht erschlagen werden. Diese Version macht den Einstieg leicht und sorgt dafür, dass sich jede Entscheidung fair anfühlt.</p>
+          <div class="head"><h3>Lebenswerk</h3><span class="chip work">In Arbeit</span></div>
+          <p class="goal">Mitarbeiter sind mehr als Werte auf einem Blatt. Sie werden älter, haben Ziele und hinterlassen Spuren in deinem Studio.</p>
           <ul>
-            <li><b>Tutorial:</b> Ein Mentor begleitet die erste Woche und das erste Spiel. Er erklärt nur das, was gerade gebraucht wird. Erfahrene Spieler können es überspringen.</li>
-            <li><b>Tooltips überall:</b> Jede Kennzahl und jeder Regler erklärt beim Darüberfahren, was er bewirkt und wie er sich auf das Spiel auswirkt.</li>
-            <li><b>Balancing:</b> Gehälter, Verkaufszahlen, Kreditzinsen und Wertungen werden so abgestimmt, dass weder schnelles Reichwerden noch eine Pleite ohne eigene Fehler möglich ist.</li>
-            <li><b>Leistung:</b> Auch Studios mit über 100 Mitarbeitern und vielen laufenden Spielen bleiben flüssig, wenn die nächste Woche startet.</li>
+            <li><b>Altern und Ruhestand:</b> Mitarbeiter werden mit den Jahren erfahrener, aber irgendwann gehen sie in Rente. Wer sein Wissen nicht weitergibt, nimmt es mit.</li>
+            <li><b>Mentoren:</b> Erfahrene Kräfte können Neulinge anlernen. Das kostet Zeit im Projekt, spart aber teure Kurse.</li>
+            <li><b>Abwerbung:</b> Konkurrenten machen deinen besten Leuten Angebote. Du kannst mit mehr Gehalt, Beförderung oder besseren Räumen dagegenhalten.</li>
+            <li><b>Ruhmeshalle:</b> Legendäre Mitarbeiter bekommen einen Platz in der Chronik, mit ihren größten Spielen und Auszeichnungen.</li>
           </ul>
-          <p class="done-when"><b>Fertig, wenn:</b> eine Testperson ohne Vorwissen in 30 Minuten ihr erstes Spiel veröffentlicht, ohne nachfragen zu müssen.</p>
+          <p class="scene"><b>Im Spiel:</b> Deine Lead-Designerin aus den 80ern kündigt ihren Ruhestand an. Du hast ein Jahr, um eine Nachfolge aufzubauen, bevor der nächste Teil deiner Erfolgsreihe ohne sie entsteht.</p>
         </div>
       </li>
       <li class="build">
         <div class="ver">0.6.0</div>
         <div class="body">
-          <div class="head"><h3>Dampfdruck</h3><span class="chip plan">Geplant</span></div>
-          <p class="goal">Die Steam-Fassung wird vollständig. Das Spiel läuft als eigenständige Anwendung (Electron) und nutzt die Steam-Funktionen über steamworks.js.</p>
+          <div class="head"><h3>Konjunktur</h3><span class="chip plan">Geplant</span></div>
+          <p class="goal">Die Wirtschaft ist nicht mehr gleichbleibend. Gute und schlechte Jahre wechseln sich ab, und kluges Planen wird belohnt.</p>
           <ul>
-            <li><b>Steam-Erfolge:</b> Alle Erfolge werden in Steam freigeschaltet und erscheinen im Profil der Spieler.</li>
-            <li><b>Steam Cloud:</b> Spielstände werden automatisch gesichert und lassen sich auf einem anderen PC oder dem Steam Deck weiterspielen.</li>
-            <li><b>Controller und Steam Deck:</b> Jedes Menü ist ohne Maus bedienbar. Ziel ist die Einstufung „Verifiziert“ für das Steam Deck.</li>
-            <li><b>Store-Seite angleichen:</b> Der Store-Text nennt 28 Erfolge, im Spiel gibt es aber 35. Beides muss übereinstimmen.</li>
+            <li><b>Wirtschaftszyklen:</b> In Boomjahren kaufen Spieler mehr und Investoren geben leichter Geld. In Rezessionen sinken die Verkäufe und Kredite werden teurer.</li>
+            <li><b>Historische Krisen:</b> Der Videospiel-Crash von 1983 und die Finanzkrise von 2008 treffen die Branche, wenn du in dieser Zeit spielst.</li>
+            <li><b>Wechselkurse:</b> Deine Standorte rechnen in eigenen Währungen. Gehälter in Seoul und Verkäufe in Berlin können sich unterschiedlich entwickeln.</li>
+            <li><b>Rücklagen:</b> Wer in guten Jahren spart, kann in schlechten Jahren günstig Talente einstellen, die andere Studios entlassen mussten.</li>
           </ul>
-          <p class="done-when"><b>Fertig, wenn:</b> eine komplette Partie nur mit Controller auf dem Steam Deck gespielt werden kann und die Erfolge in Steam auftauchen.</p>
+          <p class="scene"><b>Im Spiel:</b> 1983 bricht der Markt ein. Händler schicken Spiele zurück, dein Publisher kündigt den Vertrag. Jetzt entscheidest du, ob du auf Heimcomputer umschwenkst oder die Durststrecke aussitzt.</p>
         </div>
       </li>
       <li class="build">
         <div class="ver">0.7.0</div>
         <div class="body">
-          <div class="head"><h3>Babylon</h3><span class="chip plan">Geplant</span></div>
-          <p class="goal">Die 30 Sprachen sind schon übersetzt. Jetzt sollen sie auch richtig klingen und sauber aussehen, damit Spieler weltweit das Spiel so erleben wie auf Deutsch.</p>
+          <div class="head"><h3>Schwarzmarkt</h3><span class="chip plan">Geplant</span></div>
+          <p class="goal">Nicht jeder bezahlt für deine Spiele. Raubkopien werden zu einer Kraft, mit der du umgehen musst.</p>
           <ul>
-            <li><b>Korrekturlesen:</b> Muttersprachler prüfen die Texte, zuerst die größten Märkte Englisch, Chinesisch, Japanisch, Koreanisch und Russisch.</li>
-            <li><b>Schriften:</b> Chinesisch, Japanisch, Koreanisch und Thai bekommen passende Schriftarten, damit keine leeren Kästchen erscheinen.</li>
-            <li><b>Arabisch:</b> Die Oberfläche wird für Arabisch gespiegelt und von rechts nach links gelesen.</li>
-            <li><b>Lange Wörter:</b> Sprachen wie Deutsch, Finnisch und Ungarisch haben sehr lange Wörter. Kein Knopf und kein Fenster darf dadurch überlaufen.</li>
+            <li><b>Raubkopien:</b> Je nach Ära, Plattform und Region wird ein Teil deiner Spiele kopiert statt gekauft.</li>
+            <li><b>Kopierschutz:</b> Du wählst zwischen keinem, leichtem und hartem Schutz. Harter Schutz senkt Raubkopien, kann aber ehrliche Käufer verärgern und Wertungen drücken.</li>
+            <li><b>Cracker-Szene:</b> Bekannte Gruppen knacken Spiele oft schon vor dem Release. Ein besonders schnell geknacktes Spiel wird zur Schlagzeile.</li>
+            <li><b>Emulatoren:</b> Alte Spiele tauchen wieder auf. Du kannst dagegen klagen oder sie selbst als Retro-Sammlung neu verkaufen.</li>
           </ul>
-          <p class="done-when"><b>Fertig, wenn:</b> jede Sprache einmal komplett durchgeklickt wurde, ohne abgeschnittene oder fehlende Texte.</p>
+          <p class="scene"><b>Im Spiel:</b> Dein Shooter wird zwei Tage vor dem Release geleakt. Verschiebst du ihn für einen stärkeren Kopierschutz oder bringst du ihn trotzdem pünktlich heraus?</p>
         </div>
       </li>
     </ol>
   </section>
 
   <section class="phase">
-    <h2>Phase 2 · Auf dem Weg zum Release</h2>
-    <p class="phase-intro">Jetzt geht es um Sichtbarkeit und Stabilität. Spieler sollen das Spiel kennenlernen und auf die Wunschliste setzen, bevor es erscheint.</p>
+    <h2>Phase 2 · Neue Wege zum Spiel</h2>
+    <p class="phase-intro">Mehr Möglichkeiten, Spiele zu finanzieren, zu bauen und auf den Markt zu bringen.</p>
     <ol class="track">
       <li class="build">
         <div class="ver">0.8.0</div>
         <div class="body">
-          <div class="head"><h3>Messestand</h3><span class="chip plan">Geplant</span></div>
-          <p class="goal">Eine kostenlose Demo für das Steam Next Fest. Sie zeigt, was Gold Master besonders macht, und lässt die Wunschliste wachsen.</p>
+          <div class="head"><h3>Schwarmfinanzierung</h3><span class="chip plan">Geplant</span></div>
+          <p class="goal">Ab den 2010ern kannst du Spiele direkt von den Spielern finanzieren lassen, statt bei Publishern oder Banken zu fragen.</p>
           <ul>
-            <li><b>Demo-Umfang:</b> spielbar von 1980 bis 1990, also die komplette Arcade- und Heimcomputer-Ära. Der Spielstand lässt sich später in die Vollversion übernehmen.</li>
-            <li><b>Trailer und Screenshots:</b> Ein neuer Trailer zeigt den Weg vom kleinen Büro zum Konzern. Die Screenshots zeigen alle wichtigen Bereiche des Spiels.</li>
-            <li><b>Feedback im Spiel:</b> Ein Knopf, mit dem Spieler direkt Fehler oder Ideen melden können, inklusive Spielstand.</li>
+            <li><b>Crowdfunding-Kampagnen:</b> Zielsumme, Laufzeit und Belohnungen für Unterstützer festlegen. Ein guter Pitch-Trailer und bekannte Namen im Team helfen.</li>
+            <li><b>Stretch Goals:</b> Wird das Ziel übertroffen, versprichst du Zusatzinhalte. Jedes Versprechen muss später auch geliefert werden.</li>
+            <li><b>Unterstützer-Erwartungen:</b> Verspätungen oder gestrichene Inhalte kosten Ansehen. Regelmäßige Neuigkeiten halten die Stimmung oben.</li>
+            <li><b>Game Jams:</b> Dein Team baut in einem Wochenende kleine Prototypen. Die besten Ideen können zu richtigen Projekten werden.</li>
           </ul>
-          <p class="done-when"><b>Fertig, wenn:</b> die Demo auf Steam freigegeben ist und während des Next Fest ohne kritische Fehler läuft.</p>
+          <p class="scene"><b>Im Spiel:</b> Deine Kampagne erreicht 400 % der Zielsumme. Die Unterstützer jubeln, aber die versprochene Konsolenfassung und der Mehrspielermodus verdoppeln die Entwicklungszeit.</p>
         </div>
       </li>
       <li class="build">
         <div class="ver">0.9.0</div>
         <div class="body">
-          <div class="head"><h3>Release Candidate</h3><span class="chip plan">Geplant</span></div>
-          <p class="goal">Die geschlossene Beta. Ab dieser Version kommen keine neuen Funktionen mehr hinzu. Alle Kraft fließt in Fehlerbehebung und Stabilität.</p>
+          <div class="head"><h3>Konsolenkrieg</h3><span class="chip plan">Geplant</span></div>
+          <p class="goal">Bisher entwickelst du für die Plattformen anderer. Jetzt baust du deine eigene Hardware.</p>
           <ul>
-            <li><b>Beta auf Steam:</b> Eingeladene Tester spielen über einen eigenen Beta-Zweig und bekommen Updates automatisch.</li>
-            <li><b>Absturzberichte:</b> Fehler werden mit genug Informationen gemeldet, um sie nachstellen zu können.</li>
-            <li><b>Alte Spielstände:</b> Spielstände aus allen früheren Versionen müssen sich ohne Verlust laden lassen.</li>
-            <li><b>Langzeittest:</b> Partien von 1980 bis weit über 2030 hinaus werden durchgespielt, um Fehler zu finden, die erst spät auftreten.</li>
+            <li><b>Eigene Konsole:</b> Leistung, Controller, Speichermedium und Preis festlegen. Teure Technik macht die Konsole stark, aber schwer verkäuflich.</li>
+            <li><b>Startspiele:</b> Eine Konsole verkauft sich nur mit guten Spielen. Entwickle selbst oder überzeuge andere Studios.</li>
+            <li><b>Exklusivverträge:</b> Kaufe Spiele für deine Plattform ein oder schließe selbst Exklusivdeals mit großen Herstellern ab.</li>
+            <li><b>Hardware-Ereignisse:</b> Lieferengpässe, Produktionsfehler, Rückrufe und Preissenkungen der Konkurrenz.</li>
           </ul>
-          <p class="done-when"><b>Fertig, wenn:</b> es keine bekannten Fehler mehr gibt, die Spielstände beschädigen oder das Spiel abstürzen lassen.</p>
+          <p class="scene"><b>Im Spiel:</b> Deine Konsole kommt pünktlich zum Weihnachtsgeschäft, aber jedes zehnte Gerät überhitzt. Ein Rückruf kostet Millionen, keiner kostet deinen Ruf.</p>
         </div>
       </li>
       <li class="build launch">
         <div class="ver">1.0.0</div>
         <div class="body">
           <div class="head"><h3>Gold Master</h3><span class="chip plan">Geplant</span></div>
-          <p class="goal">Der Release auf Steam. In der Spielebranche heißt der fertige Build, der ins Presswerk geht, „Gold Master“. Diese Version trägt den Namen des Spiels.</p>
+          <p class="goal">Der Weg zum fertigen Spiel wird selbst zum Spiel. Die letzten Wochen vor dem Release sind die spannendsten.</p>
           <ul>
-            <li><b>Plattformen:</b> Veröffentlichung für Windows, macOS und Linux.</li>
-            <li><b>Launch:</b> Ein Launch-Rabatt für Spieler mit dem Spiel auf der Wunschliste und ein bereitstehender Day-One-Patch für letzte Korrekturen.</li>
-            <li><b>Neuer Erfolg „Gold Master“:</b> Bringe eines deiner eigenen Spiele bis zur Version 1.0.</li>
+            <li><b>Entwicklungsphasen:</b> Projekte durchlaufen Prototyp, Alpha, Beta und Gold Master. In jeder Phase zählen andere Fähigkeiten im Team.</li>
+            <li><b>Zertifizierung:</b> Plattformhersteller prüfen dein Spiel vor dem Release. Fällt es durch, musst du nachbessern und verlierst Zeit.</li>
+            <li><b>Release-Tag:</b> Server brechen unter dem Ansturm zusammen, ein schwerer Fehler taucht auf oder alles läuft perfekt. Du reagierst live.</li>
+            <li><b>Neuer Erfolg „Gold Master“:</b> Bringe ein Spiel ohne Verschiebung und ohne Day-One-Patch auf den Markt.</li>
           </ul>
-          <p class="done-when"><b>Fertig, wenn:</b> das Spiel auf Steam kaufbar ist.</p>
+          <p class="scene"><b>Im Spiel:</b> Eine Woche vor dem Release fällt dein Spiel durch die Zertifizierung. Crunch fürs Team, Verschiebung oder ein Day-One-Patch: Jede Wahl hat ihren Preis.</p>
         </div>
       </li>
     </ol>
   </section>
 
   <section class="phase">
-    <h2>Phase 3 · Nach dem Release</h2>
-    <p class="phase-intro">Kostenlose Updates, die das Spiel nach dem Release lebendig halten. Was genau kommt, hängt auch davon ab, was sich die Spieler wünschen.</p>
+    <h2>Phase 3 · Größer denken</h2>
+    <p class="phase-intro">Größere Spielwelt, härterer Wettbewerb und neue Arten, Gold Master zu spielen.</p>
     <ol class="track">
       <li class="build">
         <div class="ver">1.1</div>
         <div class="body">
-          <div class="head"><h3>Konsolenkrieg</h3><span class="chip idea">Idee</span></div>
-          <p class="goal">Bisher entwickelt man Spiele für die Plattformen anderer. Mit diesem Update baut das Studio seine eigene Hardware.</p>
+          <div class="head"><h3>Weltbühne</h3><span class="chip idea">Idee</span></div>
+          <p class="goal">Märkte unterscheiden sich, und es zählt, wo du deine Spiele verkaufst.</p>
           <ul>
-            <li><b>Eigene Konsole:</b> Leistung, Preis und Startspiele festlegen und dann gegen die großen Hersteller antreten.</li>
-            <li><b>Exklusivverträge:</b> Andere Studios für die eigene Konsole gewinnen oder selbst Exklusivdeals mit Plattformherstellern abschließen.</li>
-            <li><b>Neue Ereignisse:</b> Lieferengpässe, Hardware-Rückrufe und Messeskandale.</li>
+            <li><b>Neue Standorte:</b> zum Beispiel Montréal, Warschau, Tokio und São Paulo, jeweils mit eigenen Förderungen, Gehältern und Talenten.</li>
+            <li><b>Regionale Vorlieben:</b> Jede Region bevorzugt andere Genres und Plattformen. Ein Hit in Japan kann in Europa floppen.</li>
+            <li><b>Zensur und Freigaben:</b> Manche Länder verlangen geänderte Inhalte. Du entscheidest, ob du anpasst oder auf den Markt verzichtest.</li>
+            <li><b>Lokalisierung:</b> Übersetzungen deiner Spiele kosten Geld und Zeit, öffnen aber neue Märkte.</li>
           </ul>
         </div>
       </li>
       <li class="build">
         <div class="ver">1.2</div>
         <div class="body">
-          <div class="head"><h3>Werkstatt</h3><span class="chip idea">Idee</span></div>
-          <p class="goal">Die Community gestaltet mit. Über den Steam Workshop können Spieler eigene Inhalte bauen und teilen.</p>
+          <div class="head"><h3>Patentkrieg</h3><span class="chip idea">Idee</span></div>
+          <p class="goal">Forschung wird zur Waffe. Wer eine Technologie zuerst erfindet, kann andere davon abhalten.</p>
           <ul>
-            <li><b>Eigene Inhalte:</b> neue Genres, Plattformen, Lizenzen und Ereignisse anlegen.</li>
-            <li><b>Szenarien:</b> eigene Startbedingungen erstellen und mit anderen teilen.</li>
-            <li><b>Übersetzungen:</b> Die Community kann Übersetzungen verbessern oder neue Sprachen hinzufügen.</li>
-          </ul>
-        </div>
-      </li>
-      <li class="build">
-        <div class="ver">1.3</div>
-        <div class="body">
-          <div class="head"><h3>Weltbühne</h3><span class="chip idea">Idee</span></div>
-          <p class="goal">Die Welt wird größer und vielfältiger. Märkte unterscheiden sich, und es zählt, wo man seine Spiele verkauft.</p>
-          <ul>
-            <li><b>Neue Standorte:</b> zum Beispiel Montréal, Warschau, Tokio und São Paulo, jeweils mit eigenen Vor- und Nachteilen.</li>
-            <li><b>Regionale Vorlieben:</b> Jede Region bevorzugt andere Genres und Plattformen.</li>
-            <li><b>Lokalisierung als Entscheidung:</b> Übersetzungen der eigenen Spiele kosten Geld und Zeit, öffnen aber neue Märkte.</li>
+            <li><b>Patente:</b> Neue Technologien aus deiner Forschung lassen sich patentieren. Andere Studios zahlen Lizenzgebühren oder müssen ausweichen.</li>
+            <li><b>Patentklagen:</b> Auch du kannst verklagt werden, wenn du eine geschützte Technik nutzt.</li>
+            <li><b>Industriespionage:</b> Erfahre mehr über die Projekte der Konkurrenz oder schütze deine eigenen besser.</li>
           </ul>
         </div>
       </li>
@@ -235,21 +225,17 @@ footer{color:var(--muted);font-size:13px}
         <div class="ver">2.0</div>
         <div class="body">
           <div class="head"><h3>Nächste Generation</h3><span class="chip idea">Idee</span></div>
-          <p class="goal">Das große Erweiterungs-Update. Es erweitert die Zeitleiste in die Zukunft und bringt neue Arten, Gold Master zu spielen.</p>
+          <p class="goal">Das große Erweiterungs-Update. Die Zeitleiste reicht in die Zukunft, und es gibt neue Arten zu spielen.</p>
           <ul>
-            <li><b>Zukunftsära:</b> neue Technologien und Plattformen nach 2030.</li>
-            <li><b>Herausforderungen:</b> feste Szenarien mit Ziel, zum Beispiel „Rette ein Studio kurz vor der Insolvenz“.</li>
+            <li><b>Zukunftsära:</b> neue Technologien, Plattformen und Geschäftsmodelle nach 2030.</li>
+            <li><b>Herausforderungen:</b> feste Szenarien mit Ziel, zum Beispiel „Rette ein Studio kurz vor der Insolvenz“ oder „Werde mit nur fünf Mitarbeitern Marktführer“.</li>
             <li><b>Sandbox-Modus:</b> Startkapital, Konkurrenz und Marktbedingungen frei einstellen.</li>
+            <li><b>Dynastie:</b> Wenn du als Gründer in Rente gehst, übernimmt ein Nachfolger aus deinem Team, und die Partie geht weiter.</li>
           </ul>
         </div>
       </li>
     </ol>
   </section>
-
-  <div class="note">
-    <strong>So funktioniert diese Roadmap</strong>
-    <p>Jede Version hat ein Ziel. Was nicht dazu passt, rutscht in eine spätere Version. Ab 0.9 kommen keine neuen Funktionen mehr hinzu, bis 1.0 erschienen ist. Ideen in Phase 3 können sich durch Rückmeldungen von Spielern noch ändern.</p>
-  </div>
 
   <footer>Gold Master · aktuelle Spielversion 0.4.0</footer>
 </div>
