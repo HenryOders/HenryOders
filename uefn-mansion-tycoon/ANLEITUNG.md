@@ -2,61 +2,87 @@
 
 Ein Tycoon-Spiel für Fortnite (Unreal Editor for Fortnite). Der Spieler startet mit einem kleinen Haus und $10.000 und baut daraus Schritt für Schritt einen **Billionaire Estate**.
 
-Der komplette Spielablauf steckt im Verse-Code: Geld, Einkommen, Räume, Möbel, Fahrzeuge, Personal, Upgrades, Mansion-Stufen, XP, Level, Quests, Rangliste, Benachrichtigungen und Speicherstand. Du baust in UEFN nur noch die Mansion aus Props und verknüpfst sie mit dem Device.
+Alles steckt im Verse-Code: Geld, Einkommen, Räume, Möbel, Fahrzeuge, Personal, Upgrades, Mansion-Stufen, XP, Level, Quests, Rangliste, Benachrichtigungen, Speicherstand und der Bau der Mansion selbst. Du platzierst nur ein Device und gibst ihm Würfel-Props als Bausteine.
 
 ## Dateien
 
 | Datei | Inhalt |
 |---|---|
-| `Verse/mansion_catalog.verse` | Alle Spieldaten: 28 Räume, Grundstück, 14 Möbel, 7 Fahrzeuge, 6 Mitarbeiter, 7 Mansion-Stufen, 23 Quests, Balancing und Zahlenformatierung |
+| `Verse/mansion_catalog.verse` | Alle Spieldaten: 28 Räume, Grundstück, 14 Möbel, 7 Fahrzeuge, 6 Mitarbeiter, 7 Mansion-Stufen, 23 Quests, Balancing |
+| `Verse/mansion_builder.verse` | Der automatische Bau: Grundriss, Räume, Möbel, Autos, Personal, Pool, Courts, Helipad und die Architektur jeder Mansion-Stufe |
 | `Verse/mansion_hud.verse` | HUD oben und rechts, Benachrichtigungen, Estate-Tablet (Menü mit 7 Reitern) |
-| `Verse/mansion_plot_device.verse` | Das Device `mansion_plot_device`: Einkommen, Kaufen, Quests, Speichern, Props ein- und ausblenden |
+| `Verse/mansion_plot_device.verse` | Das Device `mansion_plot_device`: Einkommen, Kaufen, Quests, Speichern, Bauen |
 
-## Einbau in 8 Schritten
+## Die Mansion baut sich selbst
 
-1. **Projekt anlegen:** Neues UEFN-Projekt, am besten mit einer leeren Insel.
-2. **Verse-Dateien kopieren:** Die drei `.verse`-Dateien in den Verse-Ordner deines Projekts legen (Verse Explorer → Rechtsklick auf den Projektordner → *Add existing file* oder per Datei-Explorer). Danach **Verse → Build Verse Code**.
-3. **Device platzieren:** Im Content Browser unter *Creative Devices* das neue `mansion_plot_device` auf die Insel ziehen.
-4. **Mansion bauen:** Baue das Haus aus Props in allen Ausbaustufen, zum Beispiel:
-   - Für jede Mansion-Stufe eine eigene Außenhülle (Small House, Modern House, …, Billionaire Estate).
-   - Für jeden Raum die Wände, Böden und die Einrichtung.
-   - Für jedes Möbelstück eine Version pro Qualität (Basic, Premium, Luxury, Elite).
-   - Für Garage, Grundstück und Außenanlagen die Anbauten.
+Du musst die Mansion nicht von Hand bauen. Das Device setzt sie aus Würfeln mit verschiedenen Materialien zusammen, im Stil einer modernen Luxus-Villa: Flachdächer, Glasfronten, Marmor und Gold. Jeder Kauf baut sofort etwas dazu, und neue Teile fahren animiert aus dem Boden.
 
-   Alles darf am Anfang sichtbar sein. Das Device blendet beim Start alles aus, was der Spieler noch nicht besitzt.
-5. **Kauf-Buttons:** Stelle `Button`-Devices an die Stellen, an denen gekauft wird (zum Beispiel vor jedem Raum). Der Text auf dem Button wird automatisch gesetzt, etwa „Basic Kitchen - $1,500“.
-6. **Estate-Tablet:** Stelle ein `Button`-Device an den Eingang (zum Beispiel auf einen Laptop-Prop) und trage es bei **MenuButtons** ein. Optional zusätzlich ein `Input Trigger`-Device bei **MenuInputs**, damit sich das Menü per Taste öffnen lässt.
-7. **Device einstellen:** siehe nächster Abschnitt.
-8. **Testen:** *Launch Session*. Mit **IgnoreSaves = true** startest du bei jedem Test von vorn.
+**Was du siehst:**
+- **Start (Small House):** Rasenstück, Eingangshalle, leeres Wohnzimmer und ein Gartenweg.
+- **Jeder Raum** ist ein Feld von 10 × 10 m mit Boden, Rückwand, Glasfront, Flachdach und typischer Einrichtung. Die Küche hat eine Arbeitsplatte, das Bad eine Wanne, die Bibliothek Regale, der Indoor-Pool Wasser usw.
+- **Raum-Upgrades:** ab Stufe 2 eine Dachkante, ab Stufe 3 Marmorboden und Lichtleiste, ab Stufe 4 goldene Kante, ab Stufe 5 goldene Säulen.
+- **Obergeschoss** über dem Erdgeschoss, **Luxusflügel** rechts und hinten.
+- **Möbel** stehen im passenden Raum. Ihre Qualität sieht man am Material: Basic = Holz, Premium = Stoff, Luxury = Dunkel, Elite = Gold.
+- **Garage:** wächst von 1 auf 4 Felder. Die Autos parken darin, der Golden Hypercar ist aus Gold.
+- **Personal:** als Figuren an ihrem Arbeitsplatz, der Butler mit goldener Fliege.
+- **Außen:** Garten mit Hecken, Bäumen und Blumenbeeten, Brunnen, Pool mit Infinity-Kante, Lounge, Tennis- und Basketballplatz, Helipad.
+- **Grundstück:** Die Rasenfläche wächst mit jeder Stufe, ab Stufe 2 mit Mauer.
+- **Mansion-Stufen:**
+  - **Modern House:** Vordach am Eingang.
+  - **Luxury Villa:** Marmorsäulen über zwei Etagen und eine Auffahrt.
+  - **Mansion:** Einfahrtstor und Laternen.
+  - **Luxury Mansion:** Glas-Atrium und goldenes Fassadenband.
+  - **Mega Mansion:** Penthouse-Etage und Lichtsäulen.
+  - **Billionaire Estate:** goldene Krone, goldenes Tor, Statue und vier Lichtstrahlen in den Himmel.
+
+**Ausrichtung:** Die Vorderseite zeigt in Richtung −Y des Devices. Drehst du das Device, dreht sich die ganze Mansion mit. Das Grundstück braucht im Endausbau etwa 180 × 120 m freie, ebene Fläche um das Device herum.
+
+## Einbau in 6 Schritten
+
+1. **Projekt anlegen:** Neues UEFN-Projekt mit einer leeren, flachen Insel.
+2. **Verse-Dateien kopieren:** Die vier `.verse`-Dateien in den Verse-Ordner des Projekts legen. Danach **Verse → Build Verse Code**.
+3. **Würfel-Props anlegen:** Du brauchst einen Würfel als Prop, am besten einen pro Material.
+   - Kopiere den Engine-Würfel (`/Engine/BasicShapes/Cube`, 100 × 100 × 100 cm) in deinen Content-Ordner.
+   - Erstelle daraus ein Prop. In UEFN geht das über **Rechtsklick auf das Mesh → Create Prop** bzw. über eine Blueprint-Klasse vom Typ *Creative Prop*. Je nach UEFN-Version heißt der Menüpunkt etwas anders.
+   - Lege für jedes Material eine Kopie des Props an und gib ihr das passende Material: Wall (weiß), Floor (helles Holz), Marble (heller Marmor), Glass (durchsichtig, leicht blau), Roof (dunkelgrau), Wood (Holz), Fabric (Stoff, z. B. Rot), Dark (fast schwarz), Gold (glänzend gold), Water (blau, durchsichtig), Grass (grün), Court (blau oder grün), Line (weiß), Stone (grauer Stein), Glow (leuchtend, Emissive).
+   - Zum Ausprobieren reicht **ein einziger Würfel**. Fehlende Materialien ersetzt das Device dann durch den ersten Eintrag.
+4. **Device platzieren:** `mansion_plot_device` auf eine freie Fläche ziehen. Das wird die Mitte der Mansion.
+5. **Device einstellen:**
+   - **BlockAssets:** für jedes Material einen Eintrag mit *Kind* (z. B. Gold) und *Asset* (dein Gold-Würfel-Prop).
+   - **MenuButtons:** einen `Button` am Eingang als Estate-Tablet zuweisen. Optional einen `Input Trigger` bei **MenuInputs** für eine Taste.
+   - **IgnoreSaves = true** zum Testen.
+6. **Testen:** *Launch Session*. Öffne das Tablet, kaufe Räume und sieh zu, wie die Mansion wächst.
 
 ## Einstellungen am Device
 
 | Feld | Bedeutung |
 |---|---|
-| **AutoClaim** | `true`: Jeder Spieler bekommt beim Betreten automatisch ein freies Grundstück. |
-| **ClaimButtons** | Optional: Buttons, mit denen ein Spieler das Grundstück übernimmt (wenn AutoClaim aus ist). |
+| **AutoBuild** | `true`: Das Device baut die Mansion automatisch. |
+| **BlockAssets** | Die Würfel-Props pro Material (siehe oben). |
+| **CubeSize** | Kantenlänge deines Würfel-Meshes in cm, Standard 100. |
+| **CubePivotAtBottom** | `true`, wenn der Pivot deines Würfels unten in der Mitte sitzt statt im Zentrum. |
+| **CellSize / FloorHeight** | Größe eines Raum-Feldes (Standard 1000 cm) und Etagenhöhe (Standard 450 cm). |
+| **RoomDetail** | `false` spart Props: Räume ohne Glasfront und Seitenwand. |
+| **AnimateNewProps** | Neue Teile fahren in 0,8 Sekunden aus dem Boden. |
+| **AutoClaim** | Jeder Spieler bekommt beim Betreten automatisch ein freies Grundstück. |
+| **ClaimButtons** | Optional: Buttons zum Übernehmen des Grundstücks, wenn AutoClaim aus ist. |
 | **MenuButtons / MenuInputs** | Öffnen und schließen das Estate-Tablet. |
-| **TierUpgradeButtons** | Optional: Button in der Welt für „Upgrade to Modern House“ usw. Das geht auch im Tablet unter MANSION. |
-| **WorldLinks** | Die Verknüpfung von Katalog-Einträgen mit Props und Buttons, siehe unten. |
-| **TierLinks** | Pro Mansion-Stufe (1–7) die Props der Außenhülle. |
-| **StackTierProps** | `false`: Nur die Hülle der aktuellen Stufe ist sichtbar. `true`: Alle erreichten Hüllen bleiben stehen (für Anbauten). |
-| **AnimateNewProps** | Neu gekaufte Props fahren in 0,8 Sekunden aus dem Boden. |
+| **TierUpgradeButtons** | Optional: Button in der Welt für das nächste Haus-Upgrade. |
 | **PurchaseSounds / LevelUpSounds** | `Audio Player`-Devices für Kauf- und Level-up-Sound. |
 | **StartCash** | Startgeld, Standard 10.000. |
-| **IgnoreSaves** | Zum Testen: ignoriert gespeicherte Spielstände. Vor dem Veröffentlichen auf `false` stellen. |
+| **IgnoreSaves** | Ignoriert gespeicherte Spielstände. Vor dem Veröffentlichen auf `false` stellen. |
+| **WorldLinks / TierLinks** | Optional: Wenn du zusätzlich eigene, von Hand gebaute Props zeigen willst. Funktioniert wie unten beschrieben. |
 
-### WorldLinks
+### Optional: eigene Props zusätzlich (WorldLinks)
 
-Für jeden Eintrag im Katalog, der in der Welt sichtbar sein soll, legst du einen WorldLink an:
+Willst du statt Würfeln echte Möbel, Autos oder Fortnite-Props zeigen, verknüpfe sie über **WorldLinks**:
 
 - **ItemId:** die ID aus der Tabelle unten, zum Beispiel `kitchen`.
-- **BuyButtons:** ein oder mehrere Buttons, die diesen Eintrag kaufen oder verbessern.
-- **Level1Props … Level5Props:** die Props jeder Ausbaustufe. Bei Möbeln ist Level 1 = Basic, 2 = Premium, 3 = Luxury, 4 = Elite.
-- **Stacking:**
-  - `false` (Standard): Nur die Props der aktuellen Stufe sind zu sehen. Passt für Möbel und Raum-Upgrades, bei denen die alte Version ersetzt wird.
-  - `true`: Props aller gekauften Stufen bleiben sichtbar. Passt für Garage und Grundstück, die wachsen.
+- **BuyButtons:** Buttons in der Welt, die diesen Eintrag kaufen.
+- **Level1Props … Level5Props:** deine Props pro Ausbaustufe. Bei Möbeln ist 1 = Basic, 2 = Premium, 3 = Luxury, 4 = Elite.
+- **Stacking:** `false` zeigt nur die aktuelle Stufe, `true` zeigt alle gekauften Stufen.
 
-Du musst nicht alles verknüpfen. Alles lässt sich auch ohne Props über das Estate-Tablet kaufen. Für den Spaß sollte aber jeder Kauf in der Welt sichtbar sein.
+Das Device blendet diese Props passend ein und aus. Den automatischen Bau kannst du dann mit **AutoBuild = false** abschalten oder beides kombinieren.
 
 ## Alle IDs
 
@@ -108,7 +134,11 @@ Du musst nicht alles verknüpfen. Alles lässt sich auch ohne Props über das Es
 
 ## Mehrere Spieler
 
-Ein `mansion_plot_device` ist ein Grundstück für einen Spieler. Für 4 Spieler baust du 4 Grundstücke mit je einem eigenen Device. Wenn du ein fertiges Grundstück kopierst, zeigen die Verweise im kopierten Device noch auf die alten Props. Du musst sie deshalb im neuen Device auf die kopierten Props umstellen. Jeder Spieler bekommt höchstens ein Grundstück.
+Ein `mansion_plot_device` ist ein Grundstück für einen Spieler. Für 4 Spieler platzierst du 4 Devices mit genug Abstand (mindestens 200 m). Weil die Mansion automatisch gebaut wird, kannst du das Device einfach kopieren. Jeder Spieler bekommt höchstens ein Grundstück.
+
+## Prop-Anzahl
+
+Eine voll ausgebaute Mansion besteht aus etwa 300 Würfeln. Falls UEFN beim Spawnen an eine Grenze stößt oder der Speicher knapp wird, stelle **RoomDetail = false** ein. Das spart etwa 60 Props.
 
 ## Wichtig
 

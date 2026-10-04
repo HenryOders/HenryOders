@@ -49,6 +49,11 @@ mansion_tier_link := class<concrete>:
     @editable Tier : int = 1
     @editable Props : []creative_prop = array{}
 
+# Ein Baustein fuer den automatischen Mansion-Bau: ein Wuerfel-Prop mit einem Material.
+mansion_block_asset := class<concrete>:
+    @editable Kind : block_mat = block_mat.Wall
+    @editable Asset : creative_prop_asset = DefaultCreativePropAsset
+
 world_buy_handler := class:
     Plot : mansion_plot_device
     ItemId : string
@@ -74,6 +79,20 @@ mansion_plot_device := class(creative_device):
     # Zum Testen: ignoriert gespeicherte Spielstaende.
     @editable IgnoreSaves : logic = false
 
+    # Automatischer Bau: Das Device baut die Mansion selbst aus Wuerfel-Props.
+    @editable AutoBuild : logic = true
+    # Pro Material ein Wuerfel-Prop. Fehlt ein Material, wird der erste Eintrag verwendet.
+    @editable BlockAssets : []mansion_block_asset = array{}
+    # Kantenlaenge des Wuerfel-Meshes in cm (Engine-Cube = 100).
+    @editable CubeSize : float = 100.0
+    # true, wenn der Pivot des Wuerfels unten in der Mitte liegt statt im Zentrum.
+    @editable CubePivotAtBottom : logic = false
+    # Groesse eines Raum-Feldes in cm und Etagenhoehe in cm.
+    @editable CellSize : float = 1000.0
+    @editable FloorHeight : float = 450.0
+    # false = weniger Props pro Raum (ohne Glasfront und Seitenwand).
+    @editable RoomDetail : logic = true
+
     var Catalog : []catalog_item = array{}
     var TierDefs : []tier_def = array{}
     var Quests : []quest_def = array{}
@@ -88,8 +107,14 @@ mansion_plot_device := class(creative_device):
     var TotalEarned : int = 0
     var IncomeRemainder : float = 0.0
     var TickCount : int = 0
+    var Spawned : [string][]creative_prop = map{}
+    var Origin : vector3 = vector3{X := 0.0, Y := 0.0, Z := 0.0}
+    var MaybeRotation : ?rotation = false
 
     OnBegin<override>()<suspends>:void =
+        DeviceTransform := GetTransform()
+        set Origin = DeviceTransform.Translation
+        set MaybeRotation = option{DeviceTransform.Rotation}
         set Catalog = MakeCatalog()
         set TierDefs = MakeTiers()
         set Quests = MakeQuests()
@@ -272,6 +297,13 @@ mansion_plot_device := class(creative_device):
                 set Levels = ConcatenateMaps(Levels, map{Item.Id => Next})
                 for (Link : WorldLinks, Link.ItemId = Item.Id):
                     ApplyLink(Link, Next)
+                if (AutoBuild?):
+                    if (Item.Cat = item_cat.Vehicle):
+                        RebuildVehicles(true)
+                    else:
+                        RebuildItem(Item, true)
+                        if (Item.Id = "garage"):
+                            RebuildVehicles(false)
                 PlaySounds(PurchaseSounds)
                 Verb := if (Current = 0) then "NEW" else "UPGRADED"
                 Notify("{Verb}: {LevelName(Item, Next)}")
@@ -293,6 +325,8 @@ mansion_plot_device := class(creative_device):
                     set Cash -= Next.Cost
                     set Tier += 1
                     ApplyTierVisuals(Tier)
+                    if (AutoBuild?):
+                        RebuildTier(Tier, true)
                     PlaySounds(LevelUpSounds)
                     Notify("NEW HOME: {Next.Name}!  New rooms and items unlocked")
                     AddXp(200 * Tier)
@@ -614,7 +648,99 @@ mansion_plot_device := class(creative_device):
         for (Link : WorldLinks):
             ApplyLink(Link, 0)
         ApplyTierVisuals(0)
+        if (AutoBuild?):
+            BuildEverything()
         UpdateButtons()
+
+    # ---------- Automatischer Bau ----------
+
+    BuildCtx()<transacts>:build_ctx =
+        build_ctx{C := CellSize, FH := FloorHeight, Detail := RoomDetail}
+
+    BuildEverything():void =
+        ClearAllSpawned()
+        for (Item : Catalog):
+            if (GetLevel(Item.Id) > 0):
+                RebuildItem(Item, false)
+        RebuildVehicles(false)
+        for (T := 1..Tier):
+            RebuildTier(T, false)
+
+    RebuildItem(Item:catalog_item, Animate:logic):void =
+        SpawnGroup(Item.Id, ItemBoxes(Item, GetLevel(Item.Id), BuildCtx()), Animate)
+
+    RebuildVehicles(Animate:logic):void =
+        var Ids : []string = array{}
+        for (Item : Catalog, Item.Cat = item_cat.Vehicle):
+            if (GetLevel(Item.Id) > 0):
+                set Ids += array{Item.Id}
+        SpawnGroup("vehicles", VehicleBoxes(Ids, BuildCtx()), Animate)
+
+    RebuildTier(T:int, Animate:logic):void =
+        SpawnGroup("tier{T}", TierBoxes(T, BuildCtx()), Animate)
+
+    SpawnGroup(Key:string, Boxes:[]build_box, Animate:logic):void =
+        ClearGroup(Key)
+        var Props : []creative_prop = array{}
+        for (Box : Boxes):
+            if (Prop := SpawnBox(Box, Animate)?):
+                set Props += array{Prop}
+        set Spawned = ConcatenateMaps(Spawned, map{Key => Props})
+
+    ClearGroup(Key:string):void =
+        if (Old := Spawned[Key]):
+            for (Prop : Old):
+                Prop.Dispose()
+        set Spawned = ConcatenateMaps(Spawned, map{Key => array{}})
+
+    ClearAllSpawned():void =
+        for (Key -> Props : Spawned, Prop : Props):
+            Prop.Dispose()
+        set Spawned = map{}
+
+    BuildRotation()<transacts>:rotation =
+        if (R := MaybeRotation?) then R else IdentityRotation()
+
+    AssetFor(Mat:block_mat)<transacts>:?creative_prop_asset =
+        var Found : ?creative_prop_asset = false
+        for (Entry : BlockAssets, Entry.Kind = Mat):
+            set Found = option{Entry.Asset}
+        if (Found?):
+            Found
+        else if (First := BlockAssets[0]):
+            option{First.Asset}
+        else:
+            false
+
+    SpawnBox(Box:build_box, Animate:logic):?creative_prop =
+        if (Asset := AssetFor(Box.Mat)?):
+            ZOffset := if (CubePivotAtBottom?) then -Box.SZ / 2.0 else 0.0
+            Local := vector3{X := Box.X, Y := Box.Y, Z := Box.Z + ZOffset}
+            Size3 := vector3{X := Box.SX / CubeSize, Y := Box.SY / CubeSize, Z := Box.SZ / CubeSize}
+            Rot := BuildRotation()
+            Final := transform:
+                Translation := Origin + Rot.RotateVector(Local)
+                Rotation := Rot
+                Scale := Size3
+            if (Animate?, AnimateNewProps?):
+                Start := transform:
+                    Translation := Final.Translation - vector3{X := 0.0, Y := 0.0, Z := 400.0}
+                    Rotation := Rot
+                    Scale := Size3
+                Result := SpawnProp(Asset, Start)
+                if (Prop := Result(0)?):
+                    spawn{ MovePropTo(Prop, Final) }
+                    option{Prop}
+                else:
+                    false
+            else:
+                Result := SpawnProp(Asset, Final)
+                Result(0)
+        else:
+            false
+
+    MovePropTo(Prop:creative_prop, Final:transform)<suspends>:void =
+        Prop.MoveTo(Final, 0.8)
 
     # AnimateLevel: diese Stufe faehrt animiert aus dem Boden (0 = keine Animation).
     ApplyLink(Link:mansion_world_link, AnimateLevel:int):void =
