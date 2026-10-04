@@ -1,0 +1,26 @@
+Grunnlegg et spillstudio, lag spill og led selskapet ditt gjennom tiårene. Gold Master er en forretningssimulering om spillbransjen: Du bestemmer hva studioet ditt lager, hvem som jobber med det og hvordan det når ut til spillerne, én uke om gangen.
+
+Grunnlegg studioet ditt
+Velg navn, logo og farge, en filosofi (spillopplevelse, teknologi, grafikk eller forretning) og ett av seks steder, fra Berlin til Seoul. Start i 1980, i arkademaskinenes tidsalder, eller når som helst frem til 2010, som soloutvikler eller med et lite team.
+
+Lag spill på din måte
+* 32 sjangre og sju plattformer, fra PC og konsoller til mobil, VR og sky
+* Balanser spillopplevelse, grafikk, teknologi, lyd, historie og KI under utviklingen
+* Selg spillet ditt én gang, gjør det gratis å spille eller drift det som abonnement, med utgaver, forhåndsbestillinger, Early Access og regionale lanseringer
+* Planlegg trailere, kampanjer og messedeltakelse, og se ønskelisten vokse før lansering
+
+Led folkene dine
+Ansett programmerere, spilldesignere, grafikere, lyddesignere, QA-testere, markedssjefer og forskere. Alle har ferdigheter, en personlighet og lønnsforventninger, utvikler seg gjennom kurs og karrieresteg og kommer overens med kollegene – eller ikke. Bygg kontoret ditt av 20 romtyper og gi alle en pult.
+
+Driv selskapet
+Forsk på ny teknologi, bygg din egen motor og lisensier den til andre studioer. Ta opp lån, hent inn investorer, pitch for utgivere, sikre deg lisenser for filmer, merkevarer og idrettsligaer, gå på børs og grunnlegg datterselskaper. Rivaliserende studioer konkurrerer om de samme spillerne, pressen anmelder spillene dine, og hendelser krever beslutninger, fra konflikter i teamet til rettssaker.
+
+Etter lansering
+Hold liv i spillene dine med oppdateringer, DLC, patcher og sesongpass, drift servere for nettspill, gi ut porteringer og remastere, og bygg opp e-sportligaer med turneringer og sponsorer. Priser, salgslister og en krønike over studioet ditt viser hvor langt du har kommet.
+
+I ditt eget tempo
+* Tiden går bare videre når du starter neste uke
+* 21 automatiseringsregler tar seg av rutinearbeidet hvis du ønsker det
+* Full kontrollerstøtte, inkludert Steam Deck
+* Tilgjengelig på 30 språk
+* 28 prestasjoner og lagrede spill i Steam Cloud

@@ -1,0 +1,26 @@
+Alapíts játékstúdiót, készíts játékokat, és vezesd a cégedet évtizedeken át. A Gold Master egy gazdasági szimuláció a játékiparról: te döntöd el, mit fejleszt a stúdiód, ki dolgozik rajta, és hogyan jut el a játékosokhoz – hétről hétre.
+
+Alapítsd meg a stúdiódat
+Válassz nevet, logót és színt, filozófiát (játékmenet, technológia, grafika vagy üzlet), valamint egyet a hat helyszín közül, Berlintől Szöulig. Kezdj 1980-ban, a játéktermi gépek korában, vagy bármikor 2010-ig, egyéni fejlesztőként vagy egy kis csapattal.
+
+Készíts játékokat a saját utadon
+* 32 műfaj és hét platform, a PC-től és a konzoloktól a mobilon és a VR-on át a felhőig
+* Teremts egyensúlyt a játékmenet, a grafika, a technológia, a hang, a történet és az MI között a fejlesztés során
+* Add el a játékodat egyszeri áron, tedd ingyenesen játszhatóvá, vagy üzemeltesd előfizetéssel – kiadásokkal, előrendelésekkel, korai hozzáféréssel és regionális megjelenésekkel
+* Tervezz előzeteseket, kampányokat és kiállítási megjelenéseket, és figyeld, ahogy a kívánságlista nő a megjelenés előtt
+
+Vezesd az embereidet
+Vegyél fel programozókat, játéktervezőket, grafikusokat, hangtervezőket, QA-tesztelőket, marketingmenedzsereket és kutatókat. Mindenkinek megvannak a képességei, a személyisége és a fizetési elvárásai, tanfolyamokkal és előléptetésekkel fejlődik, és kijön a kollégáival – vagy nem. Építsd fel az irodádat 20 helyiségtípusból, és adj mindenkinek íróasztalt.
+
+Irányítsd a céget
+Kutass új technológiákat, építsd meg a saját motorodat, és licenceld más stúdióknak. Vegyél fel hiteleket, vonj be befektetőket, mutasd be ötleteidet kiadóknak, szerezz licenceket filmekhez, márkákhoz és sportligákhoz, vezesd tőzsdére a céget, és alapíts leányvállalatokat. Rivális stúdiók versengenek ugyanazokért a játékosokért, a sajtó értékeli a játékaidat, az események pedig döntéseket követelnek, a csapaton belüli konfliktusoktól a perekig.
+
+A megjelenés után
+Tartsd életben a játékaidat javításokkal, DLC-kkel, frissítésekkel és szezonbérletekkel, üzemeltess szervereket az online játékokhoz, adj ki portokat és remastereket, és építs e-sport-ligákat versenyekkel és szponzorokkal. Díjak, toplisták és stúdiód krónikája mutatják meg, milyen messzire jutottál.
+
+A saját tempódban
+* Az idő csak akkor halad, amikor elindítod a következő hetet
+* 21 automatizálási szabály leveszi a válladról a rutinmunkát, ha szeretnéd
+* Teljes kontrollertámogatás, beleértve a Steam Decket is
+* 30 nyelven elérhető
+* 28 teljesítmény és mentések a Steam Cloudban

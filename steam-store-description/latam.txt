@@ -1,0 +1,26 @@
+Funda un estudio de videojuegos, crea juegos y lleva a tu empresa a lo largo de las décadas. Gold Master es un simulador de negocios sobre la industria de los videojuegos: tú decides qué desarrolla tu estudio, quién trabaja en ello y cómo llega a los jugadores, semana a semana.
+
+Funda tu estudio
+Elige un nombre, un logo y un color, una filosofía (jugabilidad, tecnología, gráficos o negocios) y una de seis ubicaciones, de Berlín a Seúl. Comienza en 1980, en la era de las máquinas arcade, o en cualquier momento hasta 2010, como desarrollador independiente o con un equipo pequeño.
+
+Crea juegos a tu manera
+* 32 géneros y siete plataformas, desde PC y consolas hasta celulares, RV y la nube
+* Equilibra jugabilidad, gráficos, tecnología, audio, historia e IA durante el desarrollo
+* Vende tu juego con un solo pago, hazlo free-to-play u ofrécelo por suscripción, con ediciones, preventas, acceso anticipado y lanzamientos regionales
+* Planea tráilers, campañas y presentaciones en ferias, y mira cómo crece la lista de deseados antes del lanzamiento
+
+Dirige a tu equipo
+Contrata programadores, diseñadores de juegos, artistas, diseñadores de sonido, testers de QA, gerentes de marketing e investigadores. Cada uno tiene habilidades, personalidad y expectativas salariales, crece con cursos y ascensos, y se lleva bien con sus colegas... o no. Arma tu oficina con 20 tipos de sala y dale un escritorio a cada quien.
+
+Administra la empresa
+Investiga nuevas tecnologías, crea tu propio motor y licéncialo a otros estudios. Pide préstamos, consigue inversionistas, presenta tus proyectos a publishers, obtén licencias de películas, marcas y ligas deportivas, sal a la bolsa y funda filiales. Los estudios rivales compiten por los mismos jugadores, la prensa reseña tus juegos y los eventos te piden tomar decisiones, desde conflictos en el equipo hasta demandas.
+
+Después del lanzamiento
+Mantén vivos tus juegos con parches, DLC, actualizaciones y pases de temporada, opera servidores para juegos en línea, lanza ports y remasterizaciones, y crea ligas de esports con torneos y patrocinadores. Premios, rankings y una crónica de tu estudio muestran lo lejos que has llegado.
+
+A tu propio ritmo
+* El tiempo solo avanza cuando inicias la siguiente semana
+* 21 reglas de automatización se encargan del trabajo rutinario si así lo deseas
+* Compatibilidad total con control, incluido Steam Deck
+* Disponible en 30 idiomas
+* 28 logros y partidas guardadas en Steam Cloud

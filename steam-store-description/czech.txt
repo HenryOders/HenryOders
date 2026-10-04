@@ -1,0 +1,26 @@
+Založte herní studio, vytvářejte hry a provázejte svou firmu desetiletími. Gold Master je ekonomická simulace herního průmyslu: rozhodujete, co vaše studio vyvíjí, kdo na tom pracuje a jak se hry dostanou k hráčům – týden po týdnu.
+
+Založte své studio
+Zvolte název, logo a barvu, filozofii (hratelnost, technologie, grafika nebo byznys) a jedno ze šesti míst, od Berlína po Soul. Začněte v roce 1980 v éře arkádových automatů nebo kdykoli až do roku 2010, jako samostatný vývojář nebo s malým týmem.
+
+Tvořte hry po svém
+* 32 žánrů a sedm platforem, od PC a konzolí po mobily, VR a cloud
+* Během vývoje vyvažujte hratelnost, grafiku, technologie, zvuk, příběh a AI
+* Prodávejte hru jednorázově, udělejte ji free-to-play nebo ji provozujte jako předplatné – s edicemi, předobjednávkami, předběžným přístupem a regionálními vydáními
+* Plánujte trailery, kampaně a účast na veletrzích a sledujte, jak před vydáním roste seznam přání
+
+Veďte své lidi
+Najímejte programátory, herní designéry, grafiky, zvukové designéry, QA testery, marketingové manažery a výzkumníky. Každý má své dovednosti, povahu a platové představy, roste díky kurzům a kariérnímu postupu a s kolegy vychází – nebo taky ne. Postavte si kancelář z 20 typů místností a dejte každému stůl.
+
+Řiďte firmu
+Zkoumejte nové technologie, postavte si vlastní engine a licencujte ho dalším studiím. Berte si úvěry, získávejte investory, prezentujte projekty vydavatelům, zajistěte si licence na filmy, značky a sportovní ligy, vstupte na burzu a zakládejte dceřiné společnosti. Konkurenční studia soupeří o stejné hráče, tisk recenzuje vaše hry a události vyžadují rozhodnutí – od konfliktů v týmu po soudní spory.
+
+Po vydání
+Udržujte své hry při životě pomocí patchů, DLC, aktualizací a season passů, provozujte servery pro online hry, vydávejte porty a remastery a budujte e-sportové ligy s turnaji a sponzory. Ocenění, žebříčky a kronika vašeho studia ukážou, jak daleko jste se dostali.
+
+Vlastním tempem
+* Čas plyne, jen když zahájíte další týden
+* 21 automatizačních pravidel za vás na přání vyřídí rutinní práci
+* Plná podpora ovladačů včetně Steam Decku
+* K dispozici ve 30 jazycích
+* 28 úspěchů a uložené pozice ve Steam Cloudu

@@ -1,0 +1,26 @@
+Fondează un studio de jocuri, creează jocuri și conduce-ți compania de-a lungul deceniilor. Gold Master este o simulare economică despre industria jocurilor: tu decizi ce dezvoltă studioul tău, cine lucrează la asta și cum ajunge la jucători, săptămână de săptămână.
+
+Fondează-ți studioul
+Alege un nume, un logo și o culoare, o filozofie (gameplay, tehnologie, grafică sau business) și una dintre cele șase locații, de la Berlin la Seul. Începe în 1980, în era aparatelor arcade, sau în orice moment până în 2010, ca dezvoltator solo sau cu o echipă mică.
+
+Creează jocuri în felul tău
+* 32 de genuri și șapte platforme, de la PC și console la mobil, VR și cloud
+* Echilibrează gameplay-ul, grafica, tehnologia, sunetul, povestea și IA în timpul dezvoltării
+* Vinde-ți jocul o singură dată, fă-l free-to-play sau oferă-l prin abonament, cu ediții, precomenzi, Acces Timpuriu și lansări regionale
+* Planifică trailere, campanii și prezențe la târguri și urmărește cum crește lista de dorințe înainte de lansare
+
+Condu-ți oamenii
+Angajează programatori, game designeri, artiști, sound designeri, testeri QA, manageri de marketing și cercetători. Fiecare are abilități, o personalitate și așteptări salariale, evoluează prin cursuri și pași în carieră și se înțelege cu colegii – sau nu. Construiește-ți biroul din 20 de tipuri de încăperi și dă-i fiecăruia un birou.
+
+Conduce compania
+Cercetează tehnologii noi, construiește-ți propriul motor grafic și licențiază-l altor studiouri. Ia împrumuturi, atrage investitori, prezintă proiecte publisherilor, obține licențe pentru filme, mărci și ligi sportive, listează-te la bursă și fondează filiale. Studiourile rivale concurează pentru aceiași jucători, presa îți recenzează jocurile, iar evenimentele cer decizii, de la conflicte în echipă la procese.
+
+După lansare
+Menține-ți jocurile în viață cu patch-uri, DLC-uri, actualizări și season pass-uri, administrează servere pentru jocurile online, lansează porturi și remasterizări și creează ligi de esports cu turnee și sponsori. Premiile, clasamentele și o cronică a studioului tău arată cât de departe ai ajuns.
+
+În ritmul tău
+* Timpul trece doar când începi săptămâna următoare
+* 21 de reguli de automatizare preiau munca de rutină, dacă vrei
+* Suport complet pentru controller, inclusiv Steam Deck
+* Disponibil în 30 de limbi
+* 28 de realizări și salvări în Steam Cloud

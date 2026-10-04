@@ -1,0 +1,26 @@
+Funde um estúdio de games, crie jogos e conduza sua empresa através das décadas. Gold Master é um simulador de negócios sobre a indústria de games: você decide o que seu estúdio desenvolve, quem trabalha nele e como ele chega aos jogadores, uma semana de cada vez.
+
+Funde seu estúdio
+Escolha nome, logotipo e cor, uma filosofia (jogabilidade, tecnologia, gráficos ou negócios) e uma de seis localizações, de Berlim a Seul. Comece em 1980, na era dos fliperamas, ou em qualquer momento até 2010, como desenvolvedor solo ou com uma pequena equipe.
+
+Crie jogos do seu jeito
+* 32 gêneros e sete plataformas, de PC e consoles a celulares, RV e nuvem
+* Equilibre jogabilidade, gráficos, tecnologia, áudio, história e IA durante o desenvolvimento
+* Venda seu jogo uma única vez, torne-o free-to-play ou ofereça por assinatura, com edições, pré-vendas, acesso antecipado e lançamentos regionais
+* Planeje trailers, campanhas e participações em feiras, e veja a lista de desejos crescer antes do lançamento
+
+Lidere sua equipe
+Contrate programadores, game designers, artistas, sound designers, testadores de QA, gerentes de marketing e pesquisadores. Cada um tem habilidades, personalidade e expectativas salariais, evolui com cursos e progressão de carreira, e se dá bem com os colegas... ou não. Monte seu escritório com 20 tipos de sala e dê uma mesa para cada um.
+
+Administre a empresa
+Pesquise novas tecnologias, crie sua própria engine e licencie-a para outros estúdios. Faça empréstimos, traga investidores, apresente projetos a publishers, garanta licenças de filmes, marcas e ligas esportivas, abra o capital e funde subsidiárias. Estúdios rivais disputam os mesmos jogadores, a imprensa avalia seus jogos e eventos exigem decisões, de conflitos na equipe a processos judiciais.
+
+Depois do lançamento
+Mantenha seus jogos vivos com patches, DLCs, atualizações e passes de temporada, mantenha servidores para jogos online, lance ports e remasterizações, e crie ligas de e-sports com torneios e patrocinadores. Prêmios, rankings e uma crônica do seu estúdio mostram o quanto você evoluiu.
+
+No seu ritmo
+* O tempo só avança quando você inicia a próxima semana
+* 21 regras de automação cuidam do trabalho rotineiro, se você quiser
+* Suporte completo a controle, incluindo Steam Deck
+* Disponível em 30 idiomas
+* 28 conquistas e jogos salvos no Steam Cloud

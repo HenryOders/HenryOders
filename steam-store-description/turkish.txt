@@ -1,0 +1,26 @@
+Bir oyun stüdyosu kur, oyunlar yap ve şirketini on yıllar boyunca yönet. Gold Master, oyun sektörünü konu alan bir işletme simülasyonudur: Stüdyonun ne geliştireceğine, kimin üzerinde çalışacağına ve oyuncularla nasıl buluşacağına hafta hafta sen karar verirsin.
+
+Stüdyonu kur
+Bir ad, logo ve renk, bir felsefe (oynanış, teknoloji, grafik ya da iş) ve Berlin'den Seul'e altı konumdan birini seç. Atari salonu makinelerinin çağı olan 1980'de ya da 2010'a kadar istediğin herhangi bir noktada, tek başına bir geliştirici olarak ya da küçük bir ekiple başla.
+
+Oyunlarını kendi tarzınla yap
+* PC ve konsollardan mobile, VR'a ve buluta kadar 32 tür ve yedi platform
+* Geliştirme sırasında oynanış, grafik, teknoloji, ses, hikâye ve yapay zekâ arasında denge kur
+* Oyununu tek seferlik sat, ücretsiz oynanabilir yap ya da abonelikle sun; sürümler, ön siparişler, Erken Erişim ve bölgesel çıkışlarla
+* Fragmanlar, kampanyalar ve fuar katılımları planla, çıkıştan önce istek listesinin büyümesini izle
+
+Ekibini yönet
+Programcılar, oyun tasarımcıları, sanatçılar, ses tasarımcıları, QA test uzmanları, pazarlama yöneticileri ve araştırmacılar işe al. Herkesin yetenekleri, kişiliği ve maaş beklentileri vardır; kurslar ve kariyer basamaklarıyla gelişir, iş arkadaşlarıyla anlaşır ya da anlaşamaz. Ofisini 20 oda türünden inşa et ve herkese bir masa ver.
+
+Şirketi yönet
+Yeni teknolojiler araştır, kendi motorunu geliştir ve diğer stüdyolara lisansla. Kredi çek, yatırımcı bul, yayıncılara sunum yap, filmler, markalar ve spor ligleri için lisanslar al, halka arz ol ve yan şirketler kur. Rakip stüdyolar aynı oyuncular için yarışır, basın oyunlarını inceler ve olaylar, ekip içi çatışmalardan davalara kadar senden kararlar ister.
+
+Çıkıştan sonra
+Oyunlarını yamalar, DLC'ler, güncellemeler ve sezon kartlarıyla canlı tut, çevrim içi oyunlar için sunucular işlet, port ve remaster sürümler yayınla, turnuvalar ve sponsorlarla e-spor ligleri kur. Ödüller, listeler ve stüdyonun tarihçesi ne kadar yol kat ettiğini gösterir.
+
+Kendi temponda
+* Zaman ancak bir sonraki haftayı başlattığında ilerler
+* 21 otomasyon kuralı, istersen rutin işleri senin yerine halleder
+* Steam Deck dahil tam kontrolcü desteği
+* 30 dilde mevcut
+* 28 başarım ve Steam Bulut'ta kayıtlar

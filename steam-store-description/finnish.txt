@@ -1,0 +1,26 @@
+Perusta pelistudio, tee pelejä ja johda yrityksesi vuosikymmenten läpi. Gold Master on peliteollisuuteen sijoittuva yrityssimulaatio: sinä päätät, mitä studiosi kehittää, kuka sen parissa työskentelee ja miten se tavoittaa pelaajat, viikko kerrallaan.
+
+Perusta studiosi
+Valitse nimi, logo ja väri, filosofia (pelattavuus, teknologia, grafiikka tai liiketoiminta) ja yksi kuudesta sijainnista Berliinistä Souliin. Aloita vuonna 1980 kolikkopelien aikakaudella tai milloin tahansa vuoteen 2010 asti, yksin tai pienen tiimin kanssa.
+
+Tee pelejä omalla tavallasi
+* 32 lajityyppiä ja seitsemän alustaa PC:stä ja konsoleista mobiiliin, VR:ään ja pilveen
+* Tasapainota pelattavuutta, grafiikkaa, teknologiaa, ääntä, tarinaa ja tekoälyä kehityksen aikana
+* Myy pelisi kertamaksulla, tee siitä ilmainen tai pyöritä sitä tilauksena – versioineen, ennakkotilauksineen, ennakkojulkaisuineen ja alueellisine julkaisuineen
+* Suunnittele trailerit, kampanjat ja messuesiintymiset ja seuraa, kuinka toivelista kasvaa ennen julkaisua
+
+Johda väkeäsi
+Palkkaa ohjelmoijia, pelisuunnittelijoita, graafikoita, äänisuunnittelijoita, QA-testaajia, markkinointipäälliköitä ja tutkijoita. Jokaisella on omat taitonsa, persoonallisuutensa ja palkkatoiveensa, he kehittyvät kurssien ja uraportaiden kautta ja tulevat toimeen kollegoidensa kanssa – tai eivät. Rakenna toimistosi 20 huonetyypistä ja anna kaikille työpöytä.
+
+Pyöritä yritystä
+Tutki uutta teknologiaa, rakenna oma pelimoottorisi ja lisensoi se muille studioille. Ota lainaa, houkuttele sijoittajia, esittele ideoitasi julkaisijoille, hanki lisenssejä elokuviin, brändeihin ja urheilusarjoihin, listaudu pörssiin ja perusta tytäryhtiöitä. Kilpailevat studiot taistelevat samoista pelaajista, lehdistö arvioi pelisi ja tapahtumat vaativat päätöksiä tiimiriidoista oikeusjuttuihin.
+
+Julkaisun jälkeen
+Pidä pelisi hengissä korjauspäivityksillä, DLC:illä, päivityksillä ja kausipasseilla, ylläpidä palvelimia verkkopeleille, julkaise käännöksiä muille alustoille ja remastereita ja rakenna e-urheilusarjoja turnauksineen ja sponsoreineen. Palkinnot, listat ja studiosi kronikka kertovat, kuinka pitkälle olet päässyt.
+
+Omaan tahtiisi
+* Aika kuluu vain, kun aloitat seuraavan viikon
+* 21 automaatiosääntöä hoitaa rutiinityöt puolestasi, jos haluat
+* Täysi peliohjaintuki, myös Steam Deckillä
+* Saatavilla 30 kielellä
+* 28 saavutusta ja tallennukset Steam Cloudissa

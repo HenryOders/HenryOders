@@ -1,0 +1,26 @@
+Fondez un studio de jeux vidéo, créez des jeux et menez votre entreprise à travers les décennies. Gold Master est une simulation économique consacrée à l'industrie du jeu vidéo : vous décidez de ce que votre studio développe, de qui y travaille et de la manière dont vos jeux atteignent les joueurs, semaine après semaine.
+
+Fondez votre studio
+Choisissez un nom, un logo et une couleur, une philosophie (gameplay, technologie, graphismes ou business) et l'un des six sites, de Berlin à Séoul. Commencez en 1980, à l'époque des bornes d'arcade, ou à n'importe quel moment jusqu'en 2010, en développeur solo ou avec une petite équipe.
+
+Créez des jeux à votre façon
+* 32 genres et sept plateformes, du PC et des consoles au mobile, à la VR et au cloud
+* Équilibrez gameplay, graphismes, technologie, audio, scénario et IA pendant le développement
+* Vendez votre jeu une seule fois, rendez-le free-to-play ou exploitez-le par abonnement, avec des éditions, des précommandes, l'accès anticipé et des sorties régionales
+* Planifiez bandes-annonces, campagnes et participations à des salons, et regardez la liste de souhaits grandir avant la sortie
+
+Dirigez vos équipes
+Recrutez des programmeurs, game designers, artistes, sound designers, testeurs QA, responsables marketing et chercheurs. Chacun a ses compétences, sa personnalité et ses prétentions salariales, progresse grâce à des formations et des étapes de carrière, et s'entend bien avec ses collègues… ou pas. Aménagez vos locaux parmi 20 types de pièces et donnez un bureau à chacun.
+
+Gérez l'entreprise
+Recherchez de nouvelles technologies, créez votre propre moteur et vendez-en la licence à d'autres studios. Contractez des prêts, faites entrer des investisseurs, présentez vos projets aux éditeurs, obtenez des licences de films, de marques et de ligues sportives, entrez en Bourse et créez des filiales. Des studios rivaux se disputent les mêmes joueurs, la presse critique vos jeux et des événements exigent des décisions, des conflits d'équipe aux procès.
+
+Après la sortie
+Faites vivre vos jeux avec des correctifs, des DLC, des mises à jour et des season pass, gérez des serveurs pour vos jeux en ligne, publiez des portages et des remasters, et créez des ligues d'esport avec tournois et sponsors. Récompenses, classements et une chronique de votre studio montrent le chemin parcouru.
+
+À votre rythme
+* Le temps n'avance que lorsque vous lancez la semaine suivante
+* 21 règles d'automatisation vous déchargent des tâches routinières si vous le souhaitez
+* Prise en charge complète des manettes, y compris sur Steam Deck
+* Disponible en 30 langues
+* 28 succès et sauvegardes dans Steam Cloud
