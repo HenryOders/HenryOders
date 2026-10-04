@@ -1,0 +1,240 @@
+<title>Gold Master Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: eine vertikale Build-Spur. Jede Version ist ein "Build" mit Versionsnummer links, Inhalt rechts; Status als Chip. */
+:root{
+  --bg:#f4f5f7; --surface:#ffffff; --fg:#1b1d24; --muted:#5c6170; --line:#dcdfe6;
+  --gold:#9a6a12; --gold-soft:#f3e6c8;
+  --done:#1f7a4d; --done-bg:#dcf1e5; --work:#a2560c; --work-bg:#fbe7d2; --plan:#3a5aa8; --plan-bg:#e0e7f8; --idea:#6b5a8e; --idea-bg:#ebe5f5;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#13151b; --surface:#1b1e26; --fg:#e8e9ee; --muted:#9aa0ae; --line:#2c303b;
+  --gold:#e0b04f; --gold-soft:#3a2f17;
+  --done:#6fd39f; --done-bg:#16352a; --work:#f0a560; --work-bg:#3d2816; --plan:#93adf0; --plan-bg:#1f2a47; --idea:#c0aee6; --idea-bg:#2c2540;
+  color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#13151b; --surface:#1b1e26; --fg:#e8e9ee; --muted:#9aa0ae; --line:#2c303b;
+  --gold:#e0b04f; --gold-soft:#3a2f17;
+  --done:#6fd39f; --done-bg:#16352a; --work:#f0a560; --work-bg:#3d2816; --plan:#93adf0; --plan-bg:#1f2a47; --idea:#c0aee6; --idea-bg:#2c2540;
+  color-scheme:dark; }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:400 15px/1.6 var(--body);padding-inline:16px;padding-block:40px 64px}
+.wrap{max-width:860px;margin:0 auto;display:grid;gap:40px}
+header{display:grid;gap:12px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+h1{font:800 clamp(34px,6vw,54px)/1.05 var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.lede{color:var(--muted);max-width:62ch;margin:0}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+
+.chip{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 var(--body);padding:5px 9px;border-radius:999px;white-space:nowrap}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.done{color:var(--done);background:var(--done-bg)} .work{color:var(--work);background:var(--work-bg)}
+.plan{color:var(--plan);background:var(--plan-bg)} .idea{color:var(--idea);background:var(--idea-bg)}
+
+.phase{display:grid;gap:4px}
+.phase h2{font:700 13px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0;padding-bottom:10px;border-bottom:1px solid var(--line)}
+
+.track{list-style:none;margin:0;padding:0;display:grid}
+.build{display:grid;grid-template-columns:96px 1fr;gap:20px;padding-block:22px;border-bottom:1px solid var(--line)}
+.build:last-child{border-bottom:0}
+.ver{font:500 15px/1.3 var(--mono);color:var(--gold);font-variant-numeric:tabular-nums;padding-top:3px}
+.ver small{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+.body{min-width:0;display:grid;gap:10px}
+.head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 12px}
+.head h3{font:600 22px/1.2 var(--display);margin:0}
+.goal{margin:0;color:var(--muted);max-width:65ch}
+.body ul{margin:0;padding-left:18px;display:grid;gap:4px}
+.body li::marker{color:var(--gold)}
+
+.build.current{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding-inline:18px;margin-block:8px}
+.build.launch .ver{color:var(--fg)}
+.build.launch h3{color:var(--gold)}
+
+.note{background:var(--gold-soft);border-radius:10px;padding:16px 18px;display:grid;gap:6px}
+.note strong{font-family:var(--display)}
+.note p{margin:0}
+footer{color:var(--muted);font-size:13px}
+
+@media (max-width:560px){
+  .build{grid-template-columns:1fr;gap:6px}
+  .ver small{display:inline;margin-left:8px}
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Entwicklungsplan · Stand Oktober 2026</div>
+    <h1>Gold Master Roadmap</h1>
+    <p class="lede">Der Weg von der aktuellen Version 0.4.0 bis zum Steam-Release 1.0 und den großen Updates danach. Versionsnamen und Termine sind Planwerte und können sich verschieben.</p>
+    <div class="legend" aria-label="Legende">
+      <span class="chip done">Fertig</span><span class="chip work">In Arbeit</span><span class="chip plan">Geplant</span><span class="chip idea">Idee</span>
+    </div>
+  </header>
+
+  <section class="phase">
+    <h2>Phase 1 · Fundament</h2>
+    <ol class="track">
+      <li class="build current">
+        <div class="ver">0.4.0<small>jetzt</small></div>
+        <div class="body">
+          <div class="head"><h3>Gründerzeit</h3><span class="chip done">Fertig</span></div>
+          <p class="goal">Das spielbare Grundgerüst steht: ein komplettes Studio-Leben von 1980 bis heute.</p>
+          <ul>
+            <li>32 Genres, sieben Plattformen, sechs Standorte von Berlin bis Seoul</li>
+            <li>Team, Büro mit 20 Raumtypen, Engine & Forschung, Marketing, Finanzen, Charts, Chronik</li>
+            <li>Lizenzen, Börsengang, Tochterfirmen, Server, E-Sport, Updates und DLC</li>
+            <li>21 Automatisierungsregeln, 35 Erfolge, Spielstände mit Versions-Migration</li>
+            <li>Oberfläche in 30 Sprachen</li>
+          </ul>
+        </div>
+      </li>
+      <li class="build">
+        <div class="ver">0.5.0<small>Nov 2026</small></div>
+        <div class="body">
+          <div class="head"><h3>Feinschliff</h3><span class="chip work">In Arbeit</span></div>
+          <p class="goal">Neue Spieler sollen in den ersten 30 Minuten verstehen, was zu tun ist.</p>
+          <ul>
+            <li>Geführtes Tutorial für die erste Woche und das erste Spiel</li>
+            <li>Tooltips für jede Kennzahl und jeden Regler</li>
+            <li>Balancing der Wirtschaft: Gehälter, Verkaufszahlen, Kredite, Wertungen</li>
+            <li>Leistung bei großen Studios mit über 100 Mitarbeitern verbessern</li>
+          </ul>
+        </div>
+      </li>
+      <li class="build">
+        <div class="ver">0.6.0<small>Jan 2027</small></div>
+        <div class="body">
+          <div class="head"><h3>Dampfdruck</h3><span class="chip plan">Geplant</span></div>
+          <p class="goal">Die Steam-Fassung läuft vollständig: Electron-Build mit steamworks.js.</p>
+          <ul>
+            <li>Erfolge mit Steam synchronisieren</li>
+            <li>Spielstände in der Steam Cloud</li>
+            <li>Vollständige Controller-Steuerung und Prüfung für Steam Deck</li>
+            <li>Store-Text und Erfolgszahl angleichen: der Text nennt 28, im Spiel sind es 35</li>
+          </ul>
+        </div>
+      </li>
+      <li class="build">
+        <div class="ver">0.7.0<small>Mär 2027</small></div>
+        <div class="body">
+          <div class="head"><h3>Babylon</h3><span class="chip plan">Geplant</span></div>
+          <p class="goal">Alle 30 Sprachen sind geprüft und sehen gut aus.</p>
+          <ul>
+            <li>Korrekturlesen durch Muttersprachler, zuerst für Englisch, Chinesisch, Japanisch, Koreanisch und Russisch</li>
+            <li>Schriften für Chinesisch, Japanisch, Koreanisch und Thai einbinden</li>
+            <li>Rechts-nach-links-Layout für Arabisch</li>
+            <li>Lange Wörter (Deutsch, Finnisch, Ungarisch) dürfen keine Knöpfe sprengen</li>
+          </ul>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="phase">
+    <h2>Phase 2 · Auf dem Weg zum Release</h2>
+    <ol class="track">
+      <li class="build">
+        <div class="ver">0.8.0<small>Jun 2027</small></div>
+        <div class="body">
+          <div class="head"><h3>Messestand</h3><span class="chip plan">Geplant</span></div>
+          <p class="goal">Eine kostenlose Demo zum Steam Next Fest, um die Wunschliste wachsen zu lassen.</p>
+          <ul>
+            <li>Demo spielbar von 1980 bis 1990, Spielstand wird in die Vollversion übernommen</li>
+            <li>Trailer und neue Screenshots für die Store-Seite</li>
+            <li>Feedback-Knopf direkt im Spiel</li>
+          </ul>
+        </div>
+      </li>
+      <li class="build">
+        <div class="ver">0.9.0<small>Aug 2027</small></div>
+        <div class="body">
+          <div class="head"><h3>Release Candidate</h3><span class="chip plan">Geplant</span></div>
+          <p class="goal">Geschlossene Beta. Ab hier kommen keine neuen Funktionen mehr, nur noch Fehlerbehebungen.</p>
+          <ul>
+            <li>Beta-Zweig auf Steam für eingeladene Tester</li>
+            <li>Absturzberichte und Prüfung alter Spielstände</li>
+            <li>Lange Partien bis 2040 durchspielen und auf Fehler prüfen</li>
+          </ul>
+        </div>
+      </li>
+      <li class="build launch">
+        <div class="ver">1.0.0<small>Okt 2027</small></div>
+        <div class="body">
+          <div class="head"><h3>Gold Master</h3><span class="chip plan">Geplant</span></div>
+          <p class="goal">Der Release auf Steam. Wie in der Branche: der fertige Build, der ins Presswerk geht.</p>
+          <ul>
+            <li>Veröffentlichung für Windows, macOS und Linux</li>
+            <li>Launch-Rabatt und Day-One-Patch bereit</li>
+            <li>Neuer Erfolg „Gold Master“: Erreiche selbst Version 1.0 eines eigenen Spiels</li>
+          </ul>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="phase">
+    <h2>Phase 3 · Nach dem Release</h2>
+    <ol class="track">
+      <li class="build">
+        <div class="ver">1.1<small>Q1 2028</small></div>
+        <div class="body">
+          <div class="head"><h3>Konsolenkrieg</h3><span class="chip idea">Idee</span></div>
+          <p class="goal">Kostenloses Inhalts-Update rund um Hardware.</p>
+          <ul>
+            <li>Eigene Spielkonsole entwickeln, bepreisen und gegen Konkurrenten verkaufen</li>
+            <li>Exklusivverträge mit Plattformherstellern</li>
+            <li>Neue Ereignisse: Lieferengpässe, Hardware-Rückrufe, Messeskandale</li>
+          </ul>
+        </div>
+      </li>
+      <li class="build">
+        <div class="ver">1.2<small>Q2 2028</small></div>
+        <div class="body">
+          <div class="head"><h3>Werkstatt</h3><span class="chip idea">Idee</span></div>
+          <p class="goal">Modding über den Steam Workshop.</p>
+          <ul>
+            <li>Eigene Genres, Plattformen, Lizenzen und Ereignisse anlegen</li>
+            <li>Eigene Startszenarien teilen</li>
+            <li>Übersetzungen von der Community</li>
+          </ul>
+        </div>
+      </li>
+      <li class="build">
+        <div class="ver">1.3<small>Q3 2028</small></div>
+        <div class="body">
+          <div class="head"><h3>Weltbühne</h3><span class="chip idea">Idee</span></div>
+          <p class="goal">Mehr Welt und mehr Märkte.</p>
+          <ul>
+            <li>Neue Standorte, zum Beispiel Montréal, Warschau, Tokio und São Paulo</li>
+            <li>Regionale Vorlieben bei Genres und Plattformen</li>
+            <li>Lokalisierung der eigenen Spiele als Entscheidung mit Kosten und Nutzen</li>
+          </ul>
+        </div>
+      </li>
+      <li class="build">
+        <div class="ver">2.0<small>2029</small></div>
+        <div class="body">
+          <div class="head"><h3>Nächste Generation</h3><span class="chip idea">Idee</span></div>
+          <p class="goal">Das große Erweiterungs-Update.</p>
+          <ul>
+            <li>Zukunftsära nach 2030 mit neuen Technologien und Plattformen</li>
+            <li>Herausforderungs-Szenarien wie „Rette ein insolventes Studio“</li>
+            <li>Sandbox-Modus mit frei einstellbarem Startkapital und Marktbedingungen</li>
+          </ul>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <div class="note">
+    <strong>So arbeite ich mit dieser Roadmap</strong>
+    <p>Jede Version hat ein klares Ziel. Was nicht dazu passt, rutscht in eine spätere Version. Ab 0.9 kommen keine neuen Funktionen mehr hinzu, bis 1.0 erschienen ist.</p>
+  </div>
+
+  <footer>Gold Master · Spielversion 0.4.0 · Alle Termine sind Planwerte.</footer>
+</div>
