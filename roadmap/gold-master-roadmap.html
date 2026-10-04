@@ -38,18 +38,23 @@ h1{font:800 clamp(34px,6vw,54px)/1.05 var(--display);margin:0;text-wrap:balance;
 
 .phase{display:grid;gap:4px}
 .phase h2{font:700 13px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.phase-intro{margin:10px 0 0;color:var(--muted);max-width:65ch}
 
 .track{list-style:none;margin:0;padding:0;display:grid}
-.build{display:grid;grid-template-columns:96px 1fr;gap:20px;padding-block:22px;border-bottom:1px solid var(--line)}
+.build{display:grid;grid-template-columns:80px 1fr;gap:20px;padding-block:24px;border-bottom:1px solid var(--line)}
 .build:last-child{border-bottom:0}
-.ver{font:500 15px/1.3 var(--mono);color:var(--gold);font-variant-numeric:tabular-nums;padding-top:3px}
+.ver{font:500 16px/1.3 var(--mono);color:var(--gold);font-variant-numeric:tabular-nums;padding-top:3px}
 .ver small{display:block;color:var(--muted);font-size:12px;margin-top:4px}
-.body{min-width:0;display:grid;gap:10px}
+.body{min-width:0;display:grid;gap:12px}
 .head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 12px}
 .head h3{font:600 22px/1.2 var(--display);margin:0}
-.goal{margin:0;color:var(--muted);max-width:65ch}
-.body ul{margin:0;padding-left:18px;display:grid;gap:4px}
+.goal{margin:0;max-width:65ch}
+.body ul{margin:0;padding-left:18px;display:grid;gap:8px;max-width:65ch}
+.body li{color:var(--muted)}
+.body li b{color:var(--fg);font-weight:600}
 .body li::marker{color:var(--gold)}
+.done-when{margin:0;font-size:14px;color:var(--muted);border-top:1px dashed var(--line);padding-top:10px;max-width:65ch}
+.done-when b{color:var(--fg);font-weight:600}
 
 .build.current{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding-inline:18px;margin-block:8px}
 .build.launch .ver{color:var(--fg)}
@@ -68,9 +73,9 @@ footer{color:var(--muted);font-size:13px}
 
 <div class="wrap">
   <header>
-    <div class="eyebrow">Entwicklungsplan · Stand Oktober 2026</div>
+    <div class="eyebrow">Entwicklungsplan</div>
     <h1>Gold Master Roadmap</h1>
-    <p class="lede">Der Weg von der aktuellen Version 0.4.0 bis zum Steam-Release 1.0 und den großen Updates danach. Versionsnamen und Termine sind Planwerte und können sich verschieben.</p>
+    <p class="lede">Gold Master ist eine Wirtschaftssimulation über die Spielebranche. Diese Roadmap zeigt den Weg von der aktuellen Version 0.4.0 über den Steam-Release mit Version 1.0 bis zu den großen Updates danach. Jede Version hat ein klares Ziel und eine Bedingung, ab wann sie als fertig gilt.</p>
     <div class="legend" aria-label="Legende">
       <span class="chip done">Fertig</span><span class="chip work">In Arbeit</span><span class="chip plan">Geplant</span><span class="chip idea">Idee</span>
     </div>
@@ -78,58 +83,62 @@ footer{color:var(--muted);font-size:13px}
 
   <section class="phase">
     <h2>Phase 1 · Fundament</h2>
+    <p class="phase-intro">Das Spiel ist inhaltlich schon groß. In dieser Phase geht es darum, es verständlich, stabil und bereit für Steam zu machen.</p>
     <ol class="track">
       <li class="build current">
-        <div class="ver">0.4.0<small>jetzt</small></div>
+        <div class="ver">0.4.0<small>aktuell</small></div>
         <div class="body">
           <div class="head"><h3>Gründerzeit</h3><span class="chip done">Fertig</span></div>
-          <p class="goal">Das spielbare Grundgerüst steht: ein komplettes Studio-Leben von 1980 bis heute.</p>
+          <p class="goal">Das Grundgerüst steht. Man kann ein Studio gründen und es über Jahrzehnte führen, vom ersten Solo-Projekt in der Arcade-Ära bis zum börsennotierten Konzern mit Tochterfirmen.</p>
           <ul>
-            <li>32 Genres, sieben Plattformen, sechs Standorte von Berlin bis Seoul</li>
-            <li>Team, Büro mit 20 Raumtypen, Engine & Forschung, Marketing, Finanzen, Charts, Chronik</li>
-            <li>Lizenzen, Börsengang, Tochterfirmen, Server, E-Sport, Updates und DLC</li>
-            <li>21 Automatisierungsregeln, 35 Erfolge, Spielstände mit Versions-Migration</li>
-            <li>Oberfläche in 30 Sprachen</li>
+            <li><b>Spiele entwickeln:</b> 32 Genres und sieben Plattformen. Während der Entwicklung verteilt man den Schwerpunkt auf Gameplay, Grafik, Technik, Audio, Story und KI.</li>
+            <li><b>Studio führen:</b> sechs Standorte von Berlin bis Seoul, ein Büro aus 20 Raumtypen und Mitarbeiter mit eigenen Fähigkeiten, Persönlichkeiten und Gehaltswünschen.</li>
+            <li><b>Firma lenken:</b> Forschung, eigene Engine, Kredite, Investoren, Publisher, Lizenzen für Filme, Marken und Sportligen, Börsengang und Tochterfirmen.</li>
+            <li><b>Nach dem Release:</b> Patches, DLC, Season Passes, Server für Onlinespiele, Portierungen, Remaster und E-Sport-Ligen.</li>
+            <li><b>Komfort:</b> 21 Automatisierungsregeln, 35 Erfolge, Spielstände, die beim Update auf neue Versionen automatisch umgewandelt werden, und eine Oberfläche in 30 Sprachen.</li>
           </ul>
         </div>
       </li>
       <li class="build">
-        <div class="ver">0.5.0<small>Nov 2026</small></div>
+        <div class="ver">0.5.0</div>
         <div class="body">
           <div class="head"><h3>Feinschliff</h3><span class="chip work">In Arbeit</span></div>
-          <p class="goal">Neue Spieler sollen in den ersten 30 Minuten verstehen, was zu tun ist.</p>
+          <p class="goal">Gold Master hat viele Systeme. Neue Spieler dürfen davon nicht erschlagen werden. Diese Version macht den Einstieg leicht und sorgt dafür, dass sich jede Entscheidung fair anfühlt.</p>
           <ul>
-            <li>Geführtes Tutorial für die erste Woche und das erste Spiel</li>
-            <li>Tooltips für jede Kennzahl und jeden Regler</li>
-            <li>Balancing der Wirtschaft: Gehälter, Verkaufszahlen, Kredite, Wertungen</li>
-            <li>Leistung bei großen Studios mit über 100 Mitarbeitern verbessern</li>
+            <li><b>Tutorial:</b> Ein Mentor begleitet die erste Woche und das erste Spiel. Er erklärt nur das, was gerade gebraucht wird. Erfahrene Spieler können es überspringen.</li>
+            <li><b>Tooltips überall:</b> Jede Kennzahl und jeder Regler erklärt beim Darüberfahren, was er bewirkt und wie er sich auf das Spiel auswirkt.</li>
+            <li><b>Balancing:</b> Gehälter, Verkaufszahlen, Kreditzinsen und Wertungen werden so abgestimmt, dass weder schnelles Reichwerden noch eine Pleite ohne eigene Fehler möglich ist.</li>
+            <li><b>Leistung:</b> Auch Studios mit über 100 Mitarbeitern und vielen laufenden Spielen bleiben flüssig, wenn die nächste Woche startet.</li>
           </ul>
+          <p class="done-when"><b>Fertig, wenn:</b> eine Testperson ohne Vorwissen in 30 Minuten ihr erstes Spiel veröffentlicht, ohne nachfragen zu müssen.</p>
         </div>
       </li>
       <li class="build">
-        <div class="ver">0.6.0<small>Jan 2027</small></div>
+        <div class="ver">0.6.0</div>
         <div class="body">
           <div class="head"><h3>Dampfdruck</h3><span class="chip plan">Geplant</span></div>
-          <p class="goal">Die Steam-Fassung läuft vollständig: Electron-Build mit steamworks.js.</p>
+          <p class="goal">Die Steam-Fassung wird vollständig. Das Spiel läuft als eigenständige Anwendung (Electron) und nutzt die Steam-Funktionen über steamworks.js.</p>
           <ul>
-            <li>Erfolge mit Steam synchronisieren</li>
-            <li>Spielstände in der Steam Cloud</li>
-            <li>Vollständige Controller-Steuerung und Prüfung für Steam Deck</li>
-            <li>Store-Text und Erfolgszahl angleichen: der Text nennt 28, im Spiel sind es 35</li>
+            <li><b>Steam-Erfolge:</b> Alle Erfolge werden in Steam freigeschaltet und erscheinen im Profil der Spieler.</li>
+            <li><b>Steam Cloud:</b> Spielstände werden automatisch gesichert und lassen sich auf einem anderen PC oder dem Steam Deck weiterspielen.</li>
+            <li><b>Controller und Steam Deck:</b> Jedes Menü ist ohne Maus bedienbar. Ziel ist die Einstufung „Verifiziert“ für das Steam Deck.</li>
+            <li><b>Store-Seite angleichen:</b> Der Store-Text nennt 28 Erfolge, im Spiel gibt es aber 35. Beides muss übereinstimmen.</li>
           </ul>
+          <p class="done-when"><b>Fertig, wenn:</b> eine komplette Partie nur mit Controller auf dem Steam Deck gespielt werden kann und die Erfolge in Steam auftauchen.</p>
         </div>
       </li>
       <li class="build">
-        <div class="ver">0.7.0<small>Mär 2027</small></div>
+        <div class="ver">0.7.0</div>
         <div class="body">
           <div class="head"><h3>Babylon</h3><span class="chip plan">Geplant</span></div>
-          <p class="goal">Alle 30 Sprachen sind geprüft und sehen gut aus.</p>
+          <p class="goal">Die 30 Sprachen sind schon übersetzt. Jetzt sollen sie auch richtig klingen und sauber aussehen, damit Spieler weltweit das Spiel so erleben wie auf Deutsch.</p>
           <ul>
-            <li>Korrekturlesen durch Muttersprachler, zuerst für Englisch, Chinesisch, Japanisch, Koreanisch und Russisch</li>
-            <li>Schriften für Chinesisch, Japanisch, Koreanisch und Thai einbinden</li>
-            <li>Rechts-nach-links-Layout für Arabisch</li>
-            <li>Lange Wörter (Deutsch, Finnisch, Ungarisch) dürfen keine Knöpfe sprengen</li>
+            <li><b>Korrekturlesen:</b> Muttersprachler prüfen die Texte, zuerst die größten Märkte Englisch, Chinesisch, Japanisch, Koreanisch und Russisch.</li>
+            <li><b>Schriften:</b> Chinesisch, Japanisch, Koreanisch und Thai bekommen passende Schriftarten, damit keine leeren Kästchen erscheinen.</li>
+            <li><b>Arabisch:</b> Die Oberfläche wird für Arabisch gespiegelt und von rechts nach links gelesen.</li>
+            <li><b>Lange Wörter:</b> Sprachen wie Deutsch, Finnisch und Ungarisch haben sehr lange Wörter. Kein Knopf und kein Fenster darf dadurch überlaufen.</li>
           </ul>
+          <p class="done-when"><b>Fertig, wenn:</b> jede Sprache einmal komplett durchgeklickt wurde, ohne abgeschnittene oder fehlende Texte.</p>
         </div>
       </li>
     </ol>
@@ -137,41 +146,46 @@ footer{color:var(--muted);font-size:13px}
 
   <section class="phase">
     <h2>Phase 2 · Auf dem Weg zum Release</h2>
+    <p class="phase-intro">Jetzt geht es um Sichtbarkeit und Stabilität. Spieler sollen das Spiel kennenlernen und auf die Wunschliste setzen, bevor es erscheint.</p>
     <ol class="track">
       <li class="build">
-        <div class="ver">0.8.0<small>Jun 2027</small></div>
+        <div class="ver">0.8.0</div>
         <div class="body">
           <div class="head"><h3>Messestand</h3><span class="chip plan">Geplant</span></div>
-          <p class="goal">Eine kostenlose Demo zum Steam Next Fest, um die Wunschliste wachsen zu lassen.</p>
+          <p class="goal">Eine kostenlose Demo für das Steam Next Fest. Sie zeigt, was Gold Master besonders macht, und lässt die Wunschliste wachsen.</p>
           <ul>
-            <li>Demo spielbar von 1980 bis 1990, Spielstand wird in die Vollversion übernommen</li>
-            <li>Trailer und neue Screenshots für die Store-Seite</li>
-            <li>Feedback-Knopf direkt im Spiel</li>
+            <li><b>Demo-Umfang:</b> spielbar von 1980 bis 1990, also die komplette Arcade- und Heimcomputer-Ära. Der Spielstand lässt sich später in die Vollversion übernehmen.</li>
+            <li><b>Trailer und Screenshots:</b> Ein neuer Trailer zeigt den Weg vom kleinen Büro zum Konzern. Die Screenshots zeigen alle wichtigen Bereiche des Spiels.</li>
+            <li><b>Feedback im Spiel:</b> Ein Knopf, mit dem Spieler direkt Fehler oder Ideen melden können, inklusive Spielstand.</li>
           </ul>
+          <p class="done-when"><b>Fertig, wenn:</b> die Demo auf Steam freigegeben ist und während des Next Fest ohne kritische Fehler läuft.</p>
         </div>
       </li>
       <li class="build">
-        <div class="ver">0.9.0<small>Aug 2027</small></div>
+        <div class="ver">0.9.0</div>
         <div class="body">
           <div class="head"><h3>Release Candidate</h3><span class="chip plan">Geplant</span></div>
-          <p class="goal">Geschlossene Beta. Ab hier kommen keine neuen Funktionen mehr, nur noch Fehlerbehebungen.</p>
+          <p class="goal">Die geschlossene Beta. Ab dieser Version kommen keine neuen Funktionen mehr hinzu. Alle Kraft fließt in Fehlerbehebung und Stabilität.</p>
           <ul>
-            <li>Beta-Zweig auf Steam für eingeladene Tester</li>
-            <li>Absturzberichte und Prüfung alter Spielstände</li>
-            <li>Lange Partien bis 2040 durchspielen und auf Fehler prüfen</li>
+            <li><b>Beta auf Steam:</b> Eingeladene Tester spielen über einen eigenen Beta-Zweig und bekommen Updates automatisch.</li>
+            <li><b>Absturzberichte:</b> Fehler werden mit genug Informationen gemeldet, um sie nachstellen zu können.</li>
+            <li><b>Alte Spielstände:</b> Spielstände aus allen früheren Versionen müssen sich ohne Verlust laden lassen.</li>
+            <li><b>Langzeittest:</b> Partien von 1980 bis weit über 2030 hinaus werden durchgespielt, um Fehler zu finden, die erst spät auftreten.</li>
           </ul>
+          <p class="done-when"><b>Fertig, wenn:</b> es keine bekannten Fehler mehr gibt, die Spielstände beschädigen oder das Spiel abstürzen lassen.</p>
         </div>
       </li>
       <li class="build launch">
-        <div class="ver">1.0.0<small>Okt 2027</small></div>
+        <div class="ver">1.0.0</div>
         <div class="body">
           <div class="head"><h3>Gold Master</h3><span class="chip plan">Geplant</span></div>
-          <p class="goal">Der Release auf Steam. Wie in der Branche: der fertige Build, der ins Presswerk geht.</p>
+          <p class="goal">Der Release auf Steam. In der Spielebranche heißt der fertige Build, der ins Presswerk geht, „Gold Master“. Diese Version trägt den Namen des Spiels.</p>
           <ul>
-            <li>Veröffentlichung für Windows, macOS und Linux</li>
-            <li>Launch-Rabatt und Day-One-Patch bereit</li>
-            <li>Neuer Erfolg „Gold Master“: Erreiche selbst Version 1.0 eines eigenen Spiels</li>
+            <li><b>Plattformen:</b> Veröffentlichung für Windows, macOS und Linux.</li>
+            <li><b>Launch:</b> Ein Launch-Rabatt für Spieler mit dem Spiel auf der Wunschliste und ein bereitstehender Day-One-Patch für letzte Korrekturen.</li>
+            <li><b>Neuer Erfolg „Gold Master“:</b> Bringe eines deiner eigenen Spiele bis zur Version 1.0.</li>
           </ul>
+          <p class="done-when"><b>Fertig, wenn:</b> das Spiel auf Steam kaufbar ist.</p>
         </div>
       </li>
     </ol>
@@ -179,52 +193,53 @@ footer{color:var(--muted);font-size:13px}
 
   <section class="phase">
     <h2>Phase 3 · Nach dem Release</h2>
+    <p class="phase-intro">Kostenlose Updates, die das Spiel nach dem Release lebendig halten. Was genau kommt, hängt auch davon ab, was sich die Spieler wünschen.</p>
     <ol class="track">
       <li class="build">
-        <div class="ver">1.1<small>Q1 2028</small></div>
+        <div class="ver">1.1</div>
         <div class="body">
           <div class="head"><h3>Konsolenkrieg</h3><span class="chip idea">Idee</span></div>
-          <p class="goal">Kostenloses Inhalts-Update rund um Hardware.</p>
+          <p class="goal">Bisher entwickelt man Spiele für die Plattformen anderer. Mit diesem Update baut das Studio seine eigene Hardware.</p>
           <ul>
-            <li>Eigene Spielkonsole entwickeln, bepreisen und gegen Konkurrenten verkaufen</li>
-            <li>Exklusivverträge mit Plattformherstellern</li>
-            <li>Neue Ereignisse: Lieferengpässe, Hardware-Rückrufe, Messeskandale</li>
+            <li><b>Eigene Konsole:</b> Leistung, Preis und Startspiele festlegen und dann gegen die großen Hersteller antreten.</li>
+            <li><b>Exklusivverträge:</b> Andere Studios für die eigene Konsole gewinnen oder selbst Exklusivdeals mit Plattformherstellern abschließen.</li>
+            <li><b>Neue Ereignisse:</b> Lieferengpässe, Hardware-Rückrufe und Messeskandale.</li>
           </ul>
         </div>
       </li>
       <li class="build">
-        <div class="ver">1.2<small>Q2 2028</small></div>
+        <div class="ver">1.2</div>
         <div class="body">
           <div class="head"><h3>Werkstatt</h3><span class="chip idea">Idee</span></div>
-          <p class="goal">Modding über den Steam Workshop.</p>
+          <p class="goal">Die Community gestaltet mit. Über den Steam Workshop können Spieler eigene Inhalte bauen und teilen.</p>
           <ul>
-            <li>Eigene Genres, Plattformen, Lizenzen und Ereignisse anlegen</li>
-            <li>Eigene Startszenarien teilen</li>
-            <li>Übersetzungen von der Community</li>
+            <li><b>Eigene Inhalte:</b> neue Genres, Plattformen, Lizenzen und Ereignisse anlegen.</li>
+            <li><b>Szenarien:</b> eigene Startbedingungen erstellen und mit anderen teilen.</li>
+            <li><b>Übersetzungen:</b> Die Community kann Übersetzungen verbessern oder neue Sprachen hinzufügen.</li>
           </ul>
         </div>
       </li>
       <li class="build">
-        <div class="ver">1.3<small>Q3 2028</small></div>
+        <div class="ver">1.3</div>
         <div class="body">
           <div class="head"><h3>Weltbühne</h3><span class="chip idea">Idee</span></div>
-          <p class="goal">Mehr Welt und mehr Märkte.</p>
+          <p class="goal">Die Welt wird größer und vielfältiger. Märkte unterscheiden sich, und es zählt, wo man seine Spiele verkauft.</p>
           <ul>
-            <li>Neue Standorte, zum Beispiel Montréal, Warschau, Tokio und São Paulo</li>
-            <li>Regionale Vorlieben bei Genres und Plattformen</li>
-            <li>Lokalisierung der eigenen Spiele als Entscheidung mit Kosten und Nutzen</li>
+            <li><b>Neue Standorte:</b> zum Beispiel Montréal, Warschau, Tokio und São Paulo, jeweils mit eigenen Vor- und Nachteilen.</li>
+            <li><b>Regionale Vorlieben:</b> Jede Region bevorzugt andere Genres und Plattformen.</li>
+            <li><b>Lokalisierung als Entscheidung:</b> Übersetzungen der eigenen Spiele kosten Geld und Zeit, öffnen aber neue Märkte.</li>
           </ul>
         </div>
       </li>
       <li class="build">
-        <div class="ver">2.0<small>2029</small></div>
+        <div class="ver">2.0</div>
         <div class="body">
           <div class="head"><h3>Nächste Generation</h3><span class="chip idea">Idee</span></div>
-          <p class="goal">Das große Erweiterungs-Update.</p>
+          <p class="goal">Das große Erweiterungs-Update. Es erweitert die Zeitleiste in die Zukunft und bringt neue Arten, Gold Master zu spielen.</p>
           <ul>
-            <li>Zukunftsära nach 2030 mit neuen Technologien und Plattformen</li>
-            <li>Herausforderungs-Szenarien wie „Rette ein insolventes Studio“</li>
-            <li>Sandbox-Modus mit frei einstellbarem Startkapital und Marktbedingungen</li>
+            <li><b>Zukunftsära:</b> neue Technologien und Plattformen nach 2030.</li>
+            <li><b>Herausforderungen:</b> feste Szenarien mit Ziel, zum Beispiel „Rette ein Studio kurz vor der Insolvenz“.</li>
+            <li><b>Sandbox-Modus:</b> Startkapital, Konkurrenz und Marktbedingungen frei einstellen.</li>
           </ul>
         </div>
       </li>
@@ -232,9 +247,9 @@ footer{color:var(--muted);font-size:13px}
   </section>
 
   <div class="note">
-    <strong>So arbeite ich mit dieser Roadmap</strong>
-    <p>Jede Version hat ein klares Ziel. Was nicht dazu passt, rutscht in eine spätere Version. Ab 0.9 kommen keine neuen Funktionen mehr hinzu, bis 1.0 erschienen ist.</p>
+    <strong>So funktioniert diese Roadmap</strong>
+    <p>Jede Version hat ein Ziel. Was nicht dazu passt, rutscht in eine spätere Version. Ab 0.9 kommen keine neuen Funktionen mehr hinzu, bis 1.0 erschienen ist. Ideen in Phase 3 können sich durch Rückmeldungen von Spielern noch ändern.</p>
   </div>
 
-  <footer>Gold Master · Spielversion 0.4.0 · Alle Termine sind Planwerte.</footer>
+  <footer>Gold Master · aktuelle Spielversion 0.4.0</footer>
 </div>
