@@ -1010,6 +1010,24 @@
   .buero-kopf{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
   .buero-kopf h3{margin:0;}
   .buero-kopf .btn-small{margin-left:auto;}
+  /* Live-Büro */
+  .buero-kopf-knoepfe{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end;}
+  .buero-kopf .buero-kopf-knoepfe .btn-small{margin-left:0;}
+  .lb-rahmen{position:relative;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--panel2);margin-bottom:14px;}
+  .lb-canvas{display:block;width:100%;cursor:grab;touch-action:pan-y;-webkit-user-select:none;user-select:none;}
+  .lb-werkzeuge{position:absolute;right:10px;top:10px;display:flex;gap:6px;}
+  .lb-knopf{width:28px;height:28px;border-radius:7px;border:1px solid var(--border);background:color-mix(in srgb,var(--panel) 86%,transparent);color:var(--text);font:inherit;font-size:16px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;}
+  .lb-knopf:hover,.lb-knopf:focus-visible{border-color:var(--accent);color:var(--accent);}
+  .lb-legende{position:absolute;left:10px;bottom:8px;display:flex;flex-wrap:wrap;gap:3px 10px;max-width:calc(100% - 20px);font-size:10.5px;color:var(--muted);pointer-events:none;background:color-mix(in srgb,var(--panel) 78%,transparent);padding:4px 9px;border-radius:6px;}
+  .lb-legende i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:-1px;}
+  .lb-tip{position:fixed;z-index:9000;pointer-events:none;display:none;max-width:260px;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-family:var(--ui-font,inherit);font-size:12px;line-height:1.4;box-shadow:0 8px 24px rgba(0,0,0,.28);}
+  .lb-tip b{display:block;font-size:12.5px;margin-bottom:1px;}
+  .lb-tip .lb-tip-zeile{display:block;color:var(--muted);font-size:11px;}
+  .lb-kopf{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+  .lb-kopf h3{margin:0;}
+  .lb-kopf .btn-small{margin-left:auto;}
+  .lb-panel .lb-rahmen{margin-bottom:0;}
+  @media (max-width:760px){ .lb-legende{display:none;} }
   .buero-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);gap:16px;align-items:start;}
   .buero-seite{border:1px solid var(--border);border-radius:10px;background:var(--panel2);padding:12px 14px;min-width:0;}
   .bu-seite-kopf{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;}
@@ -6666,8 +6684,9 @@ const EINSTELLUNGEN_STANDARD={
   lautstaerke:50, klaenge:{klick:true,woche:true,ereignis:true,erfolg:true,schlecht:true}, hintergrundStumm:false,
   tasteLeertaste:true, tasteZiffern:true, hudZahlenRollen:true,
   wenigBewegung:false, farbenblind:false, kontrast:false,
+  liveBuero:true, liveDashboard:true,
 };
-const EINSTELLUNGEN_SCHALTER=["hintergrundStumm","tasteLeertaste","tasteZiffern","hudZahlenRollen","wenigBewegung","farbenblind","kontrast"];
+const EINSTELLUNGEN_SCHALTER=["hintergrundStumm","tasteLeertaste","tasteZiffern","hudZahlenRollen","wenigBewegung","farbenblind","kontrast","liveBuero","liveDashboard"];
 function einstellungenStandard(){ return JSON.parse(JSON.stringify(EINSTELLUNGEN_STANDARD)); }
 let settings=einstellungenStandard();
 let einstReiter="spiel";
@@ -6891,7 +6910,9 @@ function renderEinstellungen(){
         "Färbt Knöpfe, Markierungen und Hervorhebungen.")
       +gruppe("Textgröße",chips(textgroessen,settings.textSize,"setTextSize"))
       +gruppe("Fenster",`<div id="vollbild-picker" class="einst-chips"></div>`)
-      +gruppe("Kopfleiste",schalter(settings.hudZahlenRollen!==false,"schalterUmlegen('hudZahlenRollen')","Zahlen rollen bei Änderungen","Kasse, Team und Werte zählen sichtbar hoch oder runter."));
+      +gruppe("Kopfleiste",schalter(settings.hudZahlenRollen!==false,"schalterUmlegen('hudZahlenRollen')","Zahlen rollen bei Änderungen","Kasse, Team und Werte zählen sichtbar hoch oder runter."))
+      +gruppe("Live-Büro",`<div class="einst-schalter-liste">${schalter(settings.liveBuero!==false,"schalterUmlegen('liveBuero')","Live-Ansicht im Bereich Büro","Zeigt dein Gelände als bewegte 3D-Szene mit allen Räumen und Mitarbeitern.")}${schalter(settings.liveDashboard!==false,"schalterUmlegen('liveDashboard')","Live-Ansicht auf dem Dashboard","Kleine Ansicht deines Studios direkt unter den Kennzahlen.")}</div>`,
+        "Mit dem Mausrad zoomst du, mit gedrückter Maustaste verschiebst du die Ansicht. Ein Klick auf einen Raum öffnet seine Plätze.");
   } else if(einstReiter==="audio"){
     html=gruppe("Lautstärke",`<div class="einstellung-zeile"><input type="range" id="lautstaerke-regler" class="einstellung-regler" min="0" max="100" step="5" value="${settings.lautstaerke}" aria-label="Lautstärke" oninput="setLautstaerke(this.value,false)" onchange="setLautstaerke(this.value,true)"><span id="lautstaerke-wert" class="einstellung-wert"></span></div>`)
       +gruppe("Klänge",`<div class="einst-schalter-liste">${KLANG_ARTEN.map(k=>
@@ -11786,8 +11807,12 @@ function viewBuero(){
   <div class="panel buero-panel">
     <div class="buero-kopf">
       <h3>Gelände · ${esc(st.loc.name)}</h3><span class="dash-tag">${office.label.split("—")[0].trim()}</span>
-      ${freieMitarbeiter>0?`<button class="btn-small" onclick="autoPlaetzeZuweisen()">${icon('chair',13)} ${freieMitarbeiter} Mitarbeiter automatisch platzieren${totalCapacity-besetztePlaetze<freieMitarbeiter?` (nur ${Math.max(0,totalCapacity-besetztePlaetze)} Plätze frei)`:''}</button>`:''}
+      <div class="buero-kopf-knoepfe">
+        ${freieMitarbeiter>0?`<button class="btn-small" onclick="autoPlaetzeZuweisen()">${icon('chair',13)} ${freieMitarbeiter} Mitarbeiter automatisch platzieren${totalCapacity-besetztePlaetze<freieMitarbeiter?` (nur ${Math.max(0,totalCapacity-besetztePlaetze)} Plätze frei)`:''}</button>`:''}
+        <button class="btn-small ${settings.liveBuero!==false?'active':''}" onclick="schalterUmlegen('liveBuero')" aria-pressed="${settings.liveBuero!==false}">${icon('cube',13)} Live-Ansicht</button>
+      </div>
     </div>
+    ${settings.liveBuero!==false?lbHtml('buero'):''}
     <div class="buero-layout">
       <div class="campus-floor"><div class="campus-grid">
         ${roomInstances.map(buRaumKachel).join("")}
@@ -11814,6 +11839,1230 @@ function roomColor(key){
   const kat=ROOM_KATEGORIEN[key];
   return KATEGORIE_FARBEN[kat]||"#6b6f7d";
 }
+// ==== LIVE-BUERO START ====
+// ---------------- Live-Büro: das Gelände als animierte isometrische Szene ----------------
+// Alles wird zur Laufzeit gezeichnet, es gibt keine Bilddateien. Räume, Plätze und Belegung kommen
+// direkt aus dem Spielstand. Die Szene ist reine Anzeige und verändert nichts am Spiel.
+// Raumkoordinaten in Feldern: x läuft nach rechts unten, y nach links unten, z nach oben.
+const LB_P=7, LB_G=1.6, LB_S=LB_P+LB_G, LB_WAND=1.45, LB_AUSSEN=2.2, LB_RAND=5;
+const LIVE={cv:null,ctx:null,kontext:"buero",spiel:null,cssW:0,cssH:0,k:1,masse:{},ansichten:{},
+  szene:null,szeneSig:"",ebene:null,ebeneCtx:null,ebeneSig:"",leute:new Map(),status:new Map(),statusZeit:0,
+  hover:null,hoverSig:"",maus:null,ziehen:null,laeuft:false,t:0,letzte:0,letzteZeichnung:0,stempel:0,
+  sichtbar:true,io:null,ioZiel:null,tip:null,palette:null,startGeplant:false,ansicht:null,personenTreffer:[]};
+
+// ---- Farben ----
+function lbRgb(hex){ const n=parseInt(hex.slice(1,7),16); return [n>>16&255,n>>8&255,n&255]; }
+function lbFarbeHex(r,g,b){ return "#"+((1<<24)|(Math.round(r)<<16)|(Math.round(g)<<8)|Math.round(b)).toString(16).slice(1); }
+function lbMisch(a,b,t){ const x=lbRgb(a), y=lbRgb(b); return lbFarbeHex(x[0]+(y[0]-x[0])*t,x[1]+(y[1]-x[1])*t,x[2]+(y[2]-x[2])*t); }
+const lbTonCache=new Map();
+function lbTon(hex,f){
+  const key=hex+"|"+f; let v=lbTonCache.get(key);
+  if(v===undefined){ v=f>=0?lbMisch(hex,"#ffffff",f):lbMisch(hex,"#000000",-f); lbTonCache.set(key,v); }
+  return v;
+}
+function lbHell(){ return document.body.classList.contains("theme-light"); }
+function lbPalette(){
+  const hell=lbHell();
+  if(LIVE.palette&&LIVE.palette.hell===hell) return LIVE.palette;
+  LIVE.palette=hell?{
+    hell:true,grund1:"#e9eee9",grund2:"#dfe6df",gras:"#b5cd98",grasPunkt:"#a7c288",weg:"#d9d3c5",
+    platte:"#e6e1d6",platteSeite:"#b8ae9b",gang:"#e6e1d6",gangLinie:"#d9d3c6",
+    wand:"#f2eee6",wandRechts:"#ddd6c9",wandOben:"#fbfaf6",sockel:"#c9c1b2",
+    aussen:"#e6e0d3",aussenRechts:"#d3cbbb",fenster:"#bcd7e8",fensterHell:"#e2f0f8",rahmen:"#a3adb5",
+    holz:"#c69a6c",holzDunkel:"#8c6847",weiss:"#f3f1ec",metall:"#a2a9b2",dunkel:"#3b4049",polster:"#5f6b7c",
+    bildAus:"#2b3039",schatten:"rgba(60,45,30,0.16)",text:"#2a2620",textHell:"#ffffff",leer:"#dcd6ca",leerLinie:"#b9b09f",
+    pflanze:["#5f9a4f","#4f8a43","#76ad5c"],topf:"#c97c55",baum:["#6aa354","#5a9447","#7db463"],stamm:"#8a6243",
+  }:{
+    hell:false,grund1:"#11151a",grund2:"#0b0e12",gras:"#17231c",grasPunkt:"#1d2c23",weg:"#2a2c31",
+    platte:"#262a31",platteSeite:"#121418",gang:"#262a31",gangLinie:"#2d323a",
+    wand:"#3b404b",wandRechts:"#2f333c",wandOben:"#4b515d",sockel:"#2a2d34",
+    aussen:"#323741",aussenRechts:"#292d35",fenster:"#22384d",fensterHell:"#35577a",rahmen:"#4a5260",
+    holz:"#8a6545",holzDunkel:"#5c4330",weiss:"#d6d3cc",metall:"#727a85",dunkel:"#1e2127",polster:"#46505e",
+    bildAus:"#14171c",schatten:"rgba(0,0,0,0.34)",text:"#ecebe7",textHell:"#ffffff",leer:"#2c3038",leerLinie:"#454b56",
+    pflanze:["#3f7a3c","#346b33","#4f8c47"],topf:"#8e5a3f",baum:["#2f5e33","#28512c","#3a6d3c"],stamm:"#5a4030",
+  };
+  return LIVE.palette;
+}
+// Bodenbeläge je Raum: Muster, Farbe hell, Farbe dunkel
+const LB_BOEDEN={
+  dev:["teppich","#a9b8cc","#38445a"],qa:["teppich","#c3b2ae","#4a3b3b"],server:["doppel","#a7afb8","#262c34"],
+  motion:["matte","#69707a","#20242a"],sound:["teppich","#97a79c","#2e3a34"],marketing:["teppich","#d2c4a6","#4a4232"],
+  research:["fliesen","#d5dcdd","#384045"],kantine:["fliesen","#e6dcc8","#474034"],designer:["holz","#d9b78f","#5a4430"],
+  chef:["holz","#b98c62","#4e3726"],konferenz:["holz","#d0af85","#55402c"],kueche:["fliesen","#dedad1","#3b3d41"],
+  pause:["holz","#dbbe95","#5b4631"],musik:["teppich","#b0a2bf","#3b3346"],streaming:["teppich","#9a9cc4","#2f3150"],
+  hr:["teppich","#c7bdad","#433d35"],empfang:["fliesen","#e8e3da","#44464b"],lager:["beton","#c4c1ba","#33353a"],
+  gaming:["teppich","#ad98cc","#352a4c"],fitness:["gummi","#8a9a91","#24302a"],
+};
+function lbBodenFarbe(key){ const b=LB_BOEDEN[key]; return b?(lbHell()?b[1]:b[2]):(lbHell()?"#d8d2c6":"#30343c"); }
+
+// ---- Zeichenhilfen (Einheiten: ein Feld ist 32 breit und 16 hoch, eine Höheneinheit 16) ----
+function lbQuader(c,x,y,z,w,d,h,farbe,oben,rechts){
+  const x1=x+w, y1=y+d, zt=(z+h)*16, zb=z*16;
+  const ax=(x-y)*16, ay=(x+y)*8, bx=(x1-y)*16, by=(x1+y)*8, cx=(x1-y1)*16, cy=(x1+y1)*8, dx=(x-y1)*16, dy=(x+y1)*8;
+  c.fillStyle=oben||lbTon(farbe,0.16);
+  c.beginPath(); c.moveTo(ax,ay-zt); c.lineTo(bx,by-zt); c.lineTo(cx,cy-zt); c.lineTo(dx,dy-zt); c.closePath(); c.fill();
+  if(h<=0) return;
+  c.fillStyle=farbe;
+  c.beginPath(); c.moveTo(dx,dy-zt); c.lineTo(cx,cy-zt); c.lineTo(cx,cy-zb); c.lineTo(dx,dy-zb); c.closePath(); c.fill();
+  c.fillStyle=rechts||lbTon(farbe,-0.22);
+  c.beginPath(); c.moveTo(cx,cy-zt); c.lineTo(bx,by-zt); c.lineTo(bx,by-zb); c.lineTo(cx,cy-zb); c.closePath(); c.fill();
+}
+// Zeichnen auf eine sichtbare Fläche: danach gilt das Einheitsquadrat 0..1 (u nach rechts, v nach unten)
+function lbAufY(c,x0,x1,y,z0,z1){ c.transform((x1-x0)*16,(x1-x0)*8,0,(z1-z0)*16,(x0-y)*16,(x0+y)*8-z1*16); }
+function lbAufX(c,x,y0,y1,z0,z1){ c.transform((y1-y0)*16,-(y1-y0)*8,0,(z1-z0)*16,(x-y1)*16,(x+y1)*8-z1*16); }
+function lbAufBoden(c,x0,y0,x1,y1,z){ c.transform((x1-x0)*16,(x1-x0)*8,-(y1-y0)*16,(y1-y0)*8,(x0-y0)*16,(x0+y0)*8-(z||0)*16); }
+function lbFlaecheY(c,x0,x1,y,z0,z1,fn){ c.save(); lbAufY(c,x0,x1,y,z0,z1); fn(c); c.restore(); }
+function lbFlaecheX(c,x,y0,y1,z0,z1,fn){ c.save(); lbAufX(c,x,y0,y1,z0,z1); fn(c); c.restore(); }
+function lbFlaecheBoden(c,x0,y0,x1,y1,z,fn){ c.save(); lbAufBoden(c,x0,y0,x1,y1,z); fn(c); c.restore(); }
+function lbPunkt(x,y,z){ return [(x-y)*16,(x+y)*8-(z||0)*16]; }
+function lbOval(c,x,y,z,r,farbe){ const p=lbPunkt(x,y,z); c.fillStyle=farbe; c.beginPath(); c.ellipse(p[0],p[1],r*22.6,r*11.3,0,0,Math.PI*2); c.fill(); }
+function lbKreis(c,X,Y,r){ c.beginPath(); c.arc(X,Y,r,0,Math.PI*2); c.fill(); }
+function lbRR(c,x,y,w,h,r){
+  c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+}
+function lbBox(x0,y0,x1,y1,z0,z1){ return [(x0-y1)*16,(x0+y0)*8-z1*16,(x1-y0)*16,(x1+y1)*8-z0*16]; }
+function lbUeberlapp(a,b){ return a[0]<b[2]&&b[0]<a[2]&&a[1]<b[3]&&b[1]<a[3]; }
+// Umriss eines Quaders auf dem Bildschirm ist ein Sechseck mit immer denselben drei Kantenrichtungen.
+// Zwei Umrisse überlappen genau dann, wenn sich ihre Spannen in x-y, y-z und x-z überlappen.
+function lbHex(x0,y0,x1,y1,z0,z1){ return [x0-y1,x1-y0,y0-z1,y1-z0,x0-z1,x1-z0]; }
+function lbHexUeber(a,b){ return a[0]<b[1]&&b[0]<a[1]&&a[2]<b[3]&&b[2]<a[3]&&a[4]<b[5]&&b[4]<a[5]; }
+function lbPersonHex(x,y){ return lbHex(x-0.22,y-0.22,x+0.22,y+0.22,0,1.6); }
+function lbHash(...t){ return stabilZufall("lb",...t); }
+// Eigener Zufall für Bewegungen: die Anzeige soll die Zufallsfolge des Spiels nicht verschieben
+let lbZufallStand=2463534242;
+function lbZufall(){ let x=lbZufallStand; x^=x<<13; x^=x>>>17; x^=x<<5; lbZufallStand=x>>>0; return (lbZufallStand%1000003)/1000003; }
+
+// ---- Figuren ----
+const LB_HAUT=["#f2d3b6","#e8b996","#d49c73","#a8714d","#7b4e35","#f6dfcb"];
+const LB_HAAR=["#2a1d15","#4b3020","#7b4b28","#b98545","#e0c07a","#1b1b1d","#8d8d8d","#9c3a24","#3d2b52"];
+const LB_HOSE=["#2f3542","#3b4b6e","#4a3c30","#2a2b2f","#565c6b","#3d5146"];
+const LB_MUETZE=["#c9564b","#5b8fd6","#e8a33d","#3e9c8f","#8b6cc9"];
+function lbAussehen(m){
+  const z=k=>stabilZufall(m.id,"aussehen",k);
+  return {haut:LB_HAUT[Math.floor(z(1)*LB_HAUT.length)],haar:LB_HAAR[Math.floor(z(2)*LB_HAAR.length)],
+    hose:LB_HOSE[Math.floor(z(3)*LB_HOSE.length)],stil:Math.floor(z(4)*7),brille:z(5)<0.24,
+    muetze:LB_MUETZE[Math.floor(z(6)*LB_MUETZE.length)],hemd:ROLE_COLORS[m.rolle]||"#8a8f99",groesse:0.94+z(7)*0.12};
+}
+// Kopf mit Frisur; vorn: Gesicht sichtbar, links: schaut nach links
+function lbKopf(c,X,Y,a,vorn,links,lod){
+  const r=3.8, dx=links?-0.7:0.7;
+  if(!vorn&&a.stil===1){ c.fillStyle=a.haar; c.fillRect(X-3.5,Y-0.5,7,6.2); }
+  if(!vorn&&a.stil===5){ c.fillStyle=a.haar; c.fillRect(X-1,Y+1.2,2,5.2); }
+  c.fillStyle=a.haut; lbKreis(c,X,Y,r);
+  c.fillStyle=a.haar;
+  if(vorn){
+    if(a.stil===4){ lbKreis(c,X-2.4,Y-2.4,2.2); lbKreis(c,X+2.4,Y-2.4,2.2); lbKreis(c,X,Y-3.4,2.4); }
+    else if(a.stil!==3&&a.stil!==6){ c.beginPath(); c.arc(X,Y-0.3,r+0.35,Math.PI*1.04,Math.PI*1.96); c.closePath(); c.fill(); c.fillRect(X-r-0.3,Y-1.6,1.4,a.stil===1?6.4:2.6); c.fillRect(X+r-1.1,Y-1.6,1.4,a.stil===1?6.4:2.6); }
+    if(a.stil===2) lbKreis(c,X,Y-r-1.1,1.9);
+    if(a.stil===6){ c.fillStyle=a.muetze; c.beginPath(); c.arc(X,Y-0.6,r+0.45,Math.PI,Math.PI*2); c.closePath(); c.fill(); c.fillStyle=lbTon(a.muetze,-0.2); c.fillRect(X-r-0.4,Y-1.4,2*r+0.8,1.2); }
+    if(lod>1){
+      c.fillStyle="#1d1d22"; c.fillRect(X+dx-1.65,Y-0.1,0.95,1.15); c.fillRect(X+dx+0.7,Y-0.1,0.95,1.15);
+      if(a.brille){ c.fillStyle="rgba(25,25,30,0.75)"; c.fillRect(X+dx-2.3,Y-0.55,4.6,0.45); }
+    }
+  } else {
+    if(a.stil===3){ c.fillRect(X-3.2,Y+0.9,6.4,1.3); }
+    else if(a.stil===6){ c.beginPath(); c.arc(X,Y-0.2,r+0.2,0,Math.PI*2); c.fill(); c.fillStyle=a.muetze; c.beginPath(); c.arc(X,Y-0.5,r+0.5,Math.PI,Math.PI*2); c.closePath(); c.fill(); }
+    else { c.beginPath(); c.arc(X+(links?-0.25:0.25),Y-0.25,r+(a.stil===4?1:0.2),0,Math.PI*2); c.fill(); }
+    if(a.stil===2){ c.fillStyle=a.haar; lbKreis(c,X,Y-r-0.9,1.9); }
+  }
+}
+// Eine Figur als Bildtafel am Fußpunkt (stehend) oder Sitzpunkt (sitzend)
+function lbFigur(c,X,Y,a,o){
+  const lod=o.lod, hemd=a.hemd;
+  c.save(); c.translate(X,Y); if(a.groesse!==1) c.scale(a.groesse,a.groesse);
+  if(lod===0){
+    c.fillStyle=hemd; c.fillRect(-4,o.pose==="sitzt"?-10:-17,8,o.pose==="sitzt"?10:17);
+    c.fillStyle=a.haar; lbKreis(c,0,o.pose==="sitzt"?-13.5:-21,3.8);
+    c.restore(); return;
+  }
+  let kopfY;
+  if(o.pose==="sitzt"){
+    const tip=o.tippen?Math.sin(o.t*o.tippen)*0.65:0;
+    if(o.vorn){
+      c.fillStyle=a.hose; c.fillRect(-3.7,-1.2,7.4,3.6);
+      if(!o.untermTisch){ c.fillRect(-3.5,2.1,2.7,4.6); c.fillRect(0.8,2.1,2.7,4.6); c.fillStyle="#24262c"; c.fillRect(-3.8,6.1,3.2,1.2); c.fillRect(0.6,6.1,3.2,1.2); }
+    }
+    c.fillStyle=hemd; lbRR(c,-4.4,-10.8,8.8,11,2.4); c.fill();
+    c.fillStyle=lbTon(hemd,-0.14);
+    c.fillRect(-5.4,-9.9+tip,1.9,5.6); c.fillRect(3.5,-9.9-tip,1.9,5.6);
+    if(o.vorn){ c.fillStyle=a.haut; c.fillRect(-5.4,-4.5+tip,1.9,1.5); c.fillRect(3.5,-4.5-tip,1.9,1.5); }
+    if(o.tasse){ c.fillStyle="#f1efe9"; c.fillRect(o.links?-7.4:5.6,-6.4,2.1,2.3); }
+    kopfY=-14.5+(o.nicken?Math.sin(o.t*1.7+o.phase)*0.35:0);
+  } else {
+    const schnell=o.pose==="laeuft"?15:o.pose==="geht"?9:0;
+    const s=schnell?Math.sin(o.t*schnell+o.phase):0, hub=schnell?Math.abs(s)*(o.pose==="laeuft"?1.4:0.8):0;
+    c.fillStyle=a.hose;
+    c.fillRect(-3.1,-8-hub,2.8,8-Math.max(0,s)*2+hub*0.3); c.fillRect(0.3,-8-hub,2.8,8-Math.max(0,-s)*2+hub*0.3);
+    if(lod>1){ c.fillStyle="#24262c"; c.fillRect(-3.3,-1.2-Math.max(0,s)*2,3.2,1.3); c.fillRect(0.1,-1.2-Math.max(0,-s)*2,3.2,1.3); }
+    c.fillStyle=hemd; lbRR(c,-4.4,-18.4-hub,8.8,11,2.4); c.fill();
+    const arm=o.winken?-4:s*1.3;
+    c.fillStyle=lbTon(hemd,-0.14);
+    c.fillRect(-5.5,-17.6-hub+arm,1.9,7); c.fillRect(3.6,-17.6-hub-(o.winken?Math.sin(o.t*12)*2+3:arm),1.9,7);
+    c.fillStyle=a.haut; c.fillRect(-5.5,-11-hub+arm,1.9,1.6); c.fillRect(3.6,-11-hub-(o.winken?Math.sin(o.t*12)*2+3:arm),1.9,1.6);
+    if(o.tasse){ c.fillStyle="#f1efe9"; c.fillRect(o.links?-7.6:5.7,-12-hub,2.2,2.4); }
+    kopfY=-22.4-hub;
+  }
+  lbKopf(c,0,kopfY,a,o.vorn,o.links,lod);
+  c.restore();
+}
+// Kleine Statusblase über dem Kopf
+function lbBlase(c,X,Y,art,t,f){
+  c.save(); c.translate(X,Y); c.scale(f,f);
+  const farben={stress:"#e2645a",frage:"#e8a33d",urlaub:"#5bb6d6",kurs:"#6a9bd8",kuendigung:"#c9564b",moral:"#8d96a3"};
+  const puls=art==="stress"?1+Math.sin(t*6)*0.08:1;
+  c.scale(puls,puls);
+  c.fillStyle="rgba(0,0,0,0.25)"; lbKreis(c,0.4,0.6,5.4);
+  c.fillStyle=farben[art]||"#888"; lbKreis(c,0,0,5.2);
+  c.beginPath(); c.moveTo(-1.6,4.4); c.lineTo(0,7.4); c.lineTo(1.6,4.4); c.closePath(); c.fill();
+  c.fillStyle="#ffffff";
+  if(art==="stress"){ c.fillRect(-0.85,-3.4,1.7,4.3); c.fillRect(-0.85,1.6,1.7,1.6); }
+  else if(art==="frage"){ c.font="bold 8px sans-serif"; c.textAlign="center"; c.textBaseline="middle"; c.fillText("?",0,0.4); }
+  else if(art==="urlaub"){ c.fillStyle="#ffe58a"; lbKreis(c,-1.2,-1,2); c.fillStyle="#ffffff"; c.fillRect(-3,1.8,6,1); }
+  else if(art==="kurs"){ c.fillRect(-3,-2.4,2.7,4.6); c.fillRect(0.3,-2.4,2.7,4.6); }
+  else if(art==="kuendigung"){ c.fillRect(-3.2,-2.2,6.4,4.4); c.fillStyle=farben.kuendigung; c.beginPath(); c.moveTo(-3.2,-2.2); c.lineTo(0,0.6); c.lineTo(3.2,-2.2); c.lineTo(3.2,-1.2); c.lineTo(0,1.6); c.lineTo(-3.2,-1.2); c.closePath(); c.fill(); }
+  else if(art==="moral"){ c.fillStyle="#e9eef3"; lbKreis(c,-1.4,-0.8,2); lbKreis(c,1.3,-0.6,2.2); c.fillRect(-3,-0.2,6,1.8); c.fillStyle="#7fb3e0"; c.fillRect(-1.8,2.1,0.8,1.4); c.fillRect(0.6,2.1,0.8,1.4); }
+  c.restore();
+}
+
+// ---- Bildschirminhalte (im Einheitsquadrat der Bildschirmfläche) ----
+const LB_CODE=["#7ec8e3","#c3e88d","#f78c6c","#c792ea","#ffcb6b","#89ddff"];
+const LB_SCHIRM_FARBE={prog:"#2f5d7e",art:"#5a3f6e",design:"#b9c3cf",sound:"#1f5a4c",qa:"#2a4a6a",marketing:"#d9cfb6",research:"#1c4a44"};
+function lbBildschirm(c,art,t,ph,an){
+  if(LIVE.lod<2){ c.fillStyle=an?(LB_SCHIRM_FARBE[art]||"#2f5d7e"):"#1b2029"; c.fillRect(0.05,0.07,0.9,0.86); return; }
+  c.fillStyle=an?"#0f1620":"#151a22"; c.fillRect(0.05,0.07,0.9,0.86);
+  if(!an){ c.fillStyle="rgba(140,170,220,0.22)"; const p=(t*0.08+ph)%1; c.fillRect(0.15+p*0.55,0.42+Math.sin(t*0.9+ph*6)*0.2,0.14,0.14); return; }
+  if(art==="prog"){
+    const off=(t*0.9+ph*7)%1;
+    for(let i=0;i<7;i++){
+      const zeile=Math.floor(t*0.9+ph*7)+i, y=0.12+(i-off)*0.12;
+      if(y<0.1||y>0.86) continue;
+      const ein=(lbHash(zeile,ph,"e")*3|0)*0.07, w=0.18+lbHash(zeile,ph,"w")*0.48;
+      c.fillStyle=LB_CODE[(zeile*7+(ph*10|0))%LB_CODE.length]; c.fillRect(0.12+ein,y,Math.min(w,0.78-ein),0.055);
+    }
+  } else if(art==="art"){
+    c.fillStyle="#24324a"; c.fillRect(0.05,0.07,0.9,0.86);
+    const f=["#e8a33d","#c26fd1","#5b8fd6","#6fd1a8"];
+    for(let i=0;i<4;i++){ c.fillStyle=f[i]; c.fillRect(0.1,0.14+i*0.18,0.1,0.13); }
+    c.fillStyle="#d9c4a0"; c.fillRect(0.42,0.2,0.22,0.22); c.fillStyle="#c26fd1"; c.fillRect(0.36,0.44,0.34,0.36);
+    const p=(Math.sin(t*1.3+ph*5)+1)/2; c.fillStyle="#ffffff"; c.fillRect(0.3+p*0.5,0.3+Math.cos(t*1.7+ph)*0.2+0.2,0.05,0.07);
+  } else if(art==="design"){
+    c.fillStyle="#e9edf2"; c.fillRect(0.05,0.07,0.9,0.86);
+    c.fillStyle="#9fb2c8"; c.fillRect(0.12,0.14,0.76,0.1); c.fillRect(0.12,0.3,0.34,0.5); c.fillRect(0.52,0.3,0.36,0.22);
+    c.fillStyle="#e8a33d"; const p=((t*0.35+ph)%1); c.fillRect(0.52,0.58,0.36*p,0.08); c.fillStyle="#5b8fd6"; c.fillRect(0.52,0.72,0.22,0.08);
+  } else if(art==="sound"){
+    c.fillStyle="#102018"; c.fillRect(0.05,0.07,0.9,0.86);
+    for(let i=0;i<16;i++){ const h=0.08+Math.abs(Math.sin(t*4+i*0.7+ph*9))*0.32*(0.6+lbHash(i,ph)*0.6); c.fillStyle=i%2?"#3e9c8f":"#6fd1a8"; c.fillRect(0.09+i*0.052,0.5-h,0.036,h*2); }
+  } else if(art==="qa"){
+    c.fillStyle="#2a4a6a"; c.fillRect(0.05,0.07,0.9,0.5); c.fillStyle="#3c6e3a"; c.fillRect(0.05,0.57,0.9,0.36);
+    const p=(t*0.25+ph)%1; c.fillStyle="#f2d45c"; c.fillRect(0.1+p*0.7,0.47,0.09,0.1);
+    if(Math.sin(t*3+ph*11)>0.2){ c.fillStyle="#e2645a"; c.fillRect(0.68,0.18,0.14,0.14); }
+  } else if(art==="marketing"){
+    c.fillStyle="#f3efe6"; c.fillRect(0.05,0.07,0.9,0.86);
+    for(let i=0;i<5;i++){ const h=0.15+((Math.sin(t*0.8+i+ph*4)+1)/2)*0.45; c.fillStyle=i===4?"#d6c15b":"#c9a227"; c.fillRect(0.14+i*0.15,0.84-h,0.1,h); }
+  } else if(art==="research"){
+    c.fillStyle="#0e1a24"; c.fillRect(0.05,0.07,0.9,0.86);
+    c.fillStyle="#6fd1a8";
+    for(let i=0;i<14;i++){ const x=0.1+i*0.058, y=0.55-Math.sin(i*0.55+t*1.2+ph*5)*0.25; c.fillRect(x,y,0.05,0.05); }
+    c.fillStyle="#89ddff"; c.fillRect(0.1,0.8,0.8*((t*0.2+ph)%1),0.04);
+  } else {
+    c.fillStyle="#1d2a3a"; c.fillRect(0.05,0.07,0.9,0.86);
+    for(let i=0;i<5;i++){ c.fillStyle="#9fb2c8"; c.fillRect(0.12,0.16+i*0.14,0.3+lbHash(i,ph)*0.4,0.06); }
+  }
+}
+
+// ---- Bausteine der Einrichtung (Weltkoordinaten) ----
+function lbStuhl(c,x,y,blick,farbe,pal){
+  lbQuader(c,x-0.05,y-0.05,0,0.1,0.1,0.33,pal.metall);
+  lbQuader(c,x-0.22,y-0.22,0.33,0.44,0.44,0.08,farbe);
+  if(blick==="N") lbQuader(c,x-0.22,y+0.14,0.41,0.44,0.09,0.32,farbe);
+  else if(blick==="S") lbQuader(c,x-0.22,y-0.23,0.41,0.44,0.09,0.32,farbe);
+  else if(blick==="W") lbQuader(c,x+0.14,y-0.22,0.41,0.09,0.44,0.32,farbe);
+  else lbQuader(c,x-0.23,y-0.22,0.41,0.09,0.44,0.32,farbe);
+}
+function lbPflanzeZeichnen(c,x,y,g,pal,v){
+  lbQuader(c,x-0.17*g,y-0.17*g,0,0.34*g,0.34*g,0.34*g,pal.topf);
+  const p=lbPunkt(x,y,0.34*g), f=pal.pflanze;
+  c.fillStyle=f[1]; lbKreis(c,p[0]-3.4*g,p[1]-5*g,4.2*g); lbKreis(c,p[0]+3.6*g,p[1]-6*g,4*g);
+  c.fillStyle=f[0]; lbKreis(c,p[0],p[1]-9*g,4.8*g);
+  c.fillStyle=f[2]; lbKreis(c,p[0]+(v?1.6:-1.4)*g,p[1]-12.5*g,3.1*g);
+}
+function lbBaumZeichnen(c,x,y,g,pal){
+  lbQuader(c,x-0.12,y-0.12,0,0.24,0.24,0.9*g,pal.stamm);
+  const p=lbPunkt(x,y,0.9*g), f=pal.baum;
+  c.fillStyle=f[1]; lbKreis(c,p[0]-6*g,p[1]-6*g,9*g); lbKreis(c,p[0]+7*g,p[1]-5*g,8.5*g);
+  c.fillStyle=f[0]; lbKreis(c,p[0],p[1]-14*g,11*g);
+  c.fillStyle=f[2]; lbKreis(c,p[0]-3*g,p[1]-20*g,6*g);
+}
+function lbRegalZeichnen(c,x,y,w,d,h,pal,seite,v){
+  lbQuader(c,x,y,0,w,d,h,pal.holzDunkel);
+  const buecher=["#c9564b","#5b8fd6","#e8a33d","#3e9c8f","#c26fd1","#d6c15b","#8a9099"];
+  const fl=(cc)=>{
+    cc.fillStyle=lbTon(pal.holzDunkel,-0.35); cc.fillRect(0.05,0.06,0.9,0.88);
+    for(let r=0;r<3;r++){
+      let u=0.08;
+      while(u<0.88){ const bw=0.04+lbHash(x,y,r,u,v)*0.05, bh=0.18+lbHash(u,r,x)*0.08; cc.fillStyle=buecher[(lbHash(u,r,y,v)*buecher.length)|0]; cc.fillRect(u,0.08+r*0.29+(0.26-bh),Math.min(bw,0.9-u),bh); u+=bw+0.012; }
+      cc.fillStyle=pal.holzDunkel; cc.fillRect(0.05,0.34+r*0.29,0.9,0.03);
+    }
+  };
+  if(seite==="x") lbFlaecheX(c,x+w,y,y+d,0,h,fl); else lbFlaecheY(c,x,x+w,y+d,0,h,fl);
+}
+function lbWhiteboard(pal,art,ph){
+  return cc=>{
+    cc.fillStyle=pal.metall; cc.fillRect(0,0,1,1);
+    cc.fillStyle="#f8f8f5"; cc.fillRect(0.03,0.06,0.94,0.88);
+    if(art==="notizen"){ const f=["#ffd966","#f7a8c4","#a8e6cf","#a8c8f7"]; for(let i=0;i<10;i++){ cc.fillStyle=f[i%4]; cc.fillRect(0.07+(i%5)*0.18,0.14+Math.floor(i/5)*0.38+lbHash(i,ph)*0.08,0.13,0.26); } }
+    else if(art==="kurve"){ cc.fillStyle="#5b8fd6"; for(let i=0;i<12;i++){ cc.fillRect(0.08+i*0.07,0.75-Math.pow(i/11,1.6)*0.55,0.05,0.04); } cc.fillStyle="#e2645a"; cc.fillRect(0.08,0.8,0.8,0.025); }
+    else if(art==="formeln"){ cc.fillStyle="#3b4a6b"; for(let i=0;i<4;i++){ cc.fillRect(0.08,0.15+i*0.19,0.25+lbHash(i,ph)*0.5,0.05); cc.fillRect(0.12+lbHash(ph,i)*0.4,0.24+i*0.19,0.18,0.03); } }
+    else { cc.fillStyle="#3b4a6b"; for(let i=0;i<4;i++) cc.fillRect(0.08,0.16+i*0.19,0.3+lbHash(i,ph,"w")*0.5,0.05); cc.fillStyle="#e2645a"; cc.fillRect(0.65,0.2,0.22,0.22); }
+  };
+}
+function lbPoster(farbe,motiv,ph){
+  return cc=>{
+    cc.fillStyle="#1d1f24"; cc.fillRect(0,0,1,1);
+    cc.fillStyle=farbe; cc.fillRect(0.06,0.05,0.88,0.9);
+    cc.fillStyle=lbTon(farbe,-0.35);
+    if(motiv===0){ cc.fillRect(0.2,0.5,0.6,0.32); cc.fillStyle="#ffffff"; cc.fillRect(0.3,0.2,0.4,0.18); }
+    else if(motiv===1){ cc.fillRect(0.15,0.15,0.7,0.5); cc.fillStyle="#ffe58a"; cc.fillRect(0.55,0.2,0.18,0.18); }
+    else { for(let i=0;i<3;i++) cc.fillRect(0.15+i*0.25,0.3+i*0.12,0.18,0.5-i*0.12); }
+    cc.fillStyle="rgba(255,255,255,0.8)"; cc.fillRect(0.15,0.86,0.5,0.05);
+  };
+}
+function lbFensterReihe(pal,anzahl,nacht){
+  return cc=>{
+    for(let i=0;i<anzahl;i++){
+      const u=(i+0.12)/anzahl, w=0.76/anzahl;
+      cc.fillStyle=pal.rahmen; cc.fillRect(u-0.01,0.1,w+0.02,0.8);
+      cc.fillStyle=pal.fenster; cc.fillRect(u,0.13,w,0.74);
+      cc.fillStyle=pal.fensterHell; cc.fillRect(u+w*0.1,0.16,w*0.18,0.68);
+      if(nacht&&lbHash(i,anzahl,"stern")<0.5){ cc.fillStyle="rgba(255,255,255,0.55)"; cc.fillRect(u+w*(0.3+lbHash(i,"x")*0.5),0.2+lbHash(i,"y")*0.3,0.004,0.02); }
+      cc.fillStyle=pal.rahmen; cc.fillRect(u+w*0.48,0.13,w*0.04,0.74);
+    }
+  };
+}
+
+// ---- Szenenaufbau ----
+function lbSzeneSig(){
+  const office=OFFICES.find(o=>o.key===st.office)||OFFICES[0];
+  return [office.key,office.slots,st.rooms.map(r=>r.id+":"+r.key).join(","),lbHell()?1:0,st.studio||"",(st.awardsHistory||[]).length].join("|");
+}
+function lbRaumInfo(key){ return ROOMS.find(r=>r.key===key)||null; }
+// Baukasten für einen Raum: lokale Koordinaten 0..LB_P, Objekte bekommen Tiefe und Bildschirmrahmen
+function lbBauer(sz,plot){
+  const ox=plot.x, oy=plot.y, pal=sz.pal;
+  const b={plot,sz,pal,ox,oy,sitzNr:0,wandX:[],wandY:[]};
+  b.obj=(x0,y0,x1,y1,z1,zeichne,anim,opt)=>{
+    opt=opt||{};
+    const o={x0:ox+x0,y0:oy+y0,x1:ox+x1,y1:oy+y1,z0:opt.z0||0,z1,zeichne,anim:anim||null,aktiv:opt.aktiv||null,plot:plot.i,
+      d:opt.d!=null?opt.d:ox+oy+(x0+x1)/2+(y0+y1)/2+(opt.dz||0),fest:!opt.durchsichtig,st:0,zS:false,zA:false,vorne:null,animVor:null};
+    o.bb=opt.bb||lbBox(o.x0,o.y0,o.x1,o.y1,o.z0,o.z1+(opt.extraZ||0));
+    o.hx=lbHex(o.x0,o.y0,o.x1,o.y1,o.z0,o.z1+(opt.extraZ||0));
+    sz.objekte.push(o); if(o.anim) sz.animObjekte.push(o);
+    return o;
+  };
+  b.q=(x,y,z,w,d,h,farbe,oben,opt)=>b.obj(x,y,x+w,y+d,z+h,c=>lbQuader(c,ox+x,oy+y,z,w,d,h,farbe,oben),null,Object.assign({z0:z},opt||{}));
+  b.boden=fn=>sz.boeden.push(c=>fn(c,ox,oy));
+  b.pflanze=(x,y,g)=>{ const v=lbHash(plot.i,x,y)<0.5; return b.obj(x-0.2*g,y-0.2*g,x+0.2*g,y+0.2*g,1.3*g,c=>lbPflanzeZeichnen(c,ox+x,oy+y,g,pal,v),null,{bb:lbBox(ox+x-0.32*g,oy+y-0.32*g,ox+x+0.32*g,oy+y+0.32*g,0,1.4*g)}); };
+  // Wandschmuck auf der hinteren Wand: seite "x" ist die Wand entlang x, "y" die entlang y
+  b.wandDeko=(seite,von,bis,z0,z1,zeichne,anim,aktiv)=>{
+    const segs=seite==="x"?b.wandX:b.wandY;
+    let d=0; segs.forEach(s=>{ if(s.a<bis&&s.b>von) d=Math.max(d,s.o.d); });
+    d+=0.01;
+    if(seite==="x") return b.obj(von,0.12,bis,0.14,z1,c=>lbFlaecheY(c,ox+von,ox+bis,oy+0.121,z0,z1,cc=>zeichne(cc)),anim?(c,t)=>lbFlaecheY(c,ox+von,ox+bis,oy+0.121,z0,z1,cc=>anim(cc,t)):null,{d,z0,aktiv});
+    return b.obj(0.12,von,0.14,bis,z1,c=>lbFlaecheX(c,ox+0.121,oy+von,oy+bis,z0,z1,cc=>zeichne(cc)),anim?(c,t)=>lbFlaecheX(c,ox+0.121,oy+von,oy+bis,z0,z1,cc=>anim(cc,t)):null,{d,z0,aktiv});
+  };
+  // Weg von einem Punkt im Raum zur Tür (lokale Wegpunkte, Tür wird angehängt)
+  const wegWelt=weg=>{ const w=(weg||[]).map(p=>({x:ox+p[0],y:oy+p[1]})); w.push({x:ox+LB_P/2,y:oy+LB_P-0.35}); return w; };
+  // Arbeitsplatz: Tisch mit Bildschirm und Stuhl; (x,y) ist die Stuhlmitte
+  b.pult=(x,y,blick,weg,opt)=>{
+    opt=opt||{};
+    const nr=b.sitzNr++, cap=plot.cap||0;
+    const deskId=`${plot.key}#${plot.nr*cap+nr}`;
+    const sitz={id:deskId,x:ox+x,y:oy+y,blick,plot:plot.i,raum:plot.key,d:ox+oy+x+y,weg:wegWelt(weg),art:opt.art||null,vor:null,bb:null};
+    const tischF=opt.tisch||pal.weiss, stuhlF=opt.stuhl||pal.polster;
+    let tisch;
+    if(blick==="N"){
+      const tx=x-0.6, ty=y-1.07;
+      tisch=b.obj(tx,ty,tx+1.2,ty+0.62,1.08,c=>{
+        lbQuader(c,ox+tx+0.04,oy+ty+0.05,0,0.06,0.52,0.42,pal.metall); lbQuader(c,ox+tx+1.1,oy+ty+0.05,0,0.06,0.52,0.42,pal.metall);
+        lbQuader(c,ox+tx,oy+ty,0.42,1.2,0.62,0.05,tischF);
+        lbQuader(c,ox+tx+0.35,oy+ty+0.36,0.47,0.5,0.16,0.02,pal.dunkel);
+        if(opt.extra) opt.extra(c,ox+tx,oy+ty);
+        lbQuader(c,ox+x-0.05,oy+ty+0.14,0.47,0.1,0.06,0.13,pal.dunkel);
+        lbQuader(c,ox+x-0.4,oy+ty+0.08,0.6,0.8,0.07,0.48,pal.dunkel);
+        lbFlaecheY(c,ox+x-0.37,ox+x+0.37,oy+ty+0.151,0.63,1.05,cc=>{ cc.fillStyle=pal.bildAus; cc.fillRect(0,0,1,1); });
+      },(c,t)=>lbFlaecheY(c,ox+x-0.37,ox+x+0.37,oy+ty+0.152,0.63,1.05,cc=>lbSitzBildschirm(cc,sitz,t)),{aktiv:()=>lbSitzAktiv(sitz)});
+    } else {
+      const tx=x-1.07, ty=y-0.6;
+      tisch=b.obj(tx,ty,tx+0.62,ty+1.2,1.08,c=>{
+        lbQuader(c,ox+tx+0.05,oy+ty+0.04,0,0.52,0.06,0.42,pal.metall); lbQuader(c,ox+tx+0.05,oy+ty+1.1,0,0.52,0.06,0.42,pal.metall);
+        lbQuader(c,ox+tx,oy+ty,0.42,0.62,1.2,0.05,tischF);
+        lbQuader(c,ox+tx+0.36,oy+ty+0.35,0.47,0.16,0.5,0.02,pal.dunkel);
+        if(opt.extra) opt.extra(c,ox+tx,oy+ty);
+        lbQuader(c,ox+tx+0.14,oy+y-0.05,0.47,0.06,0.1,0.13,pal.dunkel);
+        lbQuader(c,ox+tx+0.08,oy+y-0.4,0.6,0.07,0.8,0.48,pal.dunkel);
+        lbFlaecheX(c,ox+tx+0.151,oy+y-0.37,oy+y+0.37,0.63,1.05,cc=>{ cc.fillStyle=pal.bildAus; cc.fillRect(0,0,1,1); });
+      },(c,t)=>lbFlaecheX(c,ox+tx+0.152,oy+y-0.37,oy+y+0.37,0.63,1.05,cc=>lbSitzBildschirm(cc,sitz,t)),{aktiv:()=>lbSitzAktiv(sitz)});
+    }
+    sitz.tisch=tisch;
+    sitz.stuhl=b.obj(x-0.23,y-0.23,x+0.23,y+0.23,0.75,c=>lbStuhl(c,ox+x,oy+y,blick,stuhlF,pal),null,{d:sitz.d+0.06});
+    sz.sitze.set(deskId,sitz);
+    return sitz;
+  };
+  // Sitzgelegenheit oder Stehplatz für Pausen
+  b.spot=(x,y,blick,pose,weg,opt)=>{
+    opt=opt||{};
+    const s={x:ox+x,y:oy+y,blick,pose,plot:plot.i,raum:plot.key,d:ox+oy+x+y+(opt.dz||0),weg:wegWelt(weg),art:opt.art||"pause",belegt:null,vor:null,untermTisch:!!opt.tisch,
+      sitzZ:opt.sitzZ!=null?opt.sitzZ:0.42,tun:opt.tun||null,paar:null};
+    sz.spots.push(s); if(s.art==="kaffee") sz.kaffee.push(s);
+    return s;
+  };
+  // Sofa aus Teilstücken je Sitzplatz, damit die Reihenfolge beim Zeichnen stimmt
+  b.sofa=(x,y,plaetze,blick,farbe,weg)=>{
+    const spots=[];
+    for(let i=0;i<plaetze;i++){
+      let sx,sy,fx,fy,fw,fd,lx,ly,lw,ld;
+      if(blick==="N"||blick==="S"){ sx=x+0.36+i*0.72; sy=y+0.4; fx=x+i*0.72; fy=y; fw=0.72; fd=0.8; lx=fx; lw=fw; ld=0.2; ly=blick==="N"?y+0.6:y; }
+      else { sx=x+0.4; sy=y+0.36+i*0.72; fx=x; fy=y+i*0.72; fw=0.8; fd=0.72; ly=fy; ld=fd; lw=0.2; lx=blick==="W"?x+0.6:x; }
+      const vorn=blick==="S"||blick==="E";
+      const sp=b.spot(sx,sy,blick,"sitzt",weg,{sitzZ:0.38});
+      b.obj(fx,fy,fx+fw,fy+fd,0.78,c=>{
+        lbQuader(c,ox+fx,oy+fy,0,fw,fd,0.32,farbe);
+        lbQuader(c,ox+lx,oy+ly,0.32,lw,ld,0.42,lbTon(farbe,-0.08));
+      },null,{d:sp.d+(vorn?-0.08:0.08)});
+      spots.push(sp);
+    }
+    return spots;
+  };
+  return b;
+}
+// Wände, Boden und Einrichtung eines gebauten Raums
+function lbRaumBauen(sz,plot){
+  const pal=sz.pal, room=lbRaumInfo(plot.key);
+  plot.cap=(room&&room.deskCapacity)||0;
+  plot.farbe=roomColor(plot.key);
+  const b=lbBauer(sz,plot), ox=plot.x, oy=plot.y;
+  // Hintere Wände in Stücken, damit Figuren davor und dahinter richtig erscheinen
+  const akzent=plot.farbe;
+  for(let a=0.12;a<LB_P-0.01;a+=1.75){
+    const e=Math.min(LB_P,a+1.75), aa=a;
+    const o=b.obj(aa,0,e,0.12,LB_WAND,c=>{
+      lbQuader(c,ox+aa,oy,0,e-aa,0.12,LB_WAND,pal.wand,pal.wandOben,pal.wandRechts);
+      lbFlaecheY(c,ox+aa,ox+e,oy+0.121,0,LB_WAND,cc=>{ cc.fillStyle=pal.sockel; cc.fillRect(0,0.93,1,0.07); cc.fillStyle=akzent; cc.fillRect(0,0.07,1,0.055); });
+    });
+    b.wandX.push({a:aa,b:e,o});
+  }
+  for(let a=0;a<LB_P-0.01;a+=1.75){
+    const e=Math.min(LB_P,a+1.75), aa=a;
+    const o=b.obj(0,aa,0.12,e,LB_WAND,c=>{
+      lbQuader(c,ox,oy+aa,0,0.12,e-aa,LB_WAND,pal.wand,pal.wandOben,pal.wandRechts);
+      lbFlaecheX(c,ox+0.121,oy+aa,oy+e,0,LB_WAND,cc=>{ cc.fillStyle=pal.sockel; cc.fillRect(0,0.93,1,0.07); cc.fillStyle=akzent; cc.fillRect(0,0.07,1,0.055); });
+    });
+    b.wandY.push({a:aa,b:e,o});
+  }
+  const layout=LB_LAYOUTS[plot.key]||LB_LAYOUTS._;
+  layout(b,plot);
+}
+// Boden eines Raums samt Muster und Raumnamen
+function lbRaumBoden(c,plot,pal,s){
+  const x=plot.x, y=plot.y, P=LB_P, b=LB_BOEDEN[plot.key], art=b?b[0]:"teppich";
+  const f=lbBodenFarbe(plot.key);
+  lbQuader(c,x,y,0,P,P,0.06,plot.farbe?lbTon(plot.farbe,-0.1):pal.leer,f,plot.farbe?lbTon(plot.farbe,-0.3):pal.leer);
+  lbFlaecheBoden(c,x,y,x+P,y+P,0.06,cc=>{
+    cc.fillStyle=lbTon(f,lbHell()?-0.06:0.07);
+    if(art==="holz"){ for(let i=1;i<14;i++){ cc.fillRect(0,i/14-0.004,1,0.008); for(let j=0;j<3;j++){ const u=(lbHash(plot.i,i,j)+j)/3; cc.fillRect(u,(i-1)/14,0.006,1/14); } } }
+    else if(art==="fliesen"){ for(let i=1;i<10;i++){ cc.fillRect(0,i/10-0.004,1,0.008); cc.fillRect(i/10-0.004,0,0.008,1); } }
+    else if(art==="doppel"){ for(let i=1;i<12;i++){ cc.fillRect(0,i/12-0.005,1,0.01); cc.fillRect(i/12-0.005,0,0.01,1); } }
+    else if(art==="beton"){ for(let i=0;i<9;i++){ cc.fillRect(lbHash(plot.i,i,"u")*0.9,lbHash(plot.i,i,"v")*0.9,0.06+lbHash(i,"g")*0.08,0.04); } cc.fillRect(0,0.5,1,0.006); cc.fillRect(0.5,0,0.006,1); }
+    else if(art==="gummi"||art==="matte"){ for(let i=1;i<7;i++){ cc.fillRect(0,i/7-0.004,1,0.008); cc.fillRect(i/7-0.004,0,0.008,1); } }
+    else { cc.fillStyle=lbTon(f,lbHell()?-0.09:0.1); cc.fillRect(0.06,0.06,0.88,0.012); cc.fillRect(0.06,0.928,0.88,0.012); cc.fillRect(0.06,0.06,0.012,0.88); cc.fillRect(0.928,0.06,0.012,0.88); }
+  });
+  // Fußmatte an der Tür
+  lbFlaecheBoden(c,x+P/2-0.55,y+P-0.42,x+P/2+0.55,y+P-0.02,0.065,cc=>{ cc.fillStyle=lbTon(plot.farbe||"#777777",-0.35); cc.fillRect(0,0,1,1); });
+  if(s>0.72){
+    const room=lbRaumInfo(plot.key);
+    if(room){
+      const name=lbText(room.name);
+      const p=lbPunkt(x+0.4,y+P-0.3,0.07);
+      c.save(); c.translate(p[0],p[1]); c.transform(1,0.5,-1,0.5,0,0);
+      c.font="600 7px sans-serif"; c.fillStyle=lbHell()?"rgba(40,35,28,0.5)":"rgba(236,235,231,0.5)"; c.textBaseline="alphabetic";
+      c.fillText(name.length>28?name.slice(0,27)+"…":name,0,0);
+      c.restore();
+    }
+  }
+}
+function lbLeerBoden(c,plot,pal,hover){
+  const x=plot.x, y=plot.y, P=LB_P;
+  lbQuader(c,x,y,0,P,P,0.02,pal.leer,pal.leer,pal.leer);
+  lbFlaecheBoden(c,x,y,x+P,y+P,0.021,cc=>{
+    cc.fillStyle=hover?LIVE.akzent:pal.leerLinie;
+    for(let i=0;i<10;i++){ const u=i/10; cc.fillRect(u+0.01,0.02,0.06,0.012); cc.fillRect(u+0.01,0.968,0.06,0.012); cc.fillRect(0.02,u+0.01,0.012,0.06); cc.fillRect(0.968,u+0.01,0.012,0.06); }
+    cc.fillRect(0.46,0.36,0.08,0.28); cc.fillRect(0.36,0.46,0.28,0.08);
+  });
+}
+function lbHofBoden(c,plot,pal){
+  const x=plot.x, y=plot.y, P=LB_P;
+  lbQuader(c,x,y,0,P,P,0.03,lbTon(pal.gras,-0.1),pal.gras);
+  lbFlaecheBoden(c,x,y,x+P,y+P,0.031,cc=>{ cc.fillStyle=pal.grasPunkt; for(let i=0;i<26;i++) cc.fillRect(lbHash(plot.i,i,"a"),lbHash(plot.i,i,"b"),0.03,0.015); cc.fillStyle=pal.weg; cc.fillRect(0.42,0,0.16,1); });
+}
+
+// Einrichtung je Raumtyp (lokale Koordinaten, Raum ist LB_P × LB_P Felder)
+const LB_LAYOUTS={
+  _(b){ b.pflanze(0.6,0.6,1); b.pflanze(6.3,0.6,0.9); },
+  dev(b,plot){
+    const xs=[1.5,2.82,4.14,5.46];
+    xs.forEach(x=>b.pult(x,2.25,"N",[[x,3.2],[x<3.5?0.55:6.5,3.2],[x<3.5?0.55:6.5,6.2]]));
+    xs.forEach(x=>b.pult(x,5.0,"N",[[x,5.95]]));
+    b.wandDeko("x",2.2,4.9,0.55,1.25,lbWhiteboard(b.pal,plot.nr%2?"kurve":"code",plot.i));
+    b.wandDeko("y",1.4,2.8,0.55,1.25,lbPoster("#5b8fd6",plot.nr%3,plot.i));
+    b.wandDeko("y",3.4,4.8,0.55,1.25,lbPoster("#e8a33d",(plot.nr+1)%3,plot.i));
+    b.pflanze(0.55,0.55,1.05); b.pflanze(6.45,0.55,0.9);
+    b.q(6.25,2.45,0,0.4,0.4,0.62,b.pal.weiss); b.q(6.3,2.5,0.62,0.3,0.3,0.36,"#7fb3e0","#a9d1f0");
+  },
+  designer(b,plot){
+    [1.55,2.95].forEach(x=>b.pult(x,2.25,"N",[[x,3.2],[4.2,3.2],[4.2,6.2]],{art:"design"}));
+    [1.55,2.95].forEach(x=>b.pult(x,5.0,"N",[[x,5.95]],{art:"design"}));
+    b.wandDeko("x",3.9,6.7,0.5,1.3,lbWhiteboard(b.pal,"notizen",plot.i));
+    b.wandDeko("x",0.5,2.4,0.6,1.25,lbPoster("#c26fd1",1,plot.i));
+    b.obj(4.7,2.4,5.9,3.2,1.0,c=>{ const x=b.ox+4.7,y=b.oy+2.4; lbQuader(c,x+0.1,y+0.1,0,0.08,0.6,0.7,b.pal.holzDunkel); lbQuader(c,x+1.0,y+0.1,0,0.08,0.6,0.7,b.pal.holzDunkel); lbQuader(c,x,y,0.7,1.2,0.8,0.06,b.pal.weiss); lbFlaecheBoden(c,x+0.2,y+0.15,x+1.0,y+0.65,0.765,cc=>{ cc.fillStyle="#5b8fd6"; cc.fillRect(0.1,0.2,0.5,0.1); cc.fillStyle="#e8a33d"; cc.fillRect(0.3,0.5,0.4,0.1); }); });
+    b.sofa(4.5,5.0,2,"N",lbHell()?"#c9a227":"#8a7020",[[4.8,6.2]]);
+    b.pflanze(6.45,4.2,1);
+  },
+  qa(b,plot){
+    const xs=[1.5,2.82,4.14,5.46];
+    xs.forEach(x=>b.pult(x,2.25,"N",[[x,3.1]],{art:"qa"}));
+    b.wandDeko("x",2.3,5.2,0.55,1.25,cc=>{ cc.fillStyle="#b88a5a"; cc.fillRect(0,0,1,1); const f=["#e2645a","#f2d45c","#ffffff"]; for(let i=0;i<12;i++){ cc.fillStyle=f[i%3]; cc.fillRect(0.06+(i%6)*0.155,0.12+Math.floor(i/6)*0.42,0.11,0.3); } });
+    b.q(0.2,3.6,0,0.6,2.2,0.42,b.pal.holzDunkel);
+    b.wandDeko("y",3.8,5.6,0.62,1.25,cc=>{ cc.fillStyle="#111"; cc.fillRect(0,0,1,1); },(cc,t)=>{ cc.fillStyle="#2a4a6a"; cc.fillRect(0.04,0.06,0.92,0.55); cc.fillStyle="#3c6e3a"; cc.fillRect(0.04,0.61,0.92,0.33); const p=(t*0.2)%1; cc.fillStyle="#f2d45c"; cc.fillRect(0.08+p*0.8,0.5,0.07,0.11); });
+    [[0.35,3.75],[0.35,4.35],[0.35,4.95]].forEach(([x,y],i)=>b.q(x+0.05,y,0.42,0.32,0.4,0.08,["#2a2b2f","#e9e7e2","#3b4b6e"][i]));
+    const sp=b.spot(2.2,4.7,"W","sitzt",[[2.2,5.9]],{sitzZ:0.2});
+    b.obj(1.85,4.4,2.55,5.0,0.4,c=>{ lbOval(c,b.ox+2.2,b.oy+4.7,0,0.36,lbHell()?"#c9564b":"#8a3a33"); lbOval(c,b.ox+2.2,b.oy+4.7,0.18,0.3,lbHell()?"#d96a5f":"#9c463e"); },null,{d:sp.d-0.1});
+    b.pflanze(6.45,6.3,1);
+  },
+  server(b,plot){
+    for(let r=0;r<2;r++) for(let i=0;i<4;i++){
+      const x=1.0+i*1.25, y=r?3.9:1.1, hh=1.8;
+      b.obj(x,y,x+1.0,y+0.85,hh,c=>{ lbQuader(c,b.ox+x,b.oy+y,0,1.0,0.85,hh,"#2b3038","#3a404a","#22262d"); lbFlaecheY(c,b.ox+x,b.ox+x+1.0,b.oy+y+0.851,0,hh,cc=>{ cc.fillStyle="#1a1d22"; cc.fillRect(0.06,0.04,0.88,0.92); cc.fillStyle="#2f343c"; for(let k=0;k<9;k++) cc.fillRect(0.1,0.07+k*0.1,0.8,0.07); }); },
+        (c,t)=>lbFlaecheY(c,b.ox+x,b.ox+x+1.0,b.oy+y+0.852,0,hh,cc=>{ for(let k=0;k<9;k++) for(let j=0;j<3;j++){ const an=Math.sin(t*(3+j*1.7)+k*1.3+i*2.1+r*5+j)>0.1; cc.fillStyle=an?(j===2?"#5bb6f6":"#6fe08a"):"#264030"; cc.fillRect(0.66+j*0.08,0.09+k*0.1,0.04,0.025); } }));
+    }
+    b.obj(5.9,5.1,6.75,6.5,1.4,c=>{ const x=b.ox+5.9,y=b.oy+5.1; lbQuader(c,x,y,0,0.85,1.4,1.4,b.pal.metall); lbFlaecheX(c,x+0.851,y,y+1.4,0,1.4,cc=>{ cc.fillStyle=lbTon(b.pal.metall,-0.3); for(let k=0;k<6;k++) cc.fillRect(0.1,0.12+k*0.13,0.8,0.05); }); });
+    b.wandDeko("x",0.6,6.8,1.15,1.35,cc=>{ cc.fillStyle="#2f343c"; cc.fillRect(0,0,1,1); cc.fillStyle="#e8a33d"; cc.fillRect(0,0.4,1,0.12); cc.fillStyle="#5b8fd6"; cc.fillRect(0,0.65,1,0.12); });
+  },
+  motion(b,plot){
+    [1.3,3.05,4.8].forEach((y,i)=>b.pult(1.82,y,"W",[[2.45,y],[2.45,6.3]],{art:"art"}));
+    b.boden((c,ox,oy)=>lbFlaecheBoden(c,ox+2.9,oy+0.8,ox+6.6,oy+5.9,0.065,cc=>{ cc.fillStyle="#2a2e36"; cc.fillRect(0,0,1,1); cc.fillStyle="#4a7fd0"; for(let i=0;i<=6;i++){ cc.fillRect(i/6-0.003,0,0.006,1); cc.fillRect(0,i/6-0.003,1,0.006); } }));
+    [[3.05,0.95],[6.45,0.95],[6.45,5.75]].forEach(([x,y])=>b.obj(x-0.2,y-0.2,x+0.2,y+0.2,1.55,c=>{ const p0=lbPunkt(b.ox+x,b.oy+y,0), p1=lbPunkt(b.ox+x,b.oy+y,1.3); c.strokeStyle=b.pal.metall; c.lineWidth=0.9; c.beginPath(); c.moveTo(p0[0]-4,p0[1]+1); c.lineTo(p1[0],p1[1]); c.lineTo(p0[0]+4,p0[1]+1); c.moveTo(p0[0],p0[1]+2); c.lineTo(p1[0],p1[1]); c.stroke(); lbQuader(c,b.ox+x-0.12,b.oy+y-0.1,1.3,0.24,0.2,0.18,"#22252b"); },
+      (c,t)=>{ const p=lbPunkt(b.ox+x,b.oy+y,1.42); c.fillStyle=Math.sin(t*2+x)>0?"#e2645a":"#6b2420"; lbKreis(c,p[0]+2,p[1],0.9); }));
+    const mx=4.75, my=3.35;
+    b.obj(mx-0.3,my-0.3,mx+0.3,my+0.3,1.6,()=>{},(c,t)=>lbMocapFigur(c,b.ox+mx,b.oy+my,t));
+  },
+  sound(b,plot){
+    [1.45,2.85,4.25].forEach((x,i)=>b.pult(x,4.35,"N",[[x,5.5]],{art:"sound",extra:(c,tx,ty)=>{ lbQuader(c,tx+0.1,ty+0.38,0.47,0.3,0.18,0.03,"#3a3f48"); }}));
+    b.obj(4.4,0.4,6.7,2.5,1.4,c=>{ const x=b.ox+4.4,y=b.oy+0.4; c.globalAlpha=0.32; lbQuader(c,x,y,0,2.3,2.1,1.4,"#8fc3e6","#c8e4f5","#6fa3c6"); c.globalAlpha=1; lbQuader(c,x,y+2.05,0,2.3,0.05,0.06,b.pal.metall); lbQuader(c,x+2.25,y,0,0.05,2.1,0.06,b.pal.metall); lbQuader(c,x+2.25,y+2.05,0,0.05,0.05,1.4,b.pal.metall); const p0=lbPunkt(x+1.1,y+1.0,0), p1=lbPunkt(x+1.1,y+1.0,1.05); c.strokeStyle="#22252b"; c.lineWidth=0.9; c.beginPath(); c.moveTo(p0[0],p0[1]); c.lineTo(p1[0],p1[1]); c.stroke(); c.fillStyle="#3a3f48"; lbKreis(c,p1[0],p1[1]-1.2,1.6); },null,{durchsichtig:true});
+    const panel=cc=>{ cc.fillStyle="#2a2d34"; cc.fillRect(0,0,1,1); cc.fillStyle="#3a3f48"; for(let i=0;i<6;i++) for(let j=0;j<3;j++) if((i+j)%2) cc.fillRect(i/6+0.01,j/3+0.02,1/6-0.02,1/3-0.04); };
+    b.wandDeko("x",0.4,4.2,0.4,1.3,panel); b.wandDeko("y",0.6,6.6,0.4,1.3,panel);
+    b.q(0.4,3.3,0,0.32,0.32,1.0,"#22252b"); b.q(5.4,3.3,0,0.32,0.32,1.0,"#22252b");
+  },
+  musik(b,plot){
+    [1.5,2.95].forEach(x=>b.pult(x,2.25,"N",[[x,3.1],[3.6,3.1]],{art:"sound",extra:(c,tx,ty)=>{ lbQuader(c,tx+0.08,ty+0.36,0.47,1.04,0.2,0.03,b.pal.weiss); }}));
+    b.obj(4.2,0.25,5.9,1.0,1.1,c=>{ const x=b.ox+4.2,y=b.oy+0.25; lbQuader(c,x,y,0,1.7,0.45,1.1,"#1d1f24"); lbQuader(c,x,y+0.45,0.62,1.7,0.28,0.08,"#1d1f24"); lbFlaecheBoden(c,x+0.04,y+0.47,x+1.66,y+0.7,0.701,cc=>{ cc.fillStyle="#f4f2ec"; cc.fillRect(0,0,1,1); cc.fillStyle="#111"; for(let i=1;i<22;i++) if(i%7!==3&&i%7!==0) cc.fillRect(i/22-0.008,0,0.016,0.55); }); });
+    b.obj(4.6,3.6,6.4,5.0,1.2,c=>{ const x=b.ox+4.6,y=b.oy+3.6; lbOval(c,x+0.9,y+0.6,0.38,0.42,"#d6d3cc"); lbQuader(c,x+0.55,y+0.25,0,0.7,0.7,0.36,"#9c3a24"); lbOval(c,x+0.9,y+0.6,0.36,0.34,"#e8e4dc"); lbQuader(c,x+0.1,y+0.9,0.2,0.4,0.4,0.25,"#9c3a24"); lbOval(c,x+0.3,y+1.1,0.46,0.2,"#e8e4dc"); const p=lbPunkt(x+1.5,y+0.3,1.05); c.fillStyle="#c9a227"; c.beginPath(); c.ellipse(p[0],p[1],6,2.6,0,0,Math.PI*2); c.fill(); const q=lbPunkt(x+0.3,y+0.3,0.95); c.beginPath(); c.ellipse(q[0],q[1],5,2.2,0,0,Math.PI*2); c.fill(); });
+    b.obj(6.3,1.7,6.7,2.1,1.2,c=>{ const p=lbPunkt(b.ox+6.5,b.oy+1.9,0); c.fillStyle="#7b4b28"; lbKreis(c,p[0],p[1]-6,3.6); lbKreis(c,p[0],p[1]-11,2.8); c.fillStyle="#3a2a1e"; c.fillRect(p[0]-0.7,p[1]-22,1.4,10); c.fillStyle="#1d1f24"; lbKreis(c,p[0],p[1]-8.5,1); });
+    const panel=cc=>{ cc.fillStyle="#3a3346"; cc.fillRect(0,0,1,1); cc.fillStyle="#4a4258"; for(let i=0;i<5;i++) cc.fillRect(i/5+0.02,0.05,1/5-0.04,0.9); };
+    b.wandDeko("y",0.8,6.4,0.4,1.3,panel);
+    b.pflanze(0.55,6.3,0.95);
+  },
+  marketing(b,plot){
+    [1.55,3.05,4.55].forEach(x=>b.pult(x,2.25,"N",[[x,3.1]],{art:"marketing"}));
+    b.wandDeko("y",0.8,2.4,0.5,1.3,lbPoster("#c9564b",0,plot.i)); b.wandDeko("y",2.8,4.4,0.5,1.3,lbPoster("#5b8fd6",1,plot.i)); b.wandDeko("y",4.8,6.4,0.5,1.3,lbPoster("#3e9c8f",2,plot.i));
+    b.wandDeko("x",2.0,4.9,0.55,1.25,lbWhiteboard(b.pal,"kurve",plot.i));
+    b.obj(6.2,1.0,6.6,1.25,1.5,c=>{ lbQuader(c,b.ox+6.2,b.oy+1.15,0,0.4,0.1,0.05,b.pal.metall); lbQuader(c,b.ox+6.22,b.oy+1.1,0.05,0.36,0.04,1.4,plot.farbe||"#c084fc"); });
+    b.obj(4.9,4.2,6.3,5.6,0.5,c=>{ lbOval(c,b.ox+5.6,b.oy+4.9,0.48,0.55,b.pal.weiss); lbQuader(c,b.ox+5.56,b.oy+4.86,0,0.08,0.08,0.48,b.pal.metall); });
+    b.spot(5.6,4.15,"S","steht",[[5.6,6.2]]); b.spot(5.6,5.65,"N","steht",[[5.6,6.2]]);
+    b.pflanze(0.55,6.3,1);
+  },
+  research(b,plot){
+    [1.55,2.95].forEach(x=>b.pult(x,2.25,"N",[[x,3.15],[4.05,3.15],[4.05,6.2]],{art:"research"}));
+    [1.55,2.95].forEach(x=>b.pult(x,5.0,"N",[[x,5.95]],{art:"research"}));
+    b.obj(4.3,0.3,6.7,1.0,0.95,c=>{ const x=b.ox+4.3,y=b.oy+0.3; lbQuader(c,x,y,0,2.4,0.7,0.5,b.pal.weiss); lbQuader(c,x+0.3,y+0.2,0.5,0.3,0.3,0.12,"#3b4049"); lbQuader(c,x+0.38,y+0.28,0.62,0.12,0.12,0.3,"#3b4049"); const f=["#6fd1a8","#5b8fd6","#e8a33d"]; for(let i=0;i<3;i++){ lbQuader(c,x+1.0+i*0.38,y+0.3,0.5,0.14,0.14,0.22,f[i]); } });
+    b.wandDeko("x",0.6,3.6,0.55,1.25,lbWhiteboard(b.pal,"formeln",plot.i));
+    b.obj(5.6,2.6,6.6,3.4,0.95,c=>{ const x=b.ox+5.6,y=b.oy+2.6; lbQuader(c,x,y,0,1.0,0.8,0.62,b.pal.weiss); lbQuader(c,x+0.15,y+0.12,0.62,0.7,0.56,0.32,"#d9dde2"); },(c,t)=>{ const p=lbPunkt(b.ox+6.1,b.oy+3.4,0.5); c.fillStyle=Math.sin(t*2)>0?"#e8a33d":"#a0662a"; lbKreis(c,p[0],p[1],1); },null);
+    b.pflanze(6.45,6.3,1);
+  },
+  chef(b,plot){
+    b.boden((c,ox,oy)=>lbFlaecheBoden(c,ox+1.4,oy+1.5,ox+5.6,oy+4.6,0.065,cc=>{ cc.fillStyle=lbHell()?"#a8443a":"#5e2622"; cc.fillRect(0,0,1,1); cc.fillStyle=lbHell()?"#d9b86a":"#8a7034"; cc.fillRect(0.04,0.06,0.92,0.03); cc.fillRect(0.04,0.91,0.92,0.03); }));
+    const x=3.5, y=3.55;
+    b.pult(x,y,"N",[[x,4.5]],{tisch:b.pal.holzDunkel,stuhl:"#3a2a22"});
+    b.obj(2.1,1.6,4.9,2.7,0.5,c=>{ lbQuader(c,b.ox+2.1,b.oy+2.28,0.42,0.8,0.62,0.05,b.pal.holzDunkel); lbQuader(c,b.ox+4.1,b.oy+2.28,0.42,0.8,0.62,0.05,b.pal.holzDunkel); lbQuader(c,b.ox+2.15,b.oy+2.3,0,0.7,0.58,0.42,b.pal.holzDunkel); lbQuader(c,b.ox+4.15,b.oy+2.3,0,0.7,0.58,0.42,b.pal.holzDunkel); },null,{d:b.ox+b.oy+3.5+2.48-0.01});
+    [[2.7,1.55],[4.3,1.55]].forEach(([sx,sy])=>b.obj(sx-0.3,sy-0.3,sx+0.3,sy+0.3,0.8,c=>{ lbQuader(c,b.ox+sx-0.3,b.oy+sy-0.3,0,0.6,0.6,0.36,"#6b3a2e"); lbQuader(c,b.ox+sx-0.3,b.oy+sy-0.3,0.36,0.6,0.14,0.38,"#7c4536"); }));
+    b.obj(0.4,0.15,2.0,0.55,1.4,c=>lbRegalZeichnen(c,b.ox+0.4,b.oy+0.15,1.6,0.4,1.4,b.pal,"y",plot.i));
+    const pokale=Math.min(6,(st.awardsHistory||[]).length);
+    b.obj(5.0,0.15,6.7,0.55,1.3,c=>{ const x0=b.ox+5.0,y0=b.oy+0.15; lbQuader(c,x0,y0,0,1.7,0.4,1.3,b.pal.holzDunkel); lbFlaecheY(c,x0,x0+1.7,y0+0.401,0,1.3,cc=>{ cc.fillStyle=lbTon(b.pal.holzDunkel,-0.35); cc.fillRect(0.04,0.05,0.92,0.9); cc.fillStyle=b.pal.holzDunkel; cc.fillRect(0.04,0.47,0.92,0.04); for(let i=0;i<pokale;i++){ const u=0.1+(i%3)*0.3, v=i<3?0.1:0.55; cc.fillStyle="#d4af37"; cc.fillRect(u,v+0.06,0.16,0.18); cc.fillRect(u+0.05,v+0.24,0.06,0.08); cc.fillRect(u+0.02,v+0.32,0.12,0.04); } }); });
+    b.wandDeko("y",1.0,3.4,0.45,1.3,cc=>lbFensterReihe(b.pal,2,!lbHell())(cc));
+    b.sofa(4.9,5.2,2,"N","#6b3a2e",[[4.9,6.3]]);
+    b.pflanze(0.55,6.3,1.1); b.pflanze(6.45,3.6,0.9);
+  },
+  konferenz(b,plot){
+    const tf=b.pal.holz;
+    [[1.4,2.8],[2.8,4.2],[4.2,5.6]].forEach(([a,e])=>b.obj(a,2.75,e,3.85,0.5,c=>{ lbQuader(c,b.ox+a,b.oy+2.75,0.45,e-a,1.1,0.06,tf); lbQuader(c,b.ox+(a+e)/2-0.06,b.oy+3.24,0,0.12,0.12,0.45,b.pal.metall); }));
+    [1.85,2.85,3.85,4.85].forEach(x=>{ const s=b.spot(x,2.35,"S","sitzt",[[x,1.85],[0.6,1.85],[0.6,6.2]],{art:"meeting",tisch:true}); b.obj(x-0.23,2.12,x+0.23,2.58,0.75,c=>lbStuhl(c,b.ox+x,b.oy+2.35,"S",b.pal.polster,b.pal),null,{d:s.d-0.06}); });
+    [1.85,2.85,3.85,4.85].forEach(x=>{ const s=b.spot(x,4.25,"N","sitzt",[[x,5.2]],{art:"meeting"}); b.obj(x-0.23,4.02,x+0.23,4.48,0.75,c=>lbStuhl(c,b.ox+x,b.oy+4.25,"N",b.pal.polster,b.pal),null,{d:s.d+0.06}); });
+    b.wandDeko("x",2.2,4.9,0.55,1.3,cc=>{ cc.fillStyle="#111"; cc.fillRect(0,0,1,1); },(cc,t)=>{ cc.fillStyle="#1d2a3a"; cc.fillRect(0.03,0.05,0.94,0.9); for(let i=0;i<6;i++){ const h=0.15+((Math.sin(t*0.6+i*1.3)+1)/2)*0.55; cc.fillStyle=i%2?"#6a9bd8":"#c9a227"; cc.fillRect(0.1+i*0.14,0.85-h,0.09,h); } });
+    b.wandDeko("y",1.5,4.5,0.55,1.25,lbWhiteboard(b.pal,"notizen",plot.i));
+    b.pflanze(6.4,0.6,1); b.pflanze(6.4,6.3,0.9);
+  },
+  kueche(b,plot){
+    const p=b.pal, theke=lbHell()?"#e9e5dc":"#4a4e57";
+    [[0.4,1.9],[1.9,3.4],[3.4,4.9]].forEach(([a,e],i)=>b.obj(a,0.2,e,0.85,0.9,c=>{ lbQuader(c,b.ox+a,b.oy+0.2,0,e-a,0.65,0.5,theke,lbHell()?"#c9c1b2":"#2f3238"); lbFlaecheY(c,b.ox+a,b.ox+e,b.oy+0.851,0,0.5,cc=>{ cc.fillStyle=lbTon(theke,-0.12); cc.fillRect(0.49,0.1,0.02,0.85); cc.fillStyle=p.metall; cc.fillRect(0.4,0.25,0.06,0.04); cc.fillRect(0.54,0.25,0.06,0.04); });
+      if(i===0) lbFlaecheBoden(c,b.ox+a+0.35,b.oy+0.3,b.ox+a+1.1,b.oy+0.75,0.501,cc=>{ cc.fillStyle=p.metall; cc.fillRect(0,0,1,1); cc.fillStyle=lbTon(p.metall,-0.3); cc.fillRect(0.1,0.15,0.8,0.7); });
+      if(i===1) lbFlaecheBoden(c,b.ox+a+0.2,b.oy+0.28,b.ox+a+1.2,b.oy+0.78,0.501,cc=>{ cc.fillStyle="#1d1f24"; cc.fillRect(0,0,1,1); cc.fillStyle="#3a3f48"; cc.fillRect(0.12,0.15,0.3,0.3); cc.fillRect(0.58,0.15,0.3,0.3); cc.fillRect(0.12,0.58,0.3,0.3); cc.fillRect(0.58,0.58,0.3,0.3); });
+    }));
+    b.wandDeko("x",0.4,4.9,0.95,1.38,cc=>{ cc.fillStyle=p.holz; cc.fillRect(0,0,1,1); cc.fillStyle=lbTon(p.holz,-0.2); for(let i=1;i<6;i++) cc.fillRect(i/6-0.003,0,0.006,1); cc.fillStyle=p.metall; for(let i=0;i<6;i++) cc.fillRect(i/6+0.07,0.75,0.03,0.08); });
+    b.obj(5.1,0.2,6.0,1.0,1.45,c=>{ lbQuader(c,b.ox+5.1,b.oy+0.2,0,0.9,0.8,1.45,lbHell()?"#e7e9ec":"#9aa1ab"); lbFlaecheY(c,b.ox+5.1,b.ox+6.0,b.oy+1.001,0,1.45,cc=>{ cc.fillStyle="rgba(0,0,0,0.12)"; cc.fillRect(0,0.38,1,0.015); cc.fillStyle=p.metall; cc.fillRect(0.8,0.1,0.04,0.2); cc.fillRect(0.8,0.48,0.04,0.25); }); });
+    b.obj(4.15,0.3,4.6,0.7,0.95,c=>{ lbQuader(c,b.ox+4.15,b.oy+0.32,0.5,0.4,0.36,0.36,"#2a2b2f"); lbQuader(c,b.ox+4.25,b.oy+0.55,0.5,0.2,0.14,0.08,"#f1efe9"); },
+      (c,t)=>{ const q=lbPunkt(b.ox+4.35,b.oy+0.5,0.95); for(let i=0;i<3;i++){ const f=((t*0.6+i/3)%1); c.fillStyle=`rgba(255,255,255,${0.35*(1-f)})`; lbKreis(c,q[0]+Math.sin(t*2+i)*1.5,q[1]-f*9,1.2+f*1.8); } },{extraZ:0.8});
+    b.obj(2.4,3.2,3.8,4.0,0.7,c=>{ lbQuader(c,b.ox+2.4,b.oy+3.2,0.62,1.4,0.8,0.06,p.holz); lbQuader(c,b.ox+3.05,b.oy+3.55,0,0.1,0.1,0.62,p.metall); });
+    b.spot(1.6,1.35,"N","steht",[[1.6,2.5],[3.5,2.5]],{art:"kaffee"}); b.spot(3.1,1.35,"N","steht",[[3.1,2.5]],{art:"kaffee"}); b.spot(4.4,1.35,"N","steht",[[4.4,2.5]],{art:"kaffee"});
+    b.spot(2.7,4.45,"N","steht",[[2.7,5.4]]); b.spot(3.5,4.45,"N","steht",[[3.5,5.4]]); b.spot(3.1,2.75,"S","steht",[[1.9,2.75],[1.9,5.4]]);
+    b.pflanze(6.45,6.3,1); b.pflanze(0.55,6.3,0.85);
+  },
+  kantine(b,plot){
+    const p=b.pal;
+    [[0.4,2.0],[2.0,3.6],[3.6,5.2],[5.2,6.8]].forEach(([a,e],i)=>b.obj(a,0.2,e,0.9,0.95,c=>{ lbQuader(c,b.ox+a,b.oy+0.2,0,e-a,0.7,0.52,lbHell()?"#d9d3c6":"#4a4e57"); const f=["#e8a33d","#8fd18f","#c9564b","#d6c15b"]; for(let k=0;k<3;k++) lbQuader(c,b.ox+a+0.15+k*0.47,b.oy+0.35,0.52,0.36,0.4,0.05,f[(i+k)%4]); c.globalAlpha=0.35; lbQuader(c,b.ox+a,b.oy+0.62,0.6,e-a,0.04,0.32,"#cfe6f5","#e8f4fb"); c.globalAlpha=1; }));
+    for(let t=0;t<4;t++){
+      const tx=1.0+(t%2)*3.0, ty=2.6+Math.floor(t/2)*2.2;
+      b.obj(tx,ty,tx+2.0,ty+0.9,0.5,c=>{ lbQuader(c,b.ox+tx,b.oy+ty,0.44,2.0,0.9,0.06,p.holz); lbQuader(c,b.ox+tx+0.1,b.oy+ty+0.4,0,0.1,0.1,0.44,p.metall); lbQuader(c,b.ox+tx+1.8,b.oy+ty+0.4,0,0.1,0.1,0.44,p.metall); lbQuader(c,b.ox+tx+0.5,b.oy+ty+0.25,0.5,0.32,0.28,0.03,"#f1efe9"); lbQuader(c,b.ox+tx+1.25,b.oy+ty+0.4,0.5,0.32,0.28,0.03,"#f1efe9"); });
+      [0.5,1.5].forEach(dx=>{
+        const sN=b.spot(tx+dx,ty-0.32,"S","sitzt",[[tx+dx,ty-0.85],[0.5,ty-0.85],[0.5,6.4]],{art:"essen",tisch:true});
+        b.obj(tx+dx-0.23,ty-0.55,tx+dx+0.23,ty-0.09,0.75,c=>lbStuhl(c,b.ox+tx+dx,b.oy+ty-0.32,"S",p.polster,p),null,{d:sN.d-0.06});
+        const sS=b.spot(tx+dx,ty+1.22,"N","sitzt",[[tx+dx,ty+1.75]],{art:"essen"});
+        b.obj(tx+dx-0.23,ty+0.99,tx+dx+0.23,ty+1.45,0.75,c=>lbStuhl(c,b.ox+tx+dx,b.oy+ty+1.22,"N",p.polster,p),null,{d:sS.d+0.06});
+      });
+    }
+    b.pflanze(0.4,6.55,0.8); b.pflanze(6.6,6.55,0.8);
+  },
+  pause(b,plot){
+    const p=b.pal;
+    b.boden((c,ox,oy)=>lbFlaecheBoden(c,ox+1.3,oy+1.4,ox+4.4,oy+4.0,0.065,cc=>{ cc.fillStyle=lbHell()?"#7f9fb8":"#33485a"; cc.fillRect(0,0,1,1); cc.fillStyle=lbHell()?"#a7c1d4":"#46627a"; cc.fillRect(0.05,0.08,0.9,0.04); cc.fillRect(0.05,0.88,0.9,0.04); }));
+    b.sofa(1.0,0.35,3,"S",lbHell()?"#6a9bd8":"#3d5a80",[[2.1,1.45],[4.6,1.45],[4.6,6.2]]);
+    b.sofa(0.35,2.0,3,"E",lbHell()?"#6a9bd8":"#3d5a80",[[1.45,3.1],[1.45,6.2]]);
+    b.obj(1.9,2.0,3.3,2.9,0.4,c=>{ lbQuader(c,b.ox+1.9,b.oy+2.0,0.28,1.4,0.9,0.06,p.holz); lbQuader(c,b.ox+2.0,b.oy+2.1,0,0.08,0.08,0.28,p.holzDunkel); lbQuader(c,b.ox+3.12,b.oy+2.72,0,0.08,0.08,0.28,p.holzDunkel); lbQuader(c,b.ox+2.3,b.oy+2.3,0.34,0.14,0.14,0.12,"#f1efe9"); lbQuader(c,b.ox+2.8,b.oy+2.5,0.34,0.14,0.14,0.12,"#e8a33d"); });
+    const sa=b.spot(4.55,2.45,"W","sitzt",[[4.55,3.4],[4.6,6.2]]);
+    b.obj(4.25,2.1,4.95,2.8,0.8,c=>{ lbQuader(c,b.ox+4.25,b.oy+2.1,0,0.7,0.7,0.36,"#c9a227"); lbQuader(c,b.ox+4.78,b.oy+2.1,0.36,0.17,0.7,0.4,lbTon("#c9a227",-0.1)); },null,{d:sa.d+0.08});
+    b.obj(5.2,0.15,6.8,0.55,1.4,c=>lbRegalZeichnen(c,b.ox+5.2,b.oy+0.15,1.6,0.4,1.4,p,"y",plot.i+3));
+    b.obj(6.35,2.0,6.65,2.3,1.6,c=>{ lbQuader(c,b.ox+6.42,b.oy+2.07,0,0.16,0.16,0.05,p.dunkel); lbQuader(c,b.ox+6.48,b.oy+2.13,0.05,0.04,0.04,1.3,p.dunkel); const q=lbPunkt(b.ox+6.5,b.oy+2.15,1.4); c.fillStyle="#f6e7b8"; c.beginPath(); c.moveTo(q[0]-3,q[1]+2); c.lineTo(q[0]+3,q[1]+2); c.lineTo(q[0]+2,q[1]-3); c.lineTo(q[0]-2,q[1]-3); c.closePath(); c.fill(); });
+    b.pflanze(6.45,6.3,1.1); b.pflanze(0.55,6.3,0.9);
+    b.spot(5.8,4.6,"S","steht",[[5.8,6.2]]);
+  },
+  gaming(b,plot){
+    const p=b.pal;
+    b.q(1.4,0.2,0,3.0,0.45,0.42,p.dunkel);
+    b.wandDeko("x",1.6,4.2,0.55,1.3,cc=>{ cc.fillStyle="#0c0d10"; cc.fillRect(0,0,1,1); },(cc,t)=>{ cc.fillStyle="#3a5fa0"; cc.fillRect(0.03,0.05,0.94,0.6); cc.fillStyle="#4f8a43"; cc.fillRect(0.03,0.65,0.94,0.3); const a=(t*0.3)%1; cc.fillStyle="#e8a33d"; cc.fillRect(0.1+a*0.75,0.55,0.07,0.1); cc.fillStyle="#c9564b"; cc.fillRect(0.85-a*0.6,0.5,0.06,0.15); cc.fillStyle="#ffffff"; cc.fillRect(0.06,0.08,0.18,0.05); });
+    b.sofa(1.6,2.5,3,"N",lbHell()?"#8b6cc9":"#4d3b73",[[2.9,3.6],[5.2,3.6],[5.2,6.3]]).forEach(s=>s.tun="spielt");
+    [[3.8],[4.75]].forEach(([y],i)=>{
+      b.obj(0.2,y,0.95,y+0.75,1.6,c=>{ const x=b.ox+0.2,yy=b.oy+y; lbQuader(c,x,yy,0,0.75,0.75,1.6,i?"#c9564b":"#5b8fd6"); lbFlaecheX(c,x+0.751,yy,yy+0.75,0,1.6,cc=>{ cc.fillStyle="#111"; cc.fillRect(0.12,0.12,0.76,0.36); cc.fillStyle="#2a2b2f"; cc.fillRect(0.1,0.55,0.8,0.12); cc.fillStyle="#f2d45c"; cc.fillRect(0.25,0.58,0.08,0.06); cc.fillStyle="#e2645a"; cc.fillRect(0.6,0.58,0.08,0.06); }); },
+        (c,t)=>lbFlaecheX(c,b.ox+0.952,b.oy+y,b.oy+y+0.75,0,1.6,cc=>{ cc.fillStyle=`hsl(${(t*60+i*120)%360},70%,55%)`; cc.fillRect(0.15,0.15,0.7,0.3); cc.fillStyle="#ffffff"; cc.fillRect(0.2+((t*0.7+i)%1)*0.55,0.25,0.06,0.08); }));
+      b.spot(1.45,y+0.38,"W","steht",[[1.45,6.3]],{tun:"spielt"});
+    });
+    b.obj(3.4,4.75,6.2,5.75,0.6,c=>{ const x=b.ox+3.4,y=b.oy+4.75; lbQuader(c,x+0.3,y+0.4,0,0.12,0.2,0.42,p.dunkel); lbQuader(c,x+2.4,y+0.4,0,0.12,0.2,0.42,p.dunkel); lbQuader(c,x,y,0.42,2.8,1.0,0.05,"#2f7d4f"); lbFlaecheBoden(c,x,y,x+2.8,y+1.0,0.471,cc=>{ cc.fillStyle="#ffffff"; cc.fillRect(0,0,1,0.03); cc.fillRect(0,0.97,1,0.03); cc.fillRect(0,0,0.01,1); cc.fillRect(0.99,0,0.01,1); cc.fillRect(0,0.49,1,0.02); }); lbQuader(c,x+1.38,y,0.47,0.04,1.0,0.12,"#e9e7e2"); },
+      (c,t)=>lbPingPong(c,b.ox,b.oy,t),{aktiv:()=>lbPingPongAktiv(plot)});
+    const s1=b.spot(3.0,5.25,"E","steht",[[3.0,6.3]],{tun:"pingpong"}), s2=b.spot(6.6,5.25,"W","steht",[[6.6,6.4]],{tun:"pingpong"});
+    s1.paar=s2; s2.paar=s1; plot.pingpong=[s1,s2];
+    b.wandDeko("y",1.0,3.2,0.7,1.2,cc=>{ cc.fillStyle="rgba(0,0,0,0)"; },(cc,t)=>{ cc.fillStyle=`hsl(${(280+Math.sin(t)*30)},90%,${lbHell()?50:62}%)`; cc.fillRect(0.1,0.2,0.8,0.08); cc.fillRect(0.1,0.72,0.8,0.08); cc.fillRect(0.1,0.2,0.05,0.6); cc.fillRect(0.85,0.2,0.05,0.6); cc.fillRect(0.35,0.42,0.3,0.12); });
+    b.pflanze(6.45,0.6,1);
+  },
+  fitness(b,plot){
+    const p=b.pal;
+    [1.0,2.4].forEach(x=>{
+      b.obj(x,0.45,x+0.75,1.95,1.2,c=>{ lbQuader(c,b.ox+x,b.oy+0.45,0,0.75,1.5,0.14,p.dunkel); lbQuader(c,b.ox+x+0.05,b.oy+0.5,0.14,0.65,1.35,0.02,"#2a2b2f"); lbQuader(c,b.ox+x,b.oy+0.45,0.14,0.08,0.12,0.95,p.metall); lbQuader(c,b.ox+x+0.67,b.oy+0.45,0.14,0.08,0.12,0.95,p.metall); lbQuader(c,b.ox+x,b.oy+0.42,1.0,0.75,0.2,0.12,p.dunkel); },
+        (c,t)=>lbFlaecheBoden(c,b.ox+x+0.05,b.oy+0.5,b.ox+x+0.7,b.oy+1.85,0.161,cc=>{ cc.fillStyle="#44474e"; const f=(t*2.2)%1; for(let i=0;i<5;i++) cc.fillRect(0,((i/5+f)%1),1,0.03); }),{aktiv:()=>lbSpotBelegt(plot,"laufband")});
+      b.spot(x+0.38,1.45,"N","laeuft",[[x+0.38,2.6],[3.5,2.6]],{sitzZ:0.16,tun:"laufband",art:"laufband"});
+    });
+    b.obj(4.3,1.5,6.0,2.3,0.9,c=>{ lbQuader(c,b.ox+4.5,b.oy+1.75,0,1.3,0.35,0.42,p.dunkel); lbQuader(c,b.ox+4.6,b.oy+1.6,0.42,0.06,0.6,0.42,p.metall); lbQuader(c,b.ox+5.55,b.oy+1.6,0.42,0.06,0.6,0.42,p.metall); lbQuader(c,b.ox+4.3,b.oy+1.88,0.8,1.7,0.06,0.06,p.metall); lbQuader(c,b.ox+4.32,b.oy+1.75,0.62,0.12,0.32,0.36,"#2a2b2f"); lbQuader(c,b.ox+5.86,b.oy+1.75,0.62,0.12,0.32,0.36,"#2a2b2f"); });
+    b.obj(0.2,3.0,0.65,5.0,0.75,c=>{ lbQuader(c,b.ox+0.2,b.oy+3.0,0,0.45,2.0,0.5,p.metall); for(let i=0;i<5;i++) lbQuader(c,b.ox+0.3,b.oy+3.15+i*0.37,0.5,0.25,0.24,0.14,"#2a2b2f"); });
+    [[2.4,4.3],[2.4,5.45]].forEach(([x,y],i)=>b.boden((c,ox,oy)=>lbFlaecheBoden(c,ox+x,oy+y,ox+x+2.2,oy+y+0.7,0.065,cc=>{ cc.fillStyle=i?"#8b6cc9":"#3e9c8f"; cc.fillRect(0,0,1,1); })));
+    b.spot(3.5,4.65,"S","steht",[[3.5,6.4]],{tun:"dehnen"}); b.spot(3.5,5.8,"S","steht",[[3.5,6.4]],{tun:"dehnen"});
+    b.wandDeko("x",4.0,6.7,0.25,1.35,cc=>{ cc.fillStyle=p.metall; cc.fillRect(0,0,1,1); cc.fillStyle=lbHell()?"#d6e8f2":"#3b5368"; cc.fillRect(0.02,0.04,0.96,0.92); cc.fillStyle="rgba(255,255,255,0.3)"; cc.fillRect(0.2,0.1,0.05,0.8); cc.fillRect(0.3,0.1,0.02,0.8); });
+    b.obj(6.0,3.8,6.5,4.3,0.5,c=>{ const q=lbPunkt(b.ox+6.25,b.oy+4.05,0.25); c.fillStyle="#e07aa8"; lbKreis(c,q[0],q[1],4); c.fillStyle="rgba(255,255,255,0.35)"; lbKreis(c,q[0]-1.3,q[1]-1.5,1.2); });
+    b.spot(5.1,2.65,"N","steht",[[5.1,3.6]],{tun:"dehnen"});
+  },
+  empfang(b,plot){
+    const p=b.pal, akz=plot.farbe||"#c084fc";
+    b.obj(2.0,3.4,4.4,4.0,0.75,c=>{ lbQuader(c,b.ox+2.0,b.oy+3.4,0,2.4,0.6,0.68,lbHell()?"#f1ede5":"#4a4e57"); lbQuader(c,b.ox+1.95,b.oy+3.36,0.68,2.5,0.68,0.05,p.holz); lbFlaecheY(c,b.ox+2.0,b.ox+4.4,b.oy+4.001,0,0.68,cc=>{ cc.fillStyle=akz; cc.fillRect(0,0.35,1,0.12); }); });
+    b.obj(4.4,2.2,5.0,4.0,0.75,c=>{ lbQuader(c,b.ox+4.4,b.oy+2.2,0,0.6,1.8,0.68,lbHell()?"#f1ede5":"#4a4e57"); lbQuader(c,b.ox+4.36,b.oy+2.15,0.68,0.68,1.85,0.05,p.holz); lbFlaecheX(c,b.ox+5.001,b.oy+2.2,b.oy+4.0,0,0.68,cc=>{ cc.fillStyle=akz; cc.fillRect(0,0.35,1,0.12); }); });
+    b.obj(3.0,2.75,3.4,3.15,0.95,c=>{ lbQuader(c,b.ox+3.0,b.oy+2.85,0.72,0.36,0.06,0.24,p.dunkel); lbQuader(c,b.ox+3.12,b.oy+2.9,0.72,0.12,0.12,0.05,p.dunkel); },null,{dz:0.4});
+    const kuerzel=(st.studio||"GM").split(/\s+/).filter(Boolean).map(w=>w[0]).join("").slice(0,3).toUpperCase();
+    b.wandDeko("x",1.4,5.6,0.45,1.32,cc=>{ cc.fillStyle=lbTon(akz,lbHell()?0.55:-0.45); cc.fillRect(0,0,1,1); cc.fillStyle=akz; cc.fillRect(0.38,0.18,0.24,0.64); cc.save(); cc.scale(1/(4.2*16),1/(0.87*16)); cc.fillStyle=lbHell()?"#ffffff":"#f2eee6"; cc.font="bold 7px sans-serif"; cc.textAlign="center"; cc.textBaseline="middle"; cc.fillText(kuerzel,2.1*16,0.46*16); cc.restore(); });
+    b.sofa(0.3,4.0,3,"E",lbHell()?"#3e9c8f":"#2b6b62",[[1.45,5.1],[1.45,6.3]]);
+    b.obj(1.4,4.4,2.0,5.6,0.4,c=>{ lbQuader(c,b.ox+1.4,b.oy+4.4,0.3,0.6,1.2,0.05,p.holz); lbQuader(c,b.ox+1.65,b.oy+4.9,0,0.1,0.1,0.3,p.metall); lbQuader(c,b.ox+1.5,b.oy+4.6,0.35,0.3,0.4,0.02,"#c9564b"); });
+    b.pflanze(0.6,0.6,1.2); b.pflanze(6.4,0.6,1.2); b.pflanze(6.4,6.3,1);
+  },
+  lager(b,plot){
+    const p=b.pal, kiste=lbHell()?"#c8a273":"#8a6a45";
+    [0.45,2.45,4.45].forEach((y,r)=>{
+      [[0.8,2.4],[2.4,4.0],[4.0,5.6]].forEach(([a,e],u)=>b.obj(a,y,e,y+0.6,1.4,c=>{
+        const x0=b.ox+a, y0=b.oy+y, w=e-a;
+        lbQuader(c,x0,y0,0,0.06,0.6,1.4,p.metall); lbQuader(c,x0+w-0.06,y0,0,0.06,0.6,1.4,p.metall);
+        for(let k=0;k<3;k++){ lbQuader(c,x0,y0,0.05+k*0.45,w,0.6,0.04,p.metall);
+          for(let j=0;j<3;j++){ if(lbHash(plot.i,r,u,k,j)<0.25) continue; const hh=0.22+lbHash(r,u,k,j,"h")*0.14; lbQuader(c,x0+0.1+j*(w-0.2)/3,y0+0.08,0.09+k*0.45,(w-0.2)/3-0.05,0.44,hh,kiste); } }
+      }));
+    });
+    b.obj(5.9,5.3,6.8,6.6,1.0,c=>{ const x=b.ox+5.9,y=b.oy+5.3; lbQuader(c,x,y,0,0.9,1.2,0.12,p.holz); lbQuader(c,x+0.05,y+0.05,0.12,0.8,0.55,0.4,kiste); lbQuader(c,x+0.05,y+0.62,0.12,0.8,0.52,0.36,kiste); lbQuader(c,x+0.15,y+0.15,0.52,0.6,0.45,0.32,kiste); });
+    b.wandDeko("y",5.0,6.8,0.3,1.2,cc=>{ cc.fillStyle="#d6c15b"; cc.fillRect(0,0,1,1); cc.fillStyle="#2a2b2f"; for(let i=0;i<6;i++) cc.fillRect(i/6,0,1/12,1); });
+  },
+  streaming(b,plot){
+    const p=b.pal;
+    [1.85,3.85].forEach(x=>b.pult(x,2.4,"N",[[x,3.3],[3.5,3.3]],{art:"marketing",stuhl:"#c9564b"}));
+    b.wandDeko("y",3.0,6.2,0.0,1.4,cc=>{ cc.fillStyle="#3fae5a"; cc.fillRect(0,0,1,1); cc.fillStyle="rgba(0,0,0,0.08)"; for(let i=1;i<6;i++) cc.fillRect(i/6,0,0.01,1); });
+    b.wandDeko("x",0.4,6.8,1.2,1.32,cc=>{ cc.fillStyle="#222"; cc.fillRect(0,0,1,1); },(cc,t)=>{ for(let i=0;i<24;i++){ cc.fillStyle=`hsl(${(t*80+i*15)%360},85%,60%)`; cc.fillRect(i/24,0.15,1/24-0.004,0.7); } });
+    b.obj(1.7,4.4,2.1,4.8,1.6,c=>{ const p0=lbPunkt(b.ox+1.9,b.oy+4.6,0), p1=lbPunkt(b.ox+1.9,b.oy+4.6,1.35); c.strokeStyle=p.dunkel; c.lineWidth=0.9; c.beginPath(); c.moveTo(p0[0]-3.5,p0[1]+1); c.lineTo(p1[0],p1[1]); c.lineTo(p0[0]+3.5,p0[1]+1); c.stroke(); c.strokeStyle="#f6f1dc"; c.lineWidth=1.6; c.beginPath(); c.ellipse(p1[0],p1[1]-4,4,4,0,0,Math.PI*2); c.stroke(); });
+    b.obj(4.6,4.5,5.0,4.9,1.4,c=>{ const p0=lbPunkt(b.ox+4.8,b.oy+4.7,0), p1=lbPunkt(b.ox+4.8,b.oy+4.7,1.15); c.strokeStyle=p.dunkel; c.lineWidth=0.9; c.beginPath(); c.moveTo(p0[0]-3.5,p0[1]+1); c.lineTo(p1[0],p1[1]); c.lineTo(p0[0]+3.5,p0[1]+1); c.stroke(); lbQuader(c,b.ox+4.68,b.oy+4.6,1.15,0.26,0.22,0.2,"#22252b"); },(c,t)=>{ const q=lbPunkt(b.ox+4.95,b.oy+4.7,1.32); c.fillStyle=Math.sin(t*3)>0?"#e2645a":"#5a1f1b"; lbKreis(c,q[0],q[1],0.9); });
+    b.sofa(4.4,5.6,2,"N",lbHell()?"#c9564b":"#7a2f29",[[4.6,6.5]]);
+    b.pflanze(6.45,0.6,0.9);
+  },
+  hr(b,plot){
+    const p=b.pal;
+    [1.6,3.1].forEach(x=>b.pult(x,2.25,"N",[[x,3.1]],{art:"marketing"}));
+    [2.8,3.45,4.1].forEach(y=>b.obj(0.2,y,0.7,y+0.6,0.95,c=>{ lbQuader(c,b.ox+0.2,b.oy+y,0,0.5,0.6,0.95,lbHell()?"#b9bec6":"#5a606b"); lbFlaecheX(c,b.ox+0.701,b.oy+y,b.oy+y+0.6,0,0.95,cc=>{ cc.fillStyle="rgba(0,0,0,0.18)"; for(let k=0;k<3;k++){ cc.fillRect(0.06,0.06+k*0.32,0.88,0.015); cc.fillRect(0.42,0.16+k*0.32,0.16,0.05); } }); }));
+    b.obj(4.3,3.6,5.5,4.8,0.5,c=>{ lbOval(c,b.ox+4.9,b.oy+4.2,0.48,0.55,p.holz); lbQuader(c,b.ox+4.86,b.oy+4.16,0,0.08,0.08,0.48,p.metall); });
+    b.spot(4.25,4.2,"E","sitzt",[[4.25,5.4]],{art:"meeting",tisch:true}); b.spot(5.55,4.2,"W","sitzt",[[5.55,5.4]],{art:"meeting"});
+    b.obj(4.0,3.97,4.46,4.43,0.75,c=>lbStuhl(c,b.ox+4.25,b.oy+4.2,"E",p.polster,p),null,{d:b.ox+b.oy+8.45-0.06});
+    b.obj(5.32,3.97,5.78,4.43,0.75,c=>lbStuhl(c,b.ox+5.55,b.oy+4.2,"W",p.polster,p),null,{d:b.ox+b.oy+9.75+0.06});
+    b.wandDeko("x",4.2,6.6,0.6,1.2,cc=>{ cc.fillStyle="#d9d3c6"; cc.fillRect(0,0,1,1); const f=["#5b8fd6","#e8a33d","#3e9c8f","#c26fd1","#c9564b","#d6c15b"]; for(let i=0;i<6;i++){ cc.fillStyle="#ffffff"; cc.fillRect(0.06+(i%3)*0.31,0.1+Math.floor(i/3)*0.45,0.26,0.38); cc.fillStyle=f[i]; cc.fillRect(0.09+(i%3)*0.31,0.14+Math.floor(i/3)*0.45,0.2,0.26); } });
+    b.obj(6.35,0.85,6.65,1.15,1.5,c=>{ lbQuader(c,b.ox+6.45,b.oy+0.95,0,0.1,0.1,1.4,p.holzDunkel); const q=lbPunkt(b.ox+6.5,b.oy+1.0,1.2); c.fillStyle="#3b4b6e"; c.fillRect(q[0]-3,q[1]-1,6,8); });
+    b.pflanze(0.55,6.3,1); b.pflanze(6.45,6.3,0.9);
+  },
+};
+// Tänzer im Motion-Capture-Anzug mit Leuchtpunkten
+function lbMocapFigur(c,x,y,t){
+  const p=lbPunkt(x,y,0), s=Math.sin(t*1.6), w=Math.sin(t*0.8);
+  c.fillStyle="rgba(0,0,0,0.3)"; c.beginPath(); c.ellipse(p[0],p[1],6,3,0,0,Math.PI*2); c.fill();
+  const a={haut:"#22252b",haar:"#22252b",hose:"#22252b",stil:3,brille:false,muetze:"#22252b",hemd:"#2a2d34",groesse:1.05};
+  lbFigur(c,p[0]+w*4,p[1],a,{pose:"geht",t:t*0.35,phase:0,vorn:true,links:w<0,lod:1,winken:s>0.3});
+  c.fillStyle="#e8f6ff";
+  [[-4.4,-16],[4.4,-16],[0,-24],[-2,-4],[2,-4],[0,-12]].forEach(([dx,dy],i)=>{ if(Math.sin(t*5+i)>-0.6) lbKreis(c,p[0]+w*4+dx*1.05,p[1]+dy*1.05,0.8); });
+}
+function lbPingPongAktiv(plot){ return !!(plot.pingpong&&plot.pingpong[0].belegt&&plot.pingpong[1].belegt&&lbSpotAngekommen(plot.pingpong[0])&&lbSpotAngekommen(plot.pingpong[1])); }
+function lbPingPong(c,ox,oy,t){
+  const f=(t*0.9)%2, u=f<1?f:2-f, x=ox+3.5+u*2.6, y=oy+5.25+Math.sin(t*2.3)*0.25, z=0.55+Math.abs(Math.sin(u*Math.PI*2))*0.35;
+  const p=lbPunkt(x,y,z), s=lbPunkt(x,y,0.48);
+  c.fillStyle="rgba(0,0,0,0.25)"; c.beginPath(); c.ellipse(s[0],s[1],1.2,0.6,0,0,Math.PI*2); c.fill();
+  c.fillStyle="#ffffff"; lbKreis(c,p[0],p[1],1.05);
+}
+function lbSpotBelegt(plot,tun){ return LIVE.szene&&LIVE.szene.spots.some(s=>s.plot===plot.i&&s.tun===tun&&s.belegt&&lbSpotAngekommen(s)); }
+function lbSpotAngekommen(s){ const a=s.belegt&&LIVE.leute.get(s.belegt); return !!(a&&a.modus==="pause"&&a.ziel===s); }
+
+function lbAkzentLesen(){ LIVE.akzent=(getComputedStyle(document.body).getPropertyValue("--accent")||"").trim()||"#c9a227"; }
+function lbSzeneBauen(){
+  const pal=lbPalette(); lbAkzentLesen();
+  const office=OFFICES.find(o=>o.key===st.office)||OFFICES[0];
+  const n=Math.max(office.slots,st.rooms.length,1);
+  const reihen=Math.max(1,Math.floor(Math.sqrt(n))), spalten=Math.ceil(n/reihen);
+  const W=spalten*LB_S+LB_G, H=reihen*LB_S+LB_G;
+  const sz={W,H,spalten,reihen,n,plots:[],objekte:[],animObjekte:[],sitze:new Map(),spots:[],kaffee:[],boeden:[],lobby:[],pal,sig:LIVE.szeneSig};
+  const nrJe={};
+  for(let i=0;i<spalten*reihen;i++){
+    const cx=i%spalten, cy=Math.floor(i/spalten);
+    const plot={i,cx,cy,x:LB_G+cx*LB_S,y:LB_G+cy*LB_S,inst:null,key:null,nutzbar:i<n,nr:0,cap:0,farbe:null};
+    if(i<st.rooms.length&&lbRaumInfo(st.rooms[i].key)){ plot.inst=st.rooms[i]; plot.key=st.rooms[i].key; plot.nr=nrJe[plot.key]||0; nrJe[plot.key]=plot.nr+1; }
+    sz.plots.push(plot);
+  }
+  // Außenwände mit Fenstern
+  const fensterNacht=!pal.hell;
+  for(let a=0;a<W-0.01;a+=1.8){
+    const e=Math.min(W,a+1.8), aa=a;
+    const o={x0:aa,y0:0,x1:e,y1:0.2,z0:0,z1:LB_AUSSEN,d:(aa+e)/2+0.1,plot:-1,fest:true,st:0,vorne:null,anim:null};
+    o.zeichne=c=>{ lbQuader(c,aa,0,0,e-aa,0.2,LB_AUSSEN,pal.aussen,pal.wandOben,pal.aussenRechts); lbFlaecheY(c,aa,e,0.201,0.25,LB_AUSSEN-0.2,lbFensterReihe(pal,1,fensterNacht)); };
+    o.bb=lbBox(o.x0,o.y0,o.x1,o.y1,0,LB_AUSSEN); o.hx=lbHex(o.x0,o.y0,o.x1,o.y1,0,LB_AUSSEN); sz.objekte.push(o);
+  }
+  for(let a=0.2;a<H-0.01;a+=1.8){
+    const e=Math.min(H,a+1.8), aa=a;
+    const o={x0:0,y0:aa,x1:0.2,y1:e,z0:0,z1:LB_AUSSEN,d:(aa+e)/2+0.1,plot:-1,fest:true,st:0,vorne:null,anim:null};
+    o.zeichne=c=>{ lbQuader(c,0,aa,0,0.2,e-aa,LB_AUSSEN,pal.aussen,pal.wandOben,pal.aussenRechts); lbFlaecheX(c,0.201,aa,e,0.25,LB_AUSSEN-0.2,lbFensterReihe(pal,1,fensterNacht)); };
+    o.bb=lbBox(o.x0,o.y0,o.x1,o.y1,0,LB_AUSSEN); o.hx=lbHex(o.x0,o.y0,o.x1,o.y1,0,LB_AUSSEN); sz.objekte.push(o);
+  }
+  sz.plots.forEach(plot=>{
+    if(plot.key) lbRaumBauen(sz,plot);
+    else if(!plot.nutzbar){
+      const b=lbBauer(sz,plot);
+      b.obj(3.1,3.1,3.9,3.9,2.4,c=>lbBaumZeichnen(c,plot.x+3.5,plot.y+3.5,1.1,pal),null,{bb:lbBox(plot.x+2.7,plot.y+2.7,plot.x+4.3,plot.y+4.3,0,3.4)});
+      b.q(1.2,5.2,0,1.6,0.45,0.4,pal.holz); b.q(4.6,1.4,0,0.45,1.6,0.4,pal.holz);
+    }
+  });
+  // Bäume und Schild vor dem Gebäude
+  const baeume=[];
+  for(let x=2.5;x<W;x+=6.5){ const bx=x+lbHash(x,"bx")*1.2; if(Math.abs(bx-W*0.5)<2.2||Math.abs(bx-(W*0.5+2.4))<2) continue; baeume.push([bx,H+2.6+lbHash(x,"by")*1.2]); }
+  for(let y=2.5;y<H;y+=6.5) baeume.push([W+2.6+lbHash(y,"bx")*1.2,y+lbHash(y,"by")*1.2]);
+  baeume.forEach(([x,y],i)=>{ const g=0.85+lbHash(i,"g")*0.35; const o={x0:x-0.3,y0:y-0.3,x1:x+0.3,y1:y+0.3,z0:0,z1:2.6*g,d:x+y,plot:-1,fest:true,st:0,vorne:null,anim:null,zeichne:c=>lbBaumZeichnen(c,x,y,g,pal)}; o.bb=lbBox(o.x0-0.6,o.y0-0.6,o.x1+0.6,o.y1+0.6,0,o.z1+0.8); o.hx=lbHex(o.x0-0.5,o.y0-0.5,o.x1+0.5,o.y1+0.5,0,o.z1+0.8); sz.objekte.push(o); });
+  const schildX=W*0.5+1.1, schildY=H+1.15, name=st.studio||"Gold Master";
+  const schild={x0:schildX,y0:schildY,x1:schildX+2.6,y1:schildY+0.32,z0:0,z1:0.9,d:schildX+1.3+schildY+0.16,plot:-1,fest:true,st:0,vorne:null,anim:null};
+  schild.zeichne=c=>{
+    lbQuader(c,schildX,schildY,0,2.6,0.32,0.18,pal.platteSeite);
+    lbQuader(c,schildX+0.1,schildY+0.04,0.18,2.4,0.24,0.68,pal.hell?"#2f3542":"#e6e1d6");
+    c.save(); const p=lbPunkt(schildX+0.1,schildY+0.281,0.86); c.translate(p[0],p[1]); c.transform(1,0.5,0,1,0,0);
+    const breite=2.4*16; let fs=8.5; c.font=`700 ${fs}px sans-serif`; const w=c.measureText(name).width; if(w>breite*0.9){ fs=fs*breite*0.9/w; c.font=`700 ${fs}px sans-serif`; }
+    c.fillStyle=pal.hell?"#f2eee6":"#2a2620"; c.textAlign="center"; c.textBaseline="middle"; c.fillText(name,breite/2,0.34*16); c.restore();
+    c.fillStyle=LIVE.akzent;
+    c.save(); const q=lbPunkt(schildX+0.1,schildY+0.282,0.3); c.translate(q[0],q[1]); c.transform(1,0.5,0,1,0,0); c.fillRect(0,0,2.4*16,1.2); c.restore();
+  };
+  schild.bb=lbBox(schild.x0,schild.y0,schild.x1,schild.y1,0,0.9); schild.hx=lbHex(schild.x0,schild.y0,schild.x1,schild.y1,0,0.9); sz.objekte.push(schild);
+  // Wartebereich für Leute ohne Platz: vorderer Gang
+  for(let i=0;i<220;i++){
+    const reiheLen=Math.max(1,Math.floor((W-2)/0.8));
+    const r=Math.floor(i/reiheLen), k=i%reiheLen;
+    sz.lobby.push({x:1.2+k*0.8,y:H-LB_G/2+(r%2?-0.35:0.2)-Math.floor(r/2)*0.0,blick:"S"});
+  }
+  // Tiefe sortieren und Überdeckungen vorberechnen
+  sz.objekte.sort((a,b)=>a.d-b.d);
+  lbRaster(sz);
+  sz.objekte.forEach(o=>{ o.vorne=lbVorne(sz,o.bb,o.hx,o.d,o); });
+  sz.animObjekte.forEach(o=>{ o.animVor=o.vorne; });
+  sz.sitze.forEach(s=>{ const p=lbPunkt(s.x,s.y,0.42); s.bb=[p[0]-7,p[1]-20,p[0]+7,p[1]+8]; s.vor=lbVorne(sz,s.bb,lbPersonHex(s.x,s.y),s.d,null); });
+  sz.spots.forEach(s=>{ const p=lbPunkt(s.x,s.y,s.pose==="sitzt"?s.sitzZ:0); s.bb=s.pose==="sitzt"?[p[0]-7,p[1]-20,p[0]+7,p[1]+8]:[p[0]-7,p[1]-28,p[0]+7,p[1]+3]; s.vor=lbVorne(sz,s.bb,lbPersonHex(s.x,s.y),s.d,null); });
+  return sz;
+}
+// Raster der Bildschirmrahmen, um Überdeckungen schnell zu finden
+function lbRaster(sz){
+  const z=64, m=new Map();
+  sz.objekte.forEach((o,idx)=>{
+    o.idx=idx;
+    const x0=Math.floor(o.bb[0]/z), x1=Math.floor(o.bb[2]/z), y0=Math.floor(o.bb[1]/z), y1=Math.floor(o.bb[3]/z);
+    for(let gx=x0;gx<=x1;gx++) for(let gy=y0;gy<=y1;gy++){ const k=gx+","+gy; let l=m.get(k); if(!l) m.set(k,l=[]); l.push(o); }
+  });
+  sz.raster=m; sz.rasterZ=z;
+}
+function lbVorne(sz,bb,hx,d,selbst){
+  const z=sz.rasterZ, erg=[], gesehen=new Set();
+  const x0=Math.floor(bb[0]/z), x1=Math.floor(bb[2]/z), y0=Math.floor(bb[1]/z), y1=Math.floor(bb[3]/z);
+  for(let gx=x0;gx<=x1;gx++) for(let gy=y0;gy<=y1;gy++){
+    const l=sz.raster.get(gx+","+gy); if(!l) continue;
+    for(const o of l){ if(o===selbst||gesehen.has(o)) continue; gesehen.add(o); if(o.d>d&&o.fest&&lbUeberlapp(o.bb,bb)&&lbHexUeber(o.hx,hx)) erg.push(o); }
+  }
+  return erg;
+}
+
+// ---- Mitarbeiter in der Szene ----
+function lbStatusAktualisieren(jetzt){
+  if(jetzt-LIVE.statusZeit<450&&LIVE.status.size===st.team.length) return;
+  LIVE.statusZeit=jetzt; LIVE.status.clear();
+  const crunch=new Set(), projekt=new Map();
+  st.projects.forEach(p=>(p.zugewiesen||[]).forEach(id=>{ if(p.ueberstunden) crunch.add(id); if(!projekt.has(id)) projekt.set(id,p.name); }));
+  st.team.forEach(m=>{
+    let belegt=false; try{ belegt=mitarbeiterBelegt(m.id); }catch(e){}
+    LIVE.status.set(m.id,{belegt,crunch:crunch.has(m.id),projekt:projekt.get(m.id)||null,
+      weg:(m.urlaub>0)||((m.kursRest||0)>0),urlaub:m.urlaub>0,kurs:(m.kursRest||0)>0,stress:m.stress||0,moral:m.moral==null?60:m.moral,kuendigung:!!m.kuendigung});
+  });
+}
+function lbHeim(m,sz,lobbyIdx){
+  const s=m.desk&&sz.sitze.get(m.desk);
+  if(s) return {x:s.x,y:s.y,blick:s.blick,sitz:s,plot:s.plot,weg:s.weg,d:s.d};
+  const idx=Math.min(lobbyIdx,sz.lobby.length-1), l=sz.lobby[idx];
+  return {x:l.x,y:l.y,blick:"S",sitz:null,plot:-1,weg:[],d:l.x+l.y,lobby:true,id:"lobby"+idx};
+}
+function lbTuerGang(sz,plotIdx){
+  const p=sz.plots[plotIdx];
+  return {x:p.x+LB_P/2,y:p.y+LB_P+LB_G/2};
+}
+// Weg über die Gänge: Tür, Gangraster, Tür
+function lbWegPlanen(sz,von,nach){
+  const pfad=[];
+  if(von.plot>=0&&von.plot===nach.plot){
+    const p=sz.plots[von.plot];
+    pfad.push(...von.weg.slice(0,Math.max(1,von.weg.length-1)));
+    pfad.push({x:p.x+LB_P/2,y:p.y+LB_P-0.6});
+    pfad.push(...nach.weg.slice(0,Math.max(1,nach.weg.length-1)).reverse());
+    pfad.push({x:nach.x,y:nach.y});
+    return pfad;
+  }
+  pfad.push(...von.weg);
+  const a=von.plot>=0?lbTuerGang(sz,von.plot):{x:von.x,y:von.y};
+  const b=nach.plot>=0?lbTuerGang(sz,nach.plot):{x:nach.x,y:nach.y};
+  pfad.push(a);
+  if(Math.abs(a.y-b.y)>0.01){
+    const mitte=(a.x+b.x)/2;
+    const k=clamp(Math.round((mitte-LB_G/2)/LB_S),0,sz.spalten), vx=k*LB_S+LB_G/2;
+    pfad.push({x:vx,y:a.y},{x:vx,y:b.y});
+  }
+  pfad.push(b);
+  pfad.push(...nach.weg.slice().reverse());
+  pfad.push({x:nach.x,y:nach.y});
+  return pfad;
+}
+function lbLeuteAktualisieren(dt,ruhig){
+  const sz=LIVE.szene, jetzt=performance.now();
+  lbStatusAktualisieren(jetzt);
+  const ids=new Set();
+  LIVE.amPlatz=new Map();
+  let lobbyIdx=0, geher=0;
+  LIVE.leute.forEach(a=>{ if(a.modus==="geht") geher++; });
+  const maxGeher=Math.max(3,Math.ceil(st.team.length*0.22));
+  for(const m of st.team){
+    ids.add(m.id);
+    let a=LIVE.leute.get(m.id);
+    const info=LIVE.status.get(m.id)||{};
+    const heim=lbHeim(m,sz,m.desk&&sz.sitze.get(m.desk)?0:lobbyIdx);
+    if(heim.lobby) lobbyIdx++;
+    const heimId=heim.sitz?heim.sitz.id:heim.id;
+    if(!a){ a={id:m.id,look:lbAussehen(m),x:heim.x,y:heim.y,modus:heim.sitz?"sitzt":"steht",pfad:[],timer:1+lbHash(m.id,"t")*6,ziel:null,phase:lbHash(m.id,"p")*6.28,sig:sz.sig,heimId,plotAkt:heim.plot,wegAkt:heim.weg}; LIVE.leute.set(m.id,a); }
+    a.look.hemd=ROLE_COLORS[m.rolle]||a.look.hemd;
+    a.m=m; a.info=info; a.heim=heim;
+    if(m.desk) LIVE.amPlatz.set(m.desk,a);
+    if(info.weg){ lbSpotFrei(a); a.modus="weg"; a.pfad=[]; continue; }
+    if(a.modus==="weg"||a.sig!==sz.sig||ruhig){
+      lbSpotFrei(a); a.x=heim.x; a.y=heim.y; a.modus=heim.sitz?"sitzt":"steht"; a.pfad=[]; a.sig=sz.sig; a.heimId=heimId;
+      if(ruhig) continue;
+    }
+    if(a.heimId!==heimId&&(a.modus==="sitzt"||a.modus==="steht")){
+      // Neuer Platz: hinlaufen
+      const von={x:a.x,y:a.y,plot:a.plotAkt!=null?a.plotAkt:-1,weg:a.wegAkt||[]};
+      a.pfad=lbWegPlanen(sz,von,heim); a.modus="geht"; a.zielHeim=true; a.heimId=heimId; geher++;
+    }
+    a.timer-=dt;
+    if(a.modus==="sitzt"||a.modus==="steht"){
+      a.plotAkt=heim.plot; a.wegAkt=heim.weg;
+      if(a.timer<=0){
+        a.timer=6+lbHash(m.id,Math.floor(LIVE.t))*14;
+        if(geher<maxGeher&&!heim.lobby){
+          const frei=info.belegt?sz.kaffee.filter(s=>!s.belegt):sz.spots.filter(s=>!s.belegt);
+          const lust=info.belegt?0.16:0.75;
+          if(frei.length&&lbZufall()<lust){
+            // Von drei zufälligen freien Plätzen den nächsten nehmen: kurze Wege wirken natürlicher
+            let ziel=null, best=1e9;
+            for(let k=0;k<3;k++){ const z=frei[Math.floor(lbZufall()*frei.length)], dd=Math.abs(z.x-heim.x)+Math.abs(z.y-heim.y); if(dd<best){ best=dd; ziel=z; } }
+            ziel.belegt=a.id; a.ziel=ziel; a.dauer=info.belegt?5+lbZufall()*5:10+lbZufall()*16;
+            a.pfad=lbWegPlanen(sz,heim,ziel); a.modus="geht"; a.zielHeim=false; geher++;
+          }
+        }
+      }
+    } else if(a.modus==="pause"){
+      if(a.timer<=0){
+        const ziel=a.ziel; lbSpotFrei(a);
+        a.pfad=lbWegPlanen(sz,ziel,heim); a.modus="geht"; a.zielHeim=true; geher++;
+      }
+    }
+    if(a.modus==="geht"){
+      let rest=dt*(info.crunch?2.0:1.55);
+      while(rest>0&&a.pfad.length){
+        const z=a.pfad[0], dx=z.x-a.x, dy=z.y-a.y, d=Math.hypot(dx,dy);
+        if(d<=rest){ a.x=z.x; a.y=z.y; rest-=d; a.pfad.shift(); }
+        else { a.x+=dx/d*rest; a.y+=dy/d*rest; a.rx=dx; a.ry=dy; rest=0; }
+      }
+      if(!a.pfad.length){
+        if(a.zielHeim){ a.modus=heim.sitz?"sitzt":"steht"; a.x=heim.x; a.y=heim.y; a.timer=5+lbZufall()*12; a.plotAkt=heim.plot; a.wegAkt=heim.weg; }
+        else if(a.ziel){ a.modus="pause"; a.timer=a.dauer; a.x=a.ziel.x; a.y=a.ziel.y; a.plotAkt=a.ziel.plot; a.wegAkt=a.ziel.weg; }
+        else { a.modus=heim.sitz?"sitzt":"steht"; }
+      }
+    }
+  }
+  // Wer nicht mehr im Team ist, verschwindet
+  LIVE.leute.forEach((a,id)=>{ if(!ids.has(id)){ lbSpotFrei(a); LIVE.leute.delete(id); } });
+}
+function lbSpotFrei(a){ if(a.ziel&&a.ziel.belegt===a.id) a.ziel.belegt=null; a.ziel=null; }
+function lbSitzAktiv(sitz){ const a=LIVE.amPlatz&&LIVE.amPlatz.get(sitz.id); return !!a&&a.modus!=="weg"&&a.heim&&a.heim.sitz===sitz; }
+function lbSitzBildschirm(c,sitz,t){
+  const a=LIVE.amPlatz&&LIVE.amPlatz.get(sitz.id); if(!a||a.modus==="weg"||!a.info) return;
+  const arbeitet=a.modus==="sitzt"&&a.heim.sitz===sitz&&a.info.belegt;
+  lbBildschirm(c,sitz.art||a.m.rolle,LIVE.ruhig?0:t*(a.info.crunch?1.6:1),a.phase,arbeitet);
+}
+
+// ---- Ansicht und Zeichnen ----
+function lbAnsicht(){
+  const k=LIVE.kontext;
+  if(!LIVE.ansichten[k]) LIVE.ansichten[k]={zoom:1,panX:0,panY:0};
+  return LIVE.ansichten[k];
+}
+function lbWeltRahmen(sz){
+  const W=sz.W, H=sz.H;
+  if(LIVE.kontext==="dash") return [-H*16-6,-LB_AUSSEN*16-6,W*16+6,(W+H)*8+12];
+  return [-H*16-24,-LB_AUSSEN*16-18,W*16+24,(W+H)*8+LB_RAND*8];
+}
+function lbTransform(){
+  const sz=LIVE.szene, v=lbAnsicht(), r=lbWeltRahmen(sz);
+  const bw=r[2]-r[0], bh=r[3]-r[1];
+  const fit=LIVE.kontext==="dash"?Math.min(LIVE.cssW/bw,LIVE.cssH/bh*1.22):Math.min(LIVE.cssW/bw,LIVE.cssH/bh);
+  const s=clamp(fit*v.zoom,0.12,4);
+  const cx=(r[0]+r[2])/2, cy=(r[1]+r[3])/2;
+  return {s,ox:LIVE.cssW/2+v.panX-cx*s,oy:LIVE.cssH/2+v.panY-cy*s,fit};
+}
+function lbGroesseAnpassen(){
+  const cv=LIVE.cv, k=LIVE.kontext;
+  const w=Math.max(200,cv.clientWidth||0);
+  const zoomBody=parseFloat(document.body.style.zoom)||1;
+  const dpr=Math.min(2.5,(window.devicePixelRatio||1)*zoomBody);
+  let h;
+  if(k==="dash") h=Math.round(clamp(w*0.36,240,360));
+  else { const sz=LIVE.szene, r=sz?lbWeltRahmen(sz):[0,0,2,1]; h=Math.round(clamp(w*(r[3]-r[1])/(r[2]-r[0])*1.02,300,Math.max(320,Math.min(560,window.innerHeight*0.6)))); }
+  const pxW=Math.round(w*dpr), pxH=Math.round(h*dpr);
+  const m=LIVE.masse[k]||(LIVE.masse[k]={});
+  if(cv.width!==pxW||cv.height!==pxH){ cv.width=pxW; cv.height=pxH; LIVE.ebeneSig=""; }
+  if(m.cssH!==h){ cv.style.height=h+"px"; }
+  m.pxW=pxW; m.pxH=pxH; m.cssH=h;
+  LIVE.cssW=w; LIVE.cssH=h; LIVE.k=dpr;
+}
+function lbEbeneZeichnen(T){
+  const sz=LIVE.szene, pal=sz.pal, cv=LIVE.cv;
+  if(!LIVE.ebene){ LIVE.ebene=document.createElement("canvas"); LIVE.ebeneCtx=LIVE.ebene.getContext("2d"); }
+  const e=LIVE.ebene, c=LIVE.ebeneCtx;
+  lbAkzentLesen();
+  if(e.width!==cv.width||e.height!==cv.height){ e.width=cv.width; e.height=cv.height; }
+  c.setTransform(1,0,0,1,0,0);
+  const g=c.createLinearGradient(0,0,0,e.height); g.addColorStop(0,pal.grund1); g.addColorStop(1,pal.grund2);
+  c.fillStyle=g; c.fillRect(0,0,e.width,e.height);
+  const k=LIVE.k, s=T.s;
+  c.setTransform(s*k,0,0,s*k,T.ox*k,T.oy*k);
+  const sicht=[(-T.ox)/s-40,(-T.oy)/s-60,(LIVE.cssW-T.ox)/s+40,(LIVE.cssH-T.oy)/s+60];
+  const W=sz.W, H=sz.H, R=LB_RAND;
+  // Gelände
+  lbFlaecheBoden(c,-R,-R,W+R,H+R,-0.31,cc=>{ cc.fillStyle=pal.gras; cc.fillRect(0,0,1,1); cc.fillStyle=pal.grasPunkt; for(let i=0;i<160;i++) cc.fillRect(lbHash(i,"gx"),lbHash(i,"gy"),0.006,0.004); cc.fillStyle=pal.weg; const u=(W*0.5+R)/(W+2*R), bw=0.7/(W+2*R); cc.fillRect(u-bw,(H+R)/(H+2*R),2*bw,1); });
+  lbQuader(c,0,0,-0.3,W,H,0.3,pal.platteSeite,pal.platte);
+  lbFlaecheBoden(c,0,0,W,H,0.001,cc=>{ cc.fillStyle=pal.gangLinie; const nx=Math.round(W/1.2), ny=Math.round(H/1.2); for(let i=1;i<nx;i++) cc.fillRect(i/nx-0.0012,0,0.0024,1); for(let i=1;i<ny;i++) cc.fillRect(0,i/ny-0.0012,1,0.0024); });
+  const hp=LIVE.hover&&LIVE.hover.plot!=null?LIVE.hover.plot:-1;
+  const sel=(buPanel&&buPanel.type==="desks")?buPanel.key:null;
+  sz.plots.forEach(plot=>{
+    const bb=lbBox(plot.x,plot.y,plot.x+LB_P,plot.y+LB_P,0,0.1);
+    if(!lbUeberlapp(bb,sicht)) return;
+    if(plot.key) lbRaumBoden(c,plot,pal,s);
+    else if(plot.nutzbar) lbLeerBoden(c,plot,pal,plot.i===hp);
+    else lbHofBoden(c,plot,pal);
+    if(plot.key&&(plot.i===hp||plot.key===sel)){
+      const akz=plot.key===sel?LIVE.akzent:plot.farbe;
+      lbFlaecheBoden(c,plot.x,plot.y,plot.x+LB_P,plot.y+LB_P,0.07,cc=>{ cc.fillStyle=akz; cc.globalAlpha=plot.key===sel?0.2:0.13; cc.fillRect(0,0,1,1); cc.globalAlpha=1; cc.fillRect(0,0,1,0.012); cc.fillRect(0,0.988,1,0.012); cc.fillRect(0,0,0.012,1); cc.fillRect(0.988,0,0.012,1); });
+    }
+  });
+  sz.boeden.forEach(fn=>fn(c));
+  for(const o of sz.objekte){ if(lbUeberlapp(o.bb,sicht)) o.zeichne(c); }
+}
+function lbZeichnen(t){
+  const sz=LIVE.szene, c=LIVE.ctx, pal=sz.pal;
+  const T=lbTransform();
+  const sig=[sz.sig,LIVE.cv.width,LIVE.cv.height,T.s.toFixed(4),T.ox.toFixed(1),T.oy.toFixed(1),LIVE.hover&&LIVE.hover.plot!=null?LIVE.hover.plot:-1,buPanel&&buPanel.type==="desks"?buPanel.key:"",(st.awardsHistory||[]).length].join("|");
+  if(sig!==LIVE.ebeneSig){ lbEbeneZeichnen(T); LIVE.ebeneSig=sig; }
+  c.setTransform(1,0,0,1,0,0);
+  c.drawImage(LIVE.ebene,0,0);
+  const k=LIVE.k, s=T.s;
+  c.setTransform(s*k,0,0,s*k,T.ox*k,T.oy*k);
+  const sicht=[(-T.ox)/s-40,(-T.oy)/s-60,(LIVE.cssW-T.ox)/s+40,(LIVE.cssH-T.oy)/s+60];
+  const lod=s<0.4?0:s<0.75?1:2; LIVE.lod=lod;
+  const stempel=++LIVE.stempel, liste=[], stapel=[];
+  const markiere=(o,statisch)=>{
+    if(o.st!==stempel){ o.st=stempel; o.zS=false; o.zA=false; liste.push(o); }
+    if(statisch&&!o.zS){ o.zS=true; stapel.push(o); }
+    if(!statisch) o.zA=true;
+  };
+  // Bewegte Teile der Einrichtung
+  for(const o of sz.animObjekte){
+    if(!lbUeberlapp(o.bb,sicht)) continue;
+    if(o.aktiv&&!o.aktiv()) continue;
+    markiere(o,false);
+    if(o.animVor) for(const x of o.animVor) markiere(x,true);
+  }
+  // Figuren
+  const blasen=[], treffer=[];
+  LIVE.leute.forEach(a=>{
+    if(a.modus==="weg"||!a.info) return;
+    const sitzt=a.modus==="sitzt"&&a.heim.sitz, pause=a.modus==="pause"&&a.ziel;
+    let z=0, pose="steht", blick=a.heim.blick, vorn=false, links=false, d=a.x+a.y, vor=null;
+    if(sitzt){ z=0.42; pose="sitzt"; blick=a.heim.sitz.blick; d=a.heim.sitz.d; vor=a.heim.sitz.vor; }
+    else if(pause){ const sp=a.ziel; pose=sp.pose; blick=sp.blick; z=sp.pose==="sitzt"?sp.sitzZ:(sp.pose==="laeuft"?sp.sitzZ:0); d=sp.d; vor=sp.vor; }
+    else if(a.modus==="geht"){ pose="geht"; const sdx=(a.rx||0)-(a.ry||0), sdy=(a.rx||0)+(a.ry||0); vorn=sdy>0; links=sdx<0; }
+    else { pose="steht"; blick="S"; }
+    if(pose!=="geht"){ vorn=blick==="S"||blick==="E"; links=blick==="W"||blick==="S"; }
+    const p=lbPunkt(a.x,a.y,z);
+    const bb=pose==="sitzt"?[p[0]-7,p[1]-20,p[0]+7,p[1]+8]:[p[0]-7,p[1]-28,p[0]+7,p[1]+3];
+    if(!lbUeberlapp(bb,sicht)) return;
+    const eintrag={d,person:a,p,pose,vorn,links,z,bb,st:-1};
+    liste.push(eintrag);
+    if(vor===null&&lod>0){ vor=lbVorne(sz,bb,lbPersonHex(a.x,a.y),d,null); }
+    if(vor) for(const x of vor) markiere(x,true);
+    treffer.push(eintrag);
+  });
+  // Alles, was vor einem neu gezeichneten Teil steht, ebenfalls neu zeichnen
+  let kette=0;
+  while(stapel.length&&kette<900){ const o=stapel.pop(); kette++; if(o.vorne) for(const x of o.vorne) if(lbUeberlapp(x.bb,sicht)) markiere(x,true); }
+  liste.sort((a,b)=>a.d-b.d);
+  const ruhig=LIVE.ruhig, tt=ruhig?0:t;
+  for(const e of liste){
+    if(e.person){
+      const a=e.person, info=a.info;
+      const sp=a.modus==="pause"?a.ziel:null, tun=sp&&sp.tun;
+      // Schatten
+      const f=lbPunkt(a.x,a.y,0); c.fillStyle=pal.schatten; c.beginPath(); c.ellipse(f[0],f[1],5.6,2.7,0,0,Math.PI*2); c.fill();
+      const tippen=e.pose==="sitzt"&&a.modus==="sitzt"&&info.belegt?(info.crunch?13:8):(tun==="spielt"?10:(sp&&sp.art==="essen"?2.6:0));
+      lbFigur(c,e.p[0],e.p[1],a.look,{pose:e.pose,vorn:e.vorn,links:e.links,t:tt,phase:a.phase,tippen:ruhig?0:tippen,lod,
+        untermTisch:!!(sp&&sp.untermTisch),tasse:(sp&&(sp.art==="kaffee"))||(a.modus==="sitzt"&&!info.belegt&&lbHash(a.id,"tasse")<0.5),nicken:!ruhig,winken:!ruhig&&((tun==="pingpong"&&lbPingPongAktiv(LIVE.szene.plots[sp.plot]))||tun==="dehnen")});
+      a.bb=e.bb;
+      if(info.crunch&&!ruhig&&lod>0){ const q=(t*1.3+a.phase)%1; c.fillStyle=`rgba(120,190,255,${0.9-q*0.8})`; lbKreis(c,e.p[0]+4.5,e.p[1]+(e.pose==="sitzt"?-15:-23)+q*5,0.9); }
+      let art=null;
+      if(info.stress>75) art="stress"; else if(info.kuendigung) art="kuendigung"; else if(!a.heim.sitz) art="frage"; else if(info.moral<30) art="moral";
+      if(art) blasen.push([e.p[0],e.p[1]+(e.pose==="sitzt"?-23:-31),art]);
+    } else {
+      if(e.zS) e.zeichne(c);
+      if(e.anim&&(e.zA||(e.zS&&(!e.aktiv||e.aktiv())))) e.anim(c,tt);
+    }
+  }
+  // Abwesende: Symbol über dem leeren Platz
+  LIVE.leute.forEach(a=>{ if(a.modus==="weg"&&a.heim&&a.heim.sitz&&a.info){ const p=lbPunkt(a.heim.sitz.x,a.heim.sitz.y,1.25); blasen.push([p[0],p[1],a.info.urlaub?"urlaub":"kurs"]); } });
+  const fb=clamp(0.85/s,1,2.4);
+  for(const [x,y,art] of blasen){ if(x>sicht[0]&&x<sicht[2]&&y>sicht[1]&&y<sicht[3]) lbBlase(c,x,y,art,tt,fb); }
+  LIVE.personenTreffer=treffer;
+}
+
+// ---- Ablauf ----
+function lbRuhig(){ return !!settings.wenigBewegung||!!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches); }
+function lbPlanen(){ if(LIVE.startGeplant) return; LIVE.startGeplant=true; setTimeout(()=>{ LIVE.startGeplant=false; lbStart(); },0); }
+function lbStart(){
+  const cv=document.getElementById("lb-canvas");
+  if(!cv) return;
+  if(cv!==LIVE.cv){
+    LIVE.cv=cv; LIVE.ctx=cv.getContext("2d"); LIVE.ebeneSig="";
+    if(LIVE.io){ try{ LIVE.io.disconnect(); }catch(e){} }
+    if(window.IntersectionObserver){ LIVE.io=new IntersectionObserver(eintraege=>{ eintraege.forEach(x=>{ LIVE.sichtbar=x.isIntersecting; }); }); LIVE.io.observe(cv); }
+  }
+  LIVE.kontext=cv.dataset.kontext||"buero";
+  if(!LIVE.laeuft){ LIVE.laeuft=true; LIVE.letzte=performance.now(); requestAnimationFrame(lbSchleife); }
+}
+function lbSchleife(jetzt){
+  const cv=document.getElementById("lb-canvas");
+  if(!cv||!st||!gameStarted){ LIVE.laeuft=false; LIVE.cv=null; lbTipVerstecken(); return; }
+  if(cv!==LIVE.cv) lbStart();
+  requestAnimationFrame(lbSchleife);
+  const dt=Math.min(0.1,(jetzt-LIVE.letzte)/1000); LIVE.letzte=jetzt;
+  if(document.hidden||!LIVE.sichtbar) return;
+  LIVE.ruhig=lbRuhig();
+  if(LIVE.spiel!==st){ LIVE.spiel=st; LIVE.leute.clear(); LIVE.szeneSig=""; }
+  const sig=lbSzeneSig();
+  if(sig!==LIVE.szeneSig||!LIVE.szene){ LIVE.szeneSig=sig; LIVE.szene=lbSzeneBauen(); LIVE.ebeneSig=""; }
+  LIVE.kontext=cv.dataset.kontext||"buero";
+  lbGroesseAnpassen();
+  const intervall=LIVE.ruhig?500:(LIVE.szene.objekte.length>1400?50:33);
+  LIVE.t+=dt;
+  lbLeuteAktualisieren(LIVE.ruhig?0:dt,LIVE.ruhig);
+  if(jetzt-LIVE.letzteZeichnung<intervall&&!LIVE.neuZeichnen) return;
+  LIVE.letzteZeichnung=jetzt; LIVE.neuZeichnen=false;
+  try{ lbZeichnen(LIVE.t); }catch(e){ console.error("Live-Büro",e); }
+}
+
+// ---- Bedienung ----
+function lbMausPos(e){
+  const cv=LIVE.cv||e.currentTarget, r=cv.getBoundingClientRect(), cw=cv.clientWidth||1;
+  const f=r.width/cw, z=parseFloat(document.body.style.zoom)||1;
+  if(Math.abs(f-1)<0.01&&Math.abs(z-1)>0.01) return {x:e.clientX/z-r.left,y:e.clientY/z-r.top};
+  return {x:(e.clientX-r.left)/f,y:(e.clientY-r.top)/f};
+}
+function lbTreffer(pos){
+  const sz=LIVE.szene; if(!sz) return null;
+  const T=lbTransform(), u=(pos.x-T.ox)/T.s, v=(pos.y-T.oy)/T.s;
+  for(let i=LIVE.personenTreffer.length-1;i>=0;i--){
+    const e=LIVE.personenTreffer[i], b=e.bb;
+    if(u>=b[0]+2&&u<=b[2]-2&&v>=b[1]+2&&v<=b[3]-2) return {person:e.person,plot:e.person.heim.plot>=0?e.person.heim.plot:null};
+  }
+  const x=(u/16+v/8)/2, y=(v/8-u/16)/2;
+  for(const p of sz.plots){ if(x>=p.x&&x<=p.x+LB_P&&y>=p.y&&y<=p.y+LB_P) return p.nutzbar||p.key?{plot:p.i}:null; }
+  return null;
+}
+function lbText(t){ return (typeof SPRACHSYSTEM!=="undefined"&&SPRACHSYSTEM.text)?SPRACHSYSTEM.text(t):t; }
+function lbTipZeigen(e,h){
+  if(!LIVE.tip){ LIVE.tip=document.createElement("div"); LIVE.tip.className="lb-tip"; LIVE.tip.setAttribute("translate","no"); document.body.appendChild(LIVE.tip); }
+  const sz=LIVE.szene; let html="";
+  if(h.person){
+    const a=h.person, m=a.m, info=a.info||{};
+    const zeilen=[];
+    if(info.crunch) zeilen.push(lbText("Macht Überstunden"));
+    if(info.projekt) zeilen.push(`${lbText("Projekt")}: ${esc(info.projekt)}`);
+    else if(!info.belegt) zeilen.push(lbText("Gerade ohne Aufgabe"));
+    if(!a.heim.sitz) zeilen.push(lbText("Hat noch keinen Arbeitsplatz"));
+    if(info.stress>75) zeilen.push(lbText("Stark gestresst"));
+    if(info.kuendigung) zeilen.push(lbText("Hat gekündigt"));
+    if(a.modus==="pause") zeilen.push(lbText("Macht gerade Pause"));
+    html=`<b>${esc(m.name)}</b><span class="lb-tip-zeile" style="color:${ROLE_COLORS[m.rolle]||'inherit'}">${esc(lbText(m.rolleLabel))} · Skill ${m.skill}</span>${zeilen.map(z=>`<span class="lb-tip-zeile">${z}</span>`).join("")}`;
+  } else if(h.plot!=null){
+    const p=sz.plots[h.plot];
+    if(p.key){
+      const room=lbRaumInfo(p.key), cap=p.cap;
+      let zeile="";
+      if(cap){ let belegt=0; for(let j=0;j<cap;j++){ if(st.team.some(m=>m.desk===`${p.key}#${p.nr*cap+j}`)) belegt++; } zeile=`<span class="lb-tip-zeile">${belegt}/${cap} ${lbText("Plätze belegt")}</span>`; }
+      html=`<b>${esc(lbText(room.name))}</b>${zeile}<span class="lb-tip-zeile">${esc(lbText(room.desc))}</span>`;
+    } else html=`<b>${lbText("Freie Fläche")}</b><span class="lb-tip-zeile">${lbText("Klicken, um einen Raum zu bauen")}</span>`;
+  }
+  if(!html){ lbTipVerstecken(); return; }
+  if(LIVE.tip.__html!==html){ LIVE.tip.innerHTML=html; LIVE.tip.__html=html; }
+  const z=parseFloat(document.body.style.zoom)||1;
+  LIVE.tip.style.display="block";
+  const w=LIVE.tip.offsetWidth, hh=LIVE.tip.offsetHeight;
+  let x=e.clientX/z+16, y=e.clientY/z+14;
+  if(x+w>window.innerWidth/z-8) x=e.clientX/z-w-12;
+  if(y+hh>window.innerHeight/z-8) y=e.clientY/z-hh-12;
+  LIVE.tip.style.left=x+"px"; LIVE.tip.style.top=y+"px";
+}
+function lbTipVerstecken(){ if(LIVE.tip) LIVE.tip.style.display="none"; }
+function lbZeiger(e){
+  if(!LIVE.szene) return;
+  const pos=lbMausPos(e);
+  if(LIVE.ziehen){
+    const v=lbAnsicht(), dx=pos.x-LIVE.ziehen.x, dy=pos.y-LIVE.ziehen.y;
+    if(Math.abs(dx)+Math.abs(dy)>3) LIVE.ziehen.bewegt=true;
+    if(LIVE.ziehen.bewegt){ v.panX=LIVE.ziehen.panX+dx; v.panY=LIVE.ziehen.panY+dy; lbPanBegrenzen(); LIVE.neuZeichnen=true; lbTipVerstecken(); LIVE.cv.style.cursor="grabbing"; return; }
+  }
+  const h=lbTreffer(pos);
+  const alt=LIVE.hover;
+  LIVE.hover=h;
+  if((alt&&alt.plot)!==(h&&h.plot)) LIVE.neuZeichnen=true;
+  if(LIVE.cv) LIVE.cv.style.cursor=h?"pointer":"grab";
+  if(h) lbTipZeigen(e,h); else lbTipVerstecken();
+}
+function lbDruecken(e){
+  if(e.button!==0) return;
+  const pos=lbMausPos(e), v=lbAnsicht();
+  LIVE.ziehen={x:pos.x,y:pos.y,panX:v.panX,panY:v.panY,bewegt:false};
+  try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(x){}
+}
+function lbLoslassen(e){
+  const z=LIVE.ziehen; LIVE.ziehen=null;
+  try{ e.currentTarget.releasePointerCapture(e.pointerId); }catch(x){}
+  if(!z||z.bewegt) return;
+  const h=lbTreffer(lbMausPos(e));
+  if(!h) return;
+  lbTipVerstecken();
+  const p=h.plot!=null?LIVE.szene.plots[h.plot]:null;
+  if(LIVE.kontext==="dash"){ st.tab="buero"; buPanel=p&&p.key?{type:"desks",key:p.key}:null; render(); return; }
+  if(p&&p.key){ buPanel={type:"desks",key:p.key}; render(); }
+  else buOpenBuild();
+}
+function lbVerlassen(){ LIVE.hover=null; LIVE.ziehen=null; LIVE.neuZeichnen=true; lbTipVerstecken(); }
+function lbPanBegrenzen(){
+  const v=lbAnsicht(), T=lbTransform(), sz=LIVE.szene; if(!sz) return;
+  const r=lbWeltRahmen(sz), bw=(r[2]-r[0])*T.s, bh=(r[3]-r[1])*T.s;
+  const mx=Math.max(0,(bw-LIVE.cssW)/2+60), my=Math.max(0,(bh-LIVE.cssH)/2+60);
+  v.panX=clamp(v.panX,-mx,mx); v.panY=clamp(v.panY,-my,my);
+}
+function lbZoomen(f,um){
+  const v=lbAnsicht(); if(!LIVE.szene) return;
+  const alt=v.zoom; v.zoom=clamp(v.zoom*f,1,6);
+  if(um){ const r=v.zoom/alt; v.panX=(v.panX-(um.x-LIVE.cssW/2))*r+(um.x-LIVE.cssW/2); v.panY=(v.panY-(um.y-LIVE.cssH/2))*r+(um.y-LIVE.cssH/2); }
+  else { const r=v.zoom/alt; v.panX*=r; v.panY*=r; }
+  if(v.zoom===1){ v.panX=0; v.panY=0; }
+  lbPanBegrenzen(); LIVE.neuZeichnen=true;
+}
+function lbRad(e){ if(!LIVE.szene) return; e.preventDefault(); lbZoomen(e.deltaY<0?1.15:1/1.15,lbMausPos(e)); }
+function lbDoppel(e){ lbZoomen(1.6,lbMausPos(e)); }
+function lbAnsichtZuruecksetzen(){ const v=lbAnsicht(); v.zoom=1; v.panX=0; v.panY=0; LIVE.neuZeichnen=true; }
+// HTML für die Bühne; Breite und Höhe stehen im Markup, damit der DOM-Abgleich die Leinwand nicht leert
+function lbHtml(kontext){
+  const m=LIVE.masse[kontext]||{};
+  const hoehe=m.cssH||(kontext==="dash"?260:440);
+  const attr=m.pxW?` width="${m.pxW}" height="${m.pxH}"`:"";
+  lbPlanen();
+  return `<div class="lb-rahmen">
+    <canvas id="lb-canvas" class="lb-canvas" data-kontext="${kontext}"${attr} style="height:${hoehe}px" role="img" aria-label="Live-Ansicht des Büros"
+      onpointermove="lbZeiger(event)" onpointerdown="lbDruecken(event)" onpointerup="lbLoslassen(event)" onpointerleave="lbVerlassen()" onpointercancel="lbVerlassen()" onwheel="lbRad(event)" ondblclick="lbDoppel(event)"></canvas>
+    <div class="lb-werkzeuge">
+      <button type="button" class="lb-knopf" onclick="lbZoomen(1.35)" title="Hineinzoomen" aria-label="Hineinzoomen">+</button>
+      <button type="button" class="lb-knopf" onclick="lbZoomen(1/1.35)" title="Herauszoomen" aria-label="Herauszoomen">−</button>
+      <button type="button" class="lb-knopf" onclick="lbAnsichtZuruecksetzen()" title="Ganzes Gelände zeigen" aria-label="Ganzes Gelände zeigen">${icon('search',13)}</button>
+    </div>
+    <div class="lb-legende">${ROLES.map(r=>`<span><i style="background:${ROLE_COLORS[r.key]}"></i>${r.label}</span>`).join("")}</div>
+  </div>`;
+}
+// ==== LIVE-BUERO END ====
 
 function projektPunkteStand(p){
   const gameplay=Math.round((p.gameplayPct||0)/100*(p.zielGameplay||0));
@@ -12146,6 +13395,10 @@ function viewDashboard(){
     <div class="dash-stat-card"><div class="dash-stat-icon" style="${statTint('purple')}">${icon('trophy',16)}</div><div><div class="dash-stat-label">Letzte Veröffentlichung</div><div class="dash-stat-value">${lastRelease?`${lastRelease.score} <span class="muted" style="font-weight:400;font-size:10.5px;">Wertung</span>`:'–'}</div></div></div>
     <div class="dash-stat-card"><div class="dash-stat-icon" style="${statTint('blue')}">${icon('flag',16)}</div><div><div class="dash-stat-label">Nächster Meilenstein</div><div class="dash-stat-value" style="font-size:12.5px;">${leadProjekt?(nextPhase?`${nextPhase.label} <span class="muted" style="font-weight:400;">(noch ${Math.round(punkteBisNextPhase).toLocaleString('de-DE')} Pkt.)</span>`:'Bereit'):'–'}</div></div></div>
   </div>
+  ${settings.liveDashboard!==false?`<div class="panel lb-panel">
+    <div class="lb-kopf"><h3>Dein Studio</h3><span class="dash-tag">Live</span><button class="btn-small" onclick="setTab('buero')">${icon('building',13)} Zum Büro</button></div>
+    ${lbHtml('dash')}
+  </div>`:''}
   <div class="grid2" style="margin-bottom:14px;">
     ${dashHandlungPanel()}
     ${dashRueckblickPanel()}
