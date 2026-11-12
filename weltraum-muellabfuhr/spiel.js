@@ -354,7 +354,7 @@
     truemmer: new T.MeshPhongMaterial({ color: 0x8d8f96, flatShading: true }),
     glut: new T.MeshPhongMaterial({ color: 0xffb066, emissive: 0xff5a00, flatShading: true }),
     hakenSeil: new T.MeshBasicMaterial({ color: 0x9fe3ff }),
-    seil: new T.MeshLambertMaterial({ color: 0xff9c33, emissive: 0x221000 }),
+    seil: new T.MeshLambertMaterial({ color: 0xd88a3c, emissive: 0x0c0600 }),
   };
   function kasten(b, h, t, mat) { return new T.Mesh(new T.BoxGeometry(b, h, t), mat); }
   function rohr(r1, r2, h, seg, mat) { return new T.Mesh(new T.CylinderGeometry(r1, r2, h, seg), mat); }
@@ -685,7 +685,7 @@
     if (seilMesh) { szene.remove(seilMesh); seilMesh.geometry.dispose(); seilMesh = null; }
     if (!spieler.angeleint || (zustand !== 'spiel' && zustand !== 'pause')) return;
     const kurve = new T.CatmullRomCurve3(seilPunkte.map(s => s.p.clone()));
-    seilMesh = new T.Mesh(new T.TubeGeometry(kurve, 64, 0.03, 5, false), MAT.seil);
+    seilMesh = new T.Mesh(new T.TubeGeometry(kurve, 64, 0.02, 5, false), MAT.seil);
     szene.add(seilMesh);
   }
   const hakenSeil = new T.Mesh(new T.CylinderGeometry(0.022, 0.022, 1, 6), MAT.hakenSeil);
@@ -1584,5 +1584,6 @@
     teilErzeugen: (typ, pos, vel) => teilErzeugen(typ, pos, vel || V(), V()),
     V,
     ANKER, STATION, SCHLEUSE_MITTE,
+    szene, kamera,
   };
 })();
