@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weltraum-Müllabfuhr · Prototyp</title>
+<style>
+  :root {
+    --hud: #c9f4ff;
+    --hud-leise: rgba(201, 244, 255, .6);
+    --gefahr: #ff5c5c;
+    --gut: #7dffa8;
+    --orange: #ff8a1f;
+    --gold: #ffd166;
+    --panel: rgba(5, 12, 22, .86);
+    --rand: rgba(201, 244, 255, .22);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; color: var(--hud);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif; }
+  canvas#welt { display: block; width: 100vw; height: 100vh; }
+  .versteckt { display: none !important; }
+
+  /* Helmrand und Schaden */
+  #helm { position: fixed; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse 75% 70% at center, transparent 62%, rgba(0,0,0,.28) 80%, rgba(0,0,0,.82) 100%); }
+  #schaden { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s;
+    background: radial-gradient(ellipse at center, transparent 45%, rgba(255,40,40,.55) 100%); }
+  #riss { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity 1.2s; }
+
+  /* HUD */
+  #hud { position: fixed; inset: 0; pointer-events: none; font-size: 14px; letter-spacing: .02em;
+    text-shadow: 0 0 6px rgba(0,0,0,.9); }
+  .ecke { position: absolute; top: 18px; display: flex; flex-direction: column; gap: 8px; min-width: 230px; }
+  #hud-links { left: 22px; }
+  #hud-rechts { right: 22px; align-items: flex-end; }
+  .zeile { display: flex; align-items: center; gap: 10px; }
+  .beschriftung { width: 92px; font-size: 12px; color: var(--hud-leise); text-transform: uppercase; letter-spacing: .08em; }
+  .balken { width: 150px; height: 10px; border: 1px solid var(--rand); border-radius: 6px; overflow: hidden; background: rgba(0,0,0,.35); }
+  .balken > i { display: block; height: 100%; width: 100%; border-radius: 6px; transition: width .15s linear; }
+  #luft-balken > i { background: linear-gradient(90deg, #41b6ff, #a8e6ff); }
+  #sprit-balken > i { background: linear-gradient(90deg, #ff8a1f, #ffc56b); }
+  #fracht-balken { width: 210px; }
+  #fracht-balken > i { background: linear-gradient(90deg, #4bd88a, #b6ffcf); }
+  .warnung > i { background: var(--gefahr) !important; animation: blinken .5s steps(2) infinite; }
+  .wert { font-variant-numeric: tabular-nums; }
+  #seil-text.los { color: var(--gefahr); font-weight: 700; animation: blinken .8s steps(2) infinite; }
+  #schicht-titel { font-size: 12px; color: var(--hud-leise); text-transform: uppercase; letter-spacing: .1em; }
+  #zeit { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #zeit.knapp { color: var(--gefahr); }
+  #nacht-hinweis { font-size: 12px; color: #9db8ff; }
+  @keyframes blinken { 50% { opacity: .35; } }
+
+  #fadenkreuz { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; }
+  #fadenkreuz::before, #fadenkreuz::after { content: ""; position: absolute; background: var(--hud); opacity: .8; }
+  #fadenkreuz::before { left: 10px; top: 0; width: 2px; height: 22px; }
+  #fadenkreuz::after { top: 10px; left: 0; height: 2px; width: 22px; }
+  #fadenkreuz.aktiv::before, #fadenkreuz.aktiv::after { background: var(--gut); opacity: 1; }
+
+  #zielrahmen { position: absolute; border: 2px solid var(--gut); border-radius: 6px; display: none;
+    box-shadow: 0 0 10px rgba(125,255,168,.35); }
+  #zielrahmen.weit { border-color: rgba(201,244,255,.45); box-shadow: none; }
+  #zielinfo { position: absolute; left: 50%; top: calc(50% + 28px); transform: translateX(-50%); text-align: center;
+    font-size: 13px; white-space: nowrap; }
+  #zielinfo b { color: var(--gold); }
+
+  #hinweise { position: absolute; left: 50%; bottom: 46px; transform: translateX(-50%); display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .taste { background: rgba(5,12,22,.6); border: 1px solid var(--rand); border-radius: 8px; padding: 5px 10px; font-size: 13px; }
+  .taste kbd { font-family: inherit; font-weight: 700; color: var(--gold); margin-right: 6px; }
+
+  #funk { position: absolute; left: 22px; bottom: 26px; width: min(420px, 42vw); display: flex; flex-direction: column-reverse; gap: 6px; }
+  .funkspruch { background: rgba(5,12,22,.62); border-left: 3px solid var(--orange); padding: 6px 10px; border-radius: 4px;
+    font-size: 13px; line-height: 1.35; transition: opacity 1s; }
+  .funkspruch b { color: var(--orange); font-weight: 700; margin-right: 6px; }
+  .funkspruch.alt { opacity: 0; }
+
+  #meldung { position: absolute; left: 50%; top: 24%; transform: translateX(-50%); font-size: 26px; font-weight: 700;
+    text-align: center; opacity: 0; transition: opacity .4s; white-space: nowrap; }
+  #meldung.zeigen { opacity: 1; }
+  .schwebetext { position: absolute; font-weight: 800; font-size: 22px; color: var(--gut); transform: translate(-50%, -50%);
+    animation: schweben 1.5s ease-out forwards; }
+  .schwebetext.minus { color: var(--gefahr); }
+  @keyframes schweben { 0% { opacity: 0; margin-top: 0; } 15% { opacity: 1; } 100% { opacity: 0; margin-top: -70px; } }
+  #scanner { position: absolute; inset: 0; }
+  .marke { position: absolute; transform: translate(-50%, -150%); font-size: 11px; font-weight: 700; white-space: nowrap;
+    padding: 2px 6px; border-radius: 6px; background: rgba(5,12,22,.55); border: 1px solid currentColor; }
+  .marke::after { content: ""; position: absolute; left: 50%; bottom: -10px; width: 7px; height: 7px; margin-left: -4px;
+    border: 1px solid currentColor; transform: rotate(45deg); }
+  .marke.gold { color: var(--gold); }
+  .marke.gruen { color: var(--gut); }
+  .marke.grau { color: var(--hud-leise); }
+  #scan-welle { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px;
+    border: 2px solid var(--gut); border-radius: 50%; opacity: 0; }
+  #scan-welle.los { animation: welle 1s ease-out; }
+  @keyframes welle { from { opacity: .8; transform: scale(1); } to { opacity: 0; transform: scale(40); } }
+  #scan-text { font-size: 12px; color: var(--hud-leise); }
+
+  /* Überlagerungen */
+  .ueberlagerung { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at center, rgba(4,10,20,.55), rgba(0,0,0,.88)); z-index: 5; padding: 16px; }
+  .karte { background: var(--panel); border: 1px solid var(--rand); border-radius: 16px; padding: 28px 32px;
+    width: min(760px, 100%); max-height: 92vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  .karte h1 { margin: 0 0 4px; font-size: 38px; letter-spacing: .04em; color: #fff; }
+  .karte h1 span { color: var(--orange); }
+  .karte h2 { margin: 0 0 14px; font-size: 26px; color: #fff; }
+  .unterzeile { color: var(--hud-leise); margin-bottom: 18px; }
+  .karte p { line-height: 1.5; margin: 0 0 14px; }
+  .steuerung { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 6px 0 20px; font-size: 14px; }
+  .steuerung kbd { font-family: inherit; font-weight: 700; color: var(--gold); white-space: nowrap; }
+  .knoepfe { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid var(--rand); background: rgba(255,255,255,.06);
+    color: var(--hud); padding: 10px 18px; }
+  button:hover { background: rgba(255,255,255,.12); }
+  button.haupt { background: var(--orange); border-color: var(--orange); color: #1b0e00; font-weight: 800; font-size: 17px; padding: 12px 26px; }
+  button.haupt:hover { background: #ffa04a; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .leise { color: var(--hud-leise); font-size: 13px; }
+  .klein-knopf { padding: 6px 12px; font-size: 13px; }
+  .abrechnung { display: grid; grid-template-columns: 1fr auto; gap: 8px 24px; margin: 8px 0 18px; font-size: 16px; }
+  .abrechnung .summe { font-weight: 800; font-size: 20px; color: var(--gut); border-top: 1px solid var(--rand); padding-top: 8px; }
+  .abrechnung .minus { color: var(--gefahr); }
+  .upgrade-liste { display: grid; gap: 10px; margin: 10px 0 20px; }
+  .upgrade { display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center; padding: 12px 14px;
+    border: 1px solid var(--rand); border-radius: 12px; background: rgba(255,255,255,.03); }
+  .upgrade b { color: #fff; }
+  .punkte { letter-spacing: 3px; color: var(--orange); }
+  .konto { font-size: 20px; font-weight: 800; color: var(--gold); }
+  .rot { color: var(--gefahr); }
+  .gruen { color: var(--gut); }
+  #ladebalken { height: 4px; width: 100%; background: rgba(255,255,255,.08); border-radius: 4px; overflow: hidden; margin-bottom: 18px; }
+  #ladebalken i { display: block; height: 100%; width: 0; background: var(--orange); transition: width .2s; }
+</style>
+</head>
+<body>
+<canvas id="welt"></canvas>
+<div id="helm"></div>
+<div id="schaden"></div>
+<svg id="riss" viewBox="0 0 100 100" preserveAspectRatio="none">
+  <path d="M71 18 L64 31 L69 38 L58 52 L63 60 L55 74 M64 31 L77 35 M58 52 L47 49 M63 60 L74 66"
+    fill="none" stroke="rgba(255,255,255,.75)" stroke-width=".35" vector-effect="non-scaling-stroke"/>
+</svg>
+
+<div id="hud" class="versteckt">
+  <div id="hud-links" class="ecke">
+    <div class="zeile"><span class="beschriftung">Sauerstoff</span><div id="luft-balken" class="balken"><i></i></div><span id="luft-text" class="wert"></span></div>
+    <div class="zeile"><span class="beschriftung">Treibstoff</span><div id="sprit-balken" class="balken"><i></i></div><span id="sprit-text" class="wert"></span></div>
+    <div class="zeile"><span class="beschriftung">Seil</span><span id="seil-text" class="wert"></span></div>
+    <div class="zeile"><span class="beschriftung">Tempo</span><span id="tempo-text" class="wert"></span></div>
+  </div>
+  <div id="hud-rechts" class="ecke">
+    <div id="schicht-titel"></div>
+    <div id="zeit" class="wert">7:00</div>
+    <div class="zeile"><span id="fracht-text" class="wert"></span></div>
+    <div id="fracht-balken" class="balken"><i></i></div>
+    <div id="scan-text"></div>
+    <div id="nacht-hinweis"></div>
+  </div>
+  <div id="scanner"></div>
+  <div id="scan-welle"></div>
+  <div id="fadenkreuz"></div>
+  <div id="zielrahmen"></div>
+  <div id="zielinfo"></div>
+  <div id="hinweise"></div>
+  <div id="funk"></div>
+  <div id="meldung"></div>
+  <div id="schwebetexte"></div>
+</div>
+
+<div id="startbild" class="ueberlagerung">
+  <div class="karte">
+    <div id="ladebalken"><i></i></div>
+    <h1>WELTRAUM-<span>MÜLLABFUHR</span></h1>
+    <div class="unterzeile">Prototyp · Orbit-Entsorgung GmbH · <span id="start-schicht">Schicht 1</span></div>
+    <p>Du bist neu bei der Orbit-Entsorgung GmbH. Dein Job: Weltraumschrott einsammeln und in die Schleuse am Heck des Müllschiffs werfen.
+      Pass auf deine Luft auf, bleib am Sicherungsseil und zerleg keine Satelliten, sonst fliegt dir der Schrott um die Ohren.</p>
+    <div class="steuerung">
+      <kbd>Maus</kbd><span>umsehen (vorher ins Bild klicken)</span>
+      <kbd>W A S D</kbd><span>Düse vorwärts, links, zurück, rechts</span>
+      <kbd>Leertaste / C</kbd><span>hoch / runter</span>
+      <kbd>Shift</kbd><span>Turbo (verbraucht mehr Treibstoff)</span>
+      <kbd>X</kbd><span>bremsen</span>
+      <kbd>Linksklick oder G</kbd><span>Greifhaken schießen oder lösen · beim Tragen: werfen</span>
+      <kbd>Rechtsklick oder Q</kbd><span>Haken einholen (halten)</span>
+      <kbd>E</kbd><span>Schrott greifen oder loslassen</span>
+      <kbd>T</kbd><span>Scanner: zeigt Schrott und seinen Wert</span>
+      <kbd>R</kbd><span>Sicherungsseil lösen oder anlegen (am Schiff)</span>
+      <kbd>F</kbd><span>an der Station: Schicht beenden</span>
+      <kbd>Pfeiltasten</kbd><span>umsehen ohne Maus</span>
+      <kbd>M · Esc</kbd><span>Ton an/aus · Pause</span>
+    </div>
+    <div class="knoepfe">
+      <button id="start-knopf" class="haupt" disabled>Lädt …</button>
+      <button id="werkstatt-knopf">Werkstatt</button>
+      <button id="reset-knopf" class="klein-knopf">Spielstand zurücksetzen</button>
+    </div>
+    <p class="leise" style="margin-top:16px">Tipp: Am blauen Ring oben auf dem Schiff tankst du Luft und Treibstoff. Mit dem Haken kannst du dich auch zum Schiff ziehen.</p>
+  </div>
+</div>
+
+<div id="pausebild" class="ueberlagerung versteckt">
+  <div class="karte" style="width:min(460px,100%);text-align:center">
+    <h2>Pause</h2>
+    <p class="leise">Die Zeit steht still, sogar im Orbit.</p>
+    <div class="knoepfe" style="justify-content:center">
+      <button id="weiter-knopf" class="haupt">Weiterspielen</button>
+      <button id="aufgeben-knopf">Schicht abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div id="endbild" class="ueberlagerung versteckt">
+  <div class="karte" style="width:min(560px,100%)">
+    <h2 id="end-titel">Schichtende</h2>
+    <p id="end-text"></p>
+    <div id="end-abrechnung" class="abrechnung"></div>
+    <div class="knoepfe">
+      <button id="end-werkstatt" class="haupt">Zur Werkstatt</button>
+    </div>
+  </div>
+</div>
+
+<div id="werkstatt" class="ueberlagerung versteckt">
+  <div class="karte">
+    <h2>Werkstatt</h2>
+    <div class="unterzeile">Konto: <span id="konto" class="konto"></span> · <span id="werkstatt-info"></span></div>
+    <div id="upgrade-liste" class="upgrade-liste"></div>
+    <div class="knoepfe">
+      <button id="naechste-schicht" class="haupt">Schicht starten</button>
+    </div>
+  </div>
+</div>
+
+<script src="lib/three.min.js"></script>
+<script src="spiel.js"></script>
+</body>
+</html>
