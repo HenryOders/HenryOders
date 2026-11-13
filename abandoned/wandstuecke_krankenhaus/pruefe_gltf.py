@@ -12,6 +12,7 @@ TEXRES = 4096
 W2, H, T2 = 1.9, 3.4, 0.1
 NAMES = ["wand_01", "wand_02", "wand_03", "wand_tuer", "wand_fenster", "wand_durchbruch", "wand_ecke"]
 LIMIT = {"wand_durchbruch": 6000, "wand_ecke": 800}
+RASTER_M = {"krankenhaus": 4.0 / 26, "gefaengnis": 1.0}.get(GEB, 1.0)
 COMP = {5120: np.int8, 5121: np.uint8, 5122: np.int16, 5123: np.uint16, 5125: np.uint32, 5126: np.float32}
 NC = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4}
 
@@ -88,7 +89,10 @@ for short in NAMES:
     if lo[2] < -1e-4 or hi[2] > H + 1e-4:
         fehler.append(f"{short}: Hoehe {lo[2]:.4f}..{hi[2]:.4f}")
     if short == "wand_ecke":
-        if max(abs(lo[0]), abs(hi[0]), abs(lo[1]), abs(hi[1])) > 0.105 + 0.0125:
+        # Pfosten 21 x 21 cm; Sockel darf so weit vorstehen wie an den Waenden
+        lim = 0.105 + SOCKEL_VOR + 0.0005
+        r["pfosten_halbe_breite_cm"] = round(max(abs(lo[0]), abs(hi[0]), abs(lo[1]), abs(hi[1])) * 100, 2)
+        if max(abs(lo[0]), abs(hi[0]), abs(lo[1]), abs(hi[1])) > lim:
             fehler.append(f"{short}: Pfosten zu breit")
     else:
         if abs(lo[0] + W2) > 1e-4 or abs(hi[0] - W2) > 1e-4:
@@ -105,6 +109,8 @@ for short in NAMES:
             fehler.append(f"{short}: Schutt ragt {r['vorstand_cm']} cm vor")
     elif ay.max() > T2 + 0.12 + 1e-4:
         fehler.append(f"{short}: ragt {r['vorstand_cm']} cm vor")
+    if short == "wand_01":
+        SOCKEL_VOR = float(np.abs(P[np.abs(np.abs(P[:, 0]) - W2) < 1e-4][:, 1]).max()) - T2
     # Randzone und Kanten
     if short != "wand_ecke":
         rz = {}
@@ -148,8 +154,9 @@ for short in NAMES:
                    "mittel": round(float((dens * area).sum() / area.sum()))}
     if dens.min() < 950 or dens.max() > 1100:
         fehler.append(f"{short}: Pixeldichte {dens.min():.0f}..{dens.max():.0f}")
-    # Fliesenraster: auf Wandflaechen (und allen vier Pfostenseiten) liegen die Fugen auf Vielfachen von 4/26 m
-    TS = 4.0 / 26
+    # Raster der Wandtextur (Fliesen 4/26 m, Schaltafeln 1 m): auf Wandflaechen und allen vier Pfostenseiten
+    # muessen die Fugen auf Vielfachen davon liegen, sonst springen sie an den Stoessen
+    TS = RASTER_M
     worst = 0.0
     for p in prims:
         if p["mat"] is None or "Wand" not in g["materials"][p["mat"]]["name"]:
@@ -162,9 +169,9 @@ for short in NAMES:
             if m.any():
                 ph = np.mod(val[m], TS)
                 worst = max(worst, float(np.minimum(ph, TS - ph).max()))
-    r["fliesenraster_abweichung_mm"] = round(worst * 1000, 2)
+    r["raster_abweichung_mm"] = round(worst * 1000, 2)
     if worst > 0.0005:
-        fehler.append(f"{short}: Fliesenraster um {worst * 1000:.1f} mm verschoben")
+        fehler.append(f"{short}: Texturraster um {worst * 1000:.1f} mm verschoben")
     r["normalen"] = {"gekippt": flipped, "entartet": degen, "laenge_min": round(float(nlen.min()), 4),
                      "laenge_max": round(float(nlen.max()), 4)}
     if flipped or degen or abs(nlen.min() - 1) > 1e-3 or abs(nlen.max() - 1) > 1e-3 or np.isnan(nlen).any():
