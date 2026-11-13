@@ -35,7 +35,7 @@ Im Repository liegt nur das Skript. Die Modelle, Texturen und die Blender-Datei 
 | SM_Decke_4x4m | Rasterdecke 6 × 6 Platten, Rohre, Betondecke | ca. 7.000 |
 | SM_Saeule | 30 × 30 cm, gefliest | ca. 6.000 |
 | SM_Tuerrahmen | Stahlzarge mit Anschlag und Bändern | ca. 700 |
-| SM_Fensterrahmen | Rahmen mit Sprossen und Glasresten | ca. 700 |
+| SM_Fensterrahmen | Rahmen mit Sprossen und Glasresten | ca. 800 |
 | SM_Deckenlampe | Leuchte mit zwei Röhren | ca. 200 |
 | SM_Schutt | Betonbrocken, Fliesenscherben, Putzplatten | ca. 6.000 |
 

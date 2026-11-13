@@ -718,7 +718,7 @@ def build_door_frame(name):
     x0, x1, z1 = DOOR
     d, w, e = 0.15, 0.065, 0.02
     for a, b in ((x0 - w, x0 + e), (x1 - e, x1 + w)):
-        box(bm, (a, -d, 0), (b, d, z1 + w), 0, bevel=0.004)
+        box(bm, (a, -d, 0), (b, d, z1 - e), 0, bevel=0.004)
     box(bm, (x0 - w, -d, z1 - e), (x1 + w, d, z1 + w), 0, bevel=0.004)
     stop = 0.016
     box(bm, (x0 + e - 0.001, -0.02, 0), (x0 + e + stop, 0.03, z1 - e + 0.001), 0, bevel=0.002)
@@ -733,13 +733,14 @@ def build_window_frame(name, seed=17):
     bm = bmesh.new()
     x0, x1, z0, z1 = WIN
     d, w, e = 0.15, 0.06, 0.02
-    box(bm, (x0 - w, -d, z0 - w), (x0 + e, d, z1 + w), 0, bevel=0.004)
-    box(bm, (x1 - e, -d, z0 - w), (x1 + w, d, z1 + w), 0, bevel=0.004)
+    box(bm, (x0 - w, -d, z0 + e), (x0 + e, d, z1 - e), 0, bevel=0.004)
+    box(bm, (x1 - e, -d, z0 + e), (x1 + w, d, z1 - e), 0, bevel=0.004)
     box(bm, (x0 - w, -d, z1 - e), (x1 + w, d, z1 + w), 0, bevel=0.004)
     box(bm, (x0 - w, -d - 0.06, z0 - w), (x1 + w, d, z0 + e), 0, bevel=0.004)
     mx, mz = (x0 + x1) / 2, (z0 + z1) / 2
     box(bm, (mx - 0.025, -0.03, z0), (mx + 0.025, 0.03, z1), 0, bevel=0.003)
-    box(bm, (x0, -0.03, mz - 0.025), (x1, 0.03, mz + 0.025), 0, bevel=0.003)
+    box(bm, (x0 + e, -0.03, mz - 0.025), (mx - 0.025, 0.03, mz + 0.025), 0, bevel=0.003)
+    box(bm, (mx + 0.025, -0.03, mz - 0.025), (x1 - e, 0.03, mz + 0.025), 0, bevel=0.003)
     # Glasreste in den Ecken der vier Scheiben
     panes = [(x0 + e, mx - 0.025, z0 + e, mz - 0.025), (mx + 0.025, x1 - e, z0 + e, mz - 0.025),
              (x0 + e, mx - 0.025, mz + 0.025, z1 - e), (mx + 0.025, x1 - e, mz + 0.025, z1 - e)]
