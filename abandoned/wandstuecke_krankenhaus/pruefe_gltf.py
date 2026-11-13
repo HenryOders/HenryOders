@@ -15,13 +15,13 @@ LIMIT = {"wand_durchbruch": 6000, "wand_ecke": 800}
 # Texturraster je Gebaeude: (Periode, Versatz Waende, Versatz Pfosten) in Metern des Wandbilds.
 # Krankenhaus/Gefaengnis: am 4-m-Weltraster verankert (Fliesen 4/26 m, Schaltafeln 1 m).
 # Labor: am Stueck verankert (Paneelfugen), x = 0 liegt auf beiden Seiten bei 2,0 m, der Pfosten bei 0.
-# Schule: am 4-m-Weltraster verankert, Brettfugen alle 10 cm.
+# Schule: am 4-m-Weltraster verankert, Brettfugen alle 10 cm. Mall: am Stueck verankert wie das Labor (60-cm-Platten).
 RASTER = {"krankenhaus": (4.0 / 26, 0.0, 0.0), "gefaengnis": (1.0, 0.0, 0.0), "labor": (4.0, 2.0, 0.0),
-          "schule": (0.1, 0.0, 0.0)}.get(GEB, (1.0, 0.0, 0.0))
+          "schule": (0.1, 0.0, 0.0), "mall": (4.0, 2.0, 0.0)}.get(GEB, (1.0, 0.0, 0.0))
 # Hoehen (z), in denen bei wand_03 auf +Y Leitungen buendig an den Kanten enden (Ausnahme vom Kantenvergleich)
 PIPE_Z = {"schule": [(0.3, 0.75), (2.9, 3.41)]}.get(GEB, [(2.9, 3.41)])
 # Gebaeude, deren Randzone Fugen oder Kantungen enthaelt (dort ist wand_01 keine reine Verlaengerung der Kante)
-FUGEN_IN_RANDZONE = ("labor", "schule")
+FUGEN_IN_RANDZONE = ("labor", "schule", "mall")
 COMP = {5120: np.int8, 5121: np.uint8, 5122: np.int16, 5123: np.uint16, 5125: np.uint32, 5126: np.float32}
 NC = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4}
 
@@ -130,7 +130,7 @@ for short in NAMES:
             zone = (s * P[:, 0] > W2 - 0.4) & ~at_edge
             zones[(short, s)] = {tuple(round(float(c), 4) for c in p) for p in P[zone]}
             # wand_01 ist das intakte Bezugsstueck: dort muss die Randzone eine Verlaengerung des Kantenbilds sein
-            # (beim Labor liegen dort zusaetzlich die Kanten der Randpaneele und die Tragschienen, bei der Schule die Brettfugen)
+            # (beim Labor liegen dort zusaetzlich die Kanten der Randpaneele und die Tragschienen, bei Schule und Mall die Fugen)
             bad = []
             if short == "wand_01" and GEB not in FUGEN_IN_RANDZONE:
                 bad = [tuple(np.round(p, 3)) for p in P[zone] if (round(p[1], 4), round(p[2], 4)) not in E]
