@@ -5,7 +5,7 @@
 import bpy, bmesh, math, random, os, time
 import numpy as np
 import addon_utils
-from mathutils import Vector, Matrix, noise
+from mathutils import Vector, Matrix, noise, geometry
 
 T0 = time.time()
 OUT = os.path.dirname(os.path.abspath(__file__))
@@ -29,6 +29,8 @@ TILE, GAP, TT, BED = 0.2, 0.003, 0.008, 0.004
 FACE = T / 2 + BED + TT                      # Abstand Fliesenoberflaeche zur Wandmitte
 DOOR = (1.3, 2.7, 2.3)
 WIN = (1.2, 2.8, 1.0, 2.2)
+DDOOR = (1.1, 2.9, 2.3)                      # Doppeltuer
+FLOOR2 = 3.85                                # Geschosshoehe fuer die Treppe
 
 def log(*a):
     print(f"[{time.time() - T0:6.1f}s]", *a, flush=True)
@@ -257,6 +259,61 @@ def tex_leiste():
     rough = 0.42 + 0.3 * dirt + 0.2 * scratch
     return texture_set("Leiste", alb, rough, height, 2.0)
 
+def tex_terrazzo():
+    n = 2048 // TEXDIV
+    c1 = fractal(n, 0.0, 1001, sigma=2.2 * n / 2048)
+    c2 = fractal(n, 0.0, 1002, sigma=1.2 * n / 2048)
+    base = hexc("#b9b3a7") * (0.95 + 0.04 * fractal(n, 1.2, 1003)[..., None])
+    alb = mix(base, hexc("#6c6860"), sm(1.3, 1.6, c1))
+    alb = mix(alb, hexc("#ebe5d7"), sm(1.4, 1.7, c2))
+    alb = mix(alb, hexc("#8a5a40"), sm(1.9, 2.2, -c1))
+    dirt = sm(0.2, 2.0, fractal(n, 1.3, 1004))
+    alb *= (1 - 0.35 * dirt)[..., None]
+    height = 0.05 * c1 + 0.02 * fractal(n, 1.0, 1005)
+    rough = 0.32 + 0.3 * dirt
+    return texture_set("Terrazzo", alb, rough, height, 2.0)
+
+def tex_matratze():
+    # Kunstleder-Bezug mit Flecken und Rissen
+    n = 2048 // TEXDIV
+    grain = fractal(n, 0.2, 1102, sigma=0.7)
+    st = fractal(n, 1.5, 1103)
+    stain = sm(0.8, 1.8, st)
+    tide = sm(0.7, 0.78, st) * (1 - stain)
+    crack = sm(0.04, 0.0, np.abs(fractal(n, 0.9, 1104))) * sm(0.5, 1.3, fractal(n, 1.3, 1105))
+    alb = hexc("#5f7f86") * (0.93 + 0.05 * fractal(n, 1.0, 1101)[..., None] + 0.03 * grain[..., None])
+    alb = mix(alb, alb * hexc("#a07a48") * 1.3, 0.6 * stain)
+    alb *= (1 - 0.3 * tide - 0.5 * crack)[..., None]
+    height = 0.05 * grain - 0.4 * crack
+    rough = 0.45 + 0.2 * stain + 0.2 * crack
+    return texture_set("Matratze", alb, rough, height, 2.5)
+
+def tex_vorhang():
+    n = 2048 // TEXDIV
+    xx, yy = coords(n)
+    weave = 0.5 + 0.25 * np.sin(xx * 2 * np.pi * 400) + 0.25 * np.sin(yy * 2 * np.pi * 400)
+    stain = sm(0.9, 1.9, fractal(n, 1.4, 1202))
+    mold = sm(2.2, 2.8, fractal(n, 0.3, 1203, sigma=1.5)) * sm(0.4, 1.2, fractal(n, 1.2, 1204))
+    alb = hexc("#9fb8a8") * (0.92 + 0.06 * fractal(n, 1.2, 1201)[..., None]) * (0.92 + 0.08 * weave)[..., None]
+    alb = mix(alb, alb * hexc("#9a7a50") * 1.3, 0.6 * stain)
+    alb = mix(alb, hexc("#2f3326"), 0.7 * mold)
+    return texture_set("Vorhang", alb, 0.86 + 0.0 * weave, 0.3 * weave, 1.0)
+
+def tex_tuerlack():
+    n = 2048 // TEXDIV
+    chip = fractal(n, 1.1, 1301) + 0.5 * fractal(n, 0.6, 1302)
+    under = sm(1.5, 1.58, chip)
+    scratch = np.clip(sm(2.1, 2.9, fractal(n, 0.6, 1303, aniso=0.07)) + sm(2.2, 3.0, fractal(n, 0.6, 1304, aniso=10.0)), 0, 1)
+    dirt = sm(0.0, 2.0, fractal(n, 1.3, 1305))
+    hand = sm(1.6, 2.6, fractal(n, 1.6, 1306))
+    paint = hexc("#c9c3ab") * (0.95 + 0.04 * fractal(n, 1.4, 1307)[..., None])
+    alb = mix(paint, hexc("#8a7a60"), under)
+    alb *= (1 - 0.3 * dirt - 0.25 * hand)[..., None]
+    alb = mix(alb, hexc("#5d564a"), 0.5 * scratch)
+    height = -0.3 * under - 0.2 * scratch
+    rough = 0.45 + 0.25 * dirt + 0.2 * under
+    return texture_set("Tuerlack", alb, rough, height, 2.5)
+
 # ======================= Materialien =======================
 def tex_material(name, imgs):
     m = bpy.data.materials.new("M_" + name)
@@ -314,9 +371,19 @@ MAT = {
     "raster": color_material("Deckenraster", "#dcdad2", 0.45, 0.3),
     "glas": color_material("Glas", "#cfe0e4", 0.05, 0.0, 0.0, 1.0),
     "leuchte": color_material("Leuchte", "#f4f2ea", 0.3, 0.0, 5.0),
+    "terrazzo": tex_material("Terrazzo", tex_terrazzo()),
+    "matratze": tex_material("Matratze", tex_matratze()),
+    "vorhang": tex_material("Vorhang", tex_vorhang()),
+    "tuerlack": tex_material("Tuerlack", tex_tuerlack()),
+    "kunststoff": color_material("Kunststoff", "#d6cfbc", 0.5),
+    "edelstahl": color_material("Edelstahl", "#c4c5c1", 0.32, 1.0),
+    "gummi": color_material("Gummi", "#232323", 0.85),
+    "beutel": color_material("Infusionsbeutel", "#e6eef0", 0.2, 0.0, 0.0, 0.85),
 }
 UVS = {"putz": 0.25, "glasur": 0.25, "moertel": 1.0, "linoleum": 0.25, "platte": 0.25, "beton": 1.0,
-       "metall": 1.0, "rost": 2.0, "leiste": 1.0, "raster": 1.0, "glas": 1.0, "leuchte": 1.0}
+       "metall": 1.0, "rost": 2.0, "leiste": 1.0, "raster": 1.0, "glas": 1.0, "leuchte": 1.0,
+       "terrazzo": 1.0, "matratze": 1.0, "vorhang": 1.0, "tuerlack": 1.0, "kunststoff": 1.0,
+       "edelstahl": 1.0, "gummi": 1.0, "beutel": 1.0}
 
 # ======================= Geometrie-Hilfen =======================
 def faces_of(vs):
@@ -405,7 +472,7 @@ def uv_project(bm, mats):
                 l[uv].uv = (co.x * s, co.y * s)
 
 PIECES = []
-def finish(name, bm, mats, colliders=()):
+def finish(name, bm, mats, colliders=(), export=True):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.normal_update()
     uv_project(bm, mats)
@@ -427,8 +494,9 @@ def finish(name, bm, mats, colliders=()):
         co.hide_render = True
         scene.collection.objects.link(co)
         cols.append(co)
-    PIECES.append((ob, cols))
-    log("Teil", name, len(me.polygons), "Flaechen")
+    if export:
+        PIECES.append((ob, cols))
+        log("Teil", name, len(me.polygons), "Flaechen")
     return ob
 
 # Materialindizes fuer Waende
@@ -541,34 +609,44 @@ def build_wall(name, length, door=None, window=None, seed=1):
     return finish(name, bm, WM, cols)
 
 def build_broken_wall(name, length, seed=7):
+    """Wand mit ausgebrochenem Loch. Der Umriss ist ein Polygon mit 240 Punkten, die Bruchflaeche wird
+    in der Wanddicke unterteilt und verformt, Brocken und Bewehrungseisen sitzen an der Kante."""
     rng = random.Random(seed)
-    cell = 0.025
-    nx, nz = int(round(length / cell)), int(round(H / cell))
-    cx, cz, rad = 2.15, 1.3, 1.0
-    def hole_r(x, z):
-        ang = math.atan2(z - cz, x - cx)
-        return rad * (1 + 0.3 * noise.noise(Vector((math.cos(ang) * 1.2, math.sin(ang) * 1.2, 4.2)))
-                      + 0.12 * noise.noise(Vector((math.cos(ang) * 4.0, math.sin(ang) * 4.0, 7.0)))
-                      + 0.05 * noise.noise(Vector((x * 20, z * 20, 1.0))))
+    random.seed(seed)
+    cx, cz, rad = 2.15, 1.3, 0.95
+    def hole_r(ang):
+        c, s_ = math.cos(ang), math.sin(ang)
+        return rad * (1 + 0.3 * noise.noise(Vector((c * 1.2, s_ * 1.2, 4.2)))
+                      + 0.12 * noise.noise(Vector((c * 4.0, s_ * 4.0, 7.0)))
+                      + 0.045 * noise.noise(Vector((c * 14.0, s_ * 14.0, 2.0)))
+                      + 0.02 * noise.noise(Vector((c * 40.0, s_ * 40.0, 5.0))))
     def hole_dist(x, z):
-        return math.hypot((x - cx) * 0.85, z - cz) - hole_r(x, z)
-    keep = np.ones((nz, nx), dtype=bool)
-    for j in range(nz):
-        for i in range(nx):
-            x, z = (i + 0.5) * cell, (j + 0.5) * cell
-            if hole_dist(x, z) < 0 and z > 0.12:
-                keep[j, i] = False
+        return math.hypot((x - cx) * 0.85, z - cz) - hole_r(math.atan2(z - cz, (x - cx) * 0.85))
+    N = 240
+    inner = []
+    for k in range(N):
+        ang = 2 * math.pi * k / N
+        r = hole_r(ang)
+        z = max(cz + math.sin(ang) * r, 0.12 + 0.012 * noise.noise(Vector((k * 0.37, 1.3, 2.1))))
+        inner.append(Vector((cx + math.cos(ang) * r / 0.85, 0.0, z)))
+    outer = [Vector((0, 0, 0)), Vector((length, 0, 0)), Vector((length, 0, H)), Vector((0, 0, H))]
+    tris = geometry.tessellate_polygon([outer, inner])
+    pts = outer + inner
     bm = bmesh.new()
-    vid = {}
-    def v(i, j):
-        if (i, j) not in vid:
-            vid[(i, j)] = bm.verts.new((i * cell, -T / 2, j * cell))
-        return vid[(i, j)]
-    for j in range(nz):
-        for i in range(nx):
-            if keep[j, i]:
-                f = bm.faces.new((v(i, j), v(i, j + 1), v(i + 1, j + 1), v(i + 1, j)))
-                f.material_index = I_MOERTEL if (j + 0.5) * cell < SOCKEL else I_PUTZ
+    vs = [bm.verts.new((p.x, -T / 2, p.z)) for p in pts]
+    for (a, b, c) in tris:
+        try:
+            bm.faces.new((vs[a], vs[b], vs[c]))
+        except ValueError:
+            pass
+    bm.normal_update()
+    for f in bm.faces:
+        if f.normal.y > 0:
+            f.normal_flip()
+    bmesh.ops.bisect_plane(bm, geom=bm.verts[:] + bm.edges[:] + bm.faces[:], dist=1e-6,
+                           plane_co=Vector((0, 0, SOCKEL)), plane_no=Vector((0, 0, 1)))
+    for f in bm.faces:
+        f.material_index = I_MOERTEL if f.calc_center_median().z < SOCKEL else I_PUTZ
     bm.normal_update()
     bmesh.ops.solidify(bm, geom=list(bm.faces), thickness=T)
     ys = [vv.co.y for vv in bm.verts]
@@ -576,33 +654,37 @@ def build_broken_wall(name, length, seed=7):
     for vv in bm.verts:
         vv.co.y += sh
     bm.normal_update()
+    def outer_face(c):
+        return c.x < 0.01 or c.x > length - 0.01 or c.z < 0.01 or c.z > H - 0.01
     for f in bm.faces:
-        n, c = f.normal, f.calc_center_median()
-        if abs(n.y) > 0.9:
-            continue
-        if not (c.x < 0.01 or c.x > length - 0.01 or c.z < 0.01 or c.z > H - 0.01):
+        if abs(f.normal.y) < 0.9 and not outer_face(f.calc_center_median()):
             f.material_index = I_BETON
-    bmesh.ops.dissolve_limit(bm, angle_limit=math.radians(1), verts=bm.verts, edges=bm.edges, delimit={"MATERIAL", "NORMAL"})
-    bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
-    rim = [vv for vv in bm.verts if any(f.material_index == I_BETON for f in vv.link_faces)
-           and 0.03 < vv.co.x < length - 0.03 and 0.03 < vv.co.z < H - 0.03]
-    for vv in rim:
-        p = vv.co.copy()
-        vv.co.x += 0.022 * noise.noise(p * 9.0)
-        vv.co.z += 0.022 * noise.noise(p * 9.0 + Vector((3, 3, 3)))
-        vv.co.y *= 1.0 + 0.15 * noise.noise(p * 5.0 + Vector((7, 1, 2)))
-    # Betonbrocken entlang der Bruchkante
-    edge_cells = [(i, j) for j in range(1, nz - 1) for i in range(1, nx - 1)
-                  if keep[j, i] and not (keep[j - 1, i] and keep[j + 1, i] and keep[j, i - 1] and keep[j, i + 1])]
-    rng.shuffle(edge_cells)
-    for k, (i, j) in enumerate(edge_cells[:70]):
-        s = rng.uniform(0.018, 0.05)
-        chunk(bm, ((i + 0.5) * cell, rng.uniform(-T / 2 + s, T / 2 - s), (j + 0.5) * cell),
-              Vector((s * rng.uniform(1.0, 1.8), s, s * rng.uniform(0.8, 1.5))), I_BETON, k, flat=1.0)
-    # Bewehrungseisen: zwei waagerecht, eines senkrecht, teils abgerissen und verbogen
+    # Bruchflaeche in der Dicke unterteilen und verformen
+    rim_faces = [f for f in bm.faces if f.material_index == I_BETON]
+    span = list({e for f in rim_faces for e in f.edges if abs(e.verts[0].co.y - e.verts[1].co.y) > T * 0.8})
+    bmesh.ops.subdivide_edges(bm, edges=span, cuts=3, use_grid_fill=True)
+    rim_v = {v for f in bm.faces if f.material_index == I_BETON for v in f.verts}
+    for v in rim_v:
+        if v.co.x < 0.02 or v.co.x > length - 0.02 or v.co.z < 0.02 or v.co.z > H - 0.02:
+            continue
+        ux, uz = v.co.x - cx, v.co.z - cz
+        l = math.hypot(ux, uz) or 1.0
+        ux, uz = ux / l, uz / l
+        mid = abs(v.co.y) < T / 2 - 0.005
+        d = (0.05 if mid else 0.018) * noise.noise(v.co * 9.0) + (0.02 if mid else 0.006) * noise.noise(v.co * 27.0)
+        if mid:
+            d += 0.025
+        v.co.x += ux * d
+        v.co.z += uz * d
+    # Betonbrocken entlang der Kante
+    for k in range(0, N, 3):
+        p = inner[k]
+        s_ = rng.uniform(0.016, 0.05)
+        chunk(bm, (p.x, rng.uniform(-T / 2 + s_, T / 2 - s_), p.z),
+              Vector((s_ * rng.uniform(1.0, 1.8), s_, s_ * rng.uniform(0.8, 1.5))), I_BETON, k, flat=1.0)
+    # abgerissene Bewehrungseisen
     def rebar(points):
-        tube(bm, [Vector(p) for p in points], 0.006, I_ROST, seg=8)
-    # abgerissene Stummel, die aus der Bruchkante ragen
+        tube(bm, [Vector(q) for q in points], 0.006, I_ROST, seg=8)
     for yb in (-0.05, 0.05):
         rebar([(cx - 1.45, yb, cz + 0.35), (cx - 0.78, yb, cz + 0.36), (cx - 0.62, yb - 0.03, cz + 0.3)])
         rebar([(cx - 1.45, yb, cz - 0.4), (cx - 0.82, yb, cz - 0.41), (cx - 0.7, yb + 0.02, cz - 0.47)])
@@ -610,22 +692,25 @@ def build_broken_wall(name, length, seed=7):
     rebar([(cx - 0.12, -0.05, cz + 1.4), (cx - 0.12, -0.05, cz + 0.72), (cx - 0.08, -0.12, cz + 0.55)])
     rebar([(cx + 0.38, 0.05, cz + 1.4), (cx + 0.38, 0.05, cz + 0.8), (cx + 0.45, 0.1, cz + 0.68)])
     rebar([(cx + 0.12, -0.05, cz - 1.25), (cx + 0.12, -0.05, cz - 0.72), (cx + 0.2, -0.1, cz - 0.6)])
-    # Fliesen um das Loch herum, viele fehlen oder sind gesprungen
+    # Fliesen und Leiste
     rects = [(0.0, length, 0.0, SOCKEL)]
     def hd(x, z):
         return hole_dist(x, z) + 0.02
+    runs, cur = [], None
+    steps = int(round(length / 0.01))
+    for i in range(steps + 1):
+        x = i * 0.01
+        ok = all(hole_dist(x, SOCKEL + dz) > 0.07 for dz in (-0.04, 0.0, 0.04))
+        if ok and cur is None:
+            cur = x
+        if (not ok or i == steps) and cur is not None:
+            if x - cur > 0.05:
+                runs.append((cur, x))
+            cur = None
     for side in (-1, 1):
         tile_area(bm, rects, side, rng, hole=hd)
-        row = int(round(SOCKEL / cell))
-        i = 0
-        while i < nx:
-            ok = keep[row, i] and keep[row - 1, i] and hole_dist((i + 0.5) * cell, SOCKEL) > 0.08
-            if ok:
-                s0 = i
-                while i < nx and keep[row, i] and keep[row - 1, i] and hole_dist((i + 0.5) * cell, SOCKEL) > 0.08:
-                    i += 1
-                rail(bm, s0 * cell + 0.002, i * cell - 0.002, side)
-            i += 1
+        for a, b in runs:
+            rail(bm, a + 0.002, b - 0.002, side)
     return finish(name, bm, WM)
 
 def build_floor(name, seed=3):
@@ -713,9 +798,8 @@ def build_pillar(name, seed=13):
                 box(bm, (sgn * off if sgn > 0 else -off - TT, a0 + GAP / 2, z0), (sgn * off + TT if sgn > 0 else -off, a1 - GAP / 2, z1), I_GLASUR, bevel=0.0015)
     return finish(name, bm, WM, [((-s / 2 - 0.012, -s / 2 - 0.012, 0), (s / 2 + 0.012, s / 2 + 0.012, H))])
 
-def build_door_frame(name):
+def build_door_frame(name, x0=DOOR[0], x1=DOOR[1], z1=DOOR[2], hinges="links"):
     bm = bmesh.new()
-    x0, x1, z1 = DOOR
     d, w, e = 0.15, 0.065, 0.02
     for a, b in ((x0 - w, x0 + e), (x1 - e, x1 + w)):
         box(bm, (a, -d, 0), (b, d, z1 - e), 0, bevel=0.004)
@@ -724,8 +808,10 @@ def build_door_frame(name):
     box(bm, (x0 + e - 0.001, -0.02, 0), (x0 + e + stop, 0.03, z1 - e + 0.001), 0, bevel=0.002)
     box(bm, (x1 - e - stop, -0.02, 0), (x1 - e + 0.001, 0.03, z1 - e + 0.001), 0, bevel=0.002)
     box(bm, (x0 + e, -0.02, z1 - e - stop), (x1 - e, 0.03, z1 - e + 0.001), 0, bevel=0.002)
-    for zh in (0.25, 1.9):
-        tube(bm, [Vector((x0 + e + 0.012, -0.035, zh)), Vector((x0 + e + 0.012, -0.035, zh + 0.12))], 0.009, 1, seg=10)
+    posts = [x0 + e + 0.012] + ([x1 - e - 0.012] if hinges == "beide" else [])
+    for hx in posts:
+        for zh in (0.25, 1.9):
+            tube(bm, [Vector((hx, -0.035, zh)), Vector((hx, -0.035, zh + 0.12))], 0.009, 1, seg=10)
     return finish(name, bm, ["metall", "rost"])
 
 def build_window_frame(name, seed=17):
@@ -802,6 +888,231 @@ def build_rubble(name, seed=23):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     return finish(name, bm, M)
 
+def hexa(bm, v8, mi):
+    """Quader aus 8 Punkten: unten 0-3, oben 4-7 (jeweils gegen den Uhrzeigersinn)."""
+    vs = [bm.verts.new(p) for p in v8]
+    for idx in ((0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)):
+        bm.faces.new([vs[i] for i in idx]).material_index = mi
+    return vs
+
+def build_door_leaf(name, width, height, seed=51):
+    """Tuerblatt mit Sichtfenster. Drehpunkt unten an der Bandseite (x=0), Blatt laeuft in +x, Dicke 0 bis -4,5 cm in y."""
+    bm = bmesh.new()
+    t = 0.045
+    wx0, wx1, wz0, wz1 = width * 0.3, width * 0.7, 1.2, 1.85
+    outer = [Vector((0, 0, 0)), Vector((width, 0, 0)), Vector((width, 0, height)), Vector((0, 0, height))]
+    win = [Vector((wx0, 0, wz0)), Vector((wx1, 0, wz0)), Vector((wx1, 0, wz1)), Vector((wx0, 0, wz1))]
+    tris = geometry.tessellate_polygon([outer, win])
+    vs = [bm.verts.new(p) for p in outer + win]
+    for (a, b, c) in tris:
+        bm.faces.new((vs[a], vs[b], vs[c])).material_index = 0
+    bm.normal_update()
+    bmesh.ops.solidify(bm, geom=list(bm.faces), thickness=t)
+    ys = [v.co.y for v in bm.verts]
+    for v in bm.verts:
+        v.co.y -= max(ys)
+    bw = 0.025
+    for y0, y1 in ((-t - 0.012, -t + 0.002), (-0.002, 0.012)):
+        box(bm, (wx0 - bw, y0, wz0 - bw), (wx1 + bw, y1, wz0), 1, bevel=0.002)
+        box(bm, (wx0 - bw, y0, wz1), (wx1 + bw, y1, wz1 + bw), 1, bevel=0.002)
+        box(bm, (wx0 - bw, y0, wz0), (wx0, y1, wz1), 1, bevel=0.002)
+        box(bm, (wx1, y0, wz0), (wx1 + bw, y1, wz1), 1, bevel=0.002)
+    box(bm, (wx0, -t / 2 - 0.003, wz0), (wx1, -t / 2 + 0.003, wz1), 2)
+    for y0, y1 in ((-t - 0.0015, -t + 0.0005), (-0.0005, 0.0015)):
+        box(bm, (0.03, y0, 0.02), (width - 0.03, y1, 0.3), 1)
+    box(bm, (width - 0.22, -t - 0.0015, 1.0), (width - 0.08, -t + 0.0005, 1.35), 1)
+    for sgn, yf in ((-1, -t), (1, 0.0)):
+        hx = width - 0.07
+        tube(bm, [Vector((hx, yf, 1.05)), Vector((hx, yf + sgn * 0.055, 1.05))], 0.01, 1, seg=10)
+        tube(bm, [Vector((hx, yf + sgn * 0.05, 1.05)), Vector((hx - 0.13, yf + sgn * 0.058, 1.05))], 0.009, 1, seg=10)
+        tube(bm, [Vector((hx, yf, 1.05)), Vector((hx, yf + sgn * 0.008, 1.05))], 0.028, 1, seg=16)
+    return finish(name, bm, ["tuerlack", "edelstahl", "glas", "rost"], [((0, -t, 0), (width, 0, height))])
+
+def build_stairs(name):
+    """Podesttreppe ueber ein Geschoss (3,85 m) auf 8 x 4 m. Drehpunkt in der Ecke unten.
+    Lauf 1 steigt in +x, Podest bei halber Hoehe, Lauf 2 fuehrt zurueck auf die obere Platte."""
+    bm = bmesh.new()
+    M = ["terrazzo", "beton", "metall", "edelstahl"]
+    R = FLOOR2 / 22
+    land = 11 * R
+    y0, y1, y2, y3 = 0.15, 1.95, 2.05, 3.85
+    def nosing(xf, top, ya, yb, direction):
+        a, b = (xf - 0.005, xf + 0.035) if direction > 0 else (xf - 0.035, xf + 0.005)
+        box(bm, (a, ya + 0.02, top - 0.008), (b, yb - 0.02, top + 0.002), 3)
+    for k in range(10):
+        xa = 1.5 + k * 0.3
+        top = (k + 1) * R
+        box(bm, (xa, y0, 0), (xa + 0.32, y1, top), 0)
+        nosing(xa, top, y0, y1, 1)
+    box(bm, (4.5, y0, 0), (8.0, y3, land), 0)
+    nosing(4.5, land, y0, y1, 1)
+    for k in range(10):
+        xb = 4.5 - (k + 1) * 0.3
+        top = land + (k + 1) * R
+        box(bm, (xb - 0.02, y2, land + k * R - 0.06), (xb + 0.3, y3, top), 0)
+        nosing(xb + 0.3, top, y2, y3, -1)
+    def line(x):
+        return land + (4.5 - x) / 0.3 * R - 0.04
+    pts = []
+    for zoff in (0.0, -0.2):
+        for (x, y) in ((4.5, y2), (1.5, y2), (1.5, y3), (4.5, y3)):
+            pts.append((x, y, line(x) + zoff))
+    hexa(bm, pts[4:] + pts[:4], 1)
+    box(bm, (0, 0, FLOOR2 - 0.25), (1.5, 4.0, FLOOR2), 0)
+    nosing(1.5, FLOOR2, y2, y3, -1)
+    # Gelaender zwischen den Laeufen und an der oberen Kante
+    def zn1(x):
+        return R + (x - 1.5) / 0.3 * R
+    def zn2(x):
+        return land + R + (4.5 - x) / 0.3 * R
+    rail_pts = [(1.5, 1.91, zn1(1.5) + 0.9), (4.5, 1.91, land + 0.9), (4.62, 1.91, land + 0.9), (4.62, 2.09, land + 0.9),
+                (4.5, 2.09, zn2(4.5) + 0.9), (1.5, 2.09, FLOOR2 + 0.9), (1.45, 2.0, FLOOR2 + 1.0), (1.45, 0.05, FLOOR2 + 1.0)]
+    tube(bm, [Vector(q) for q in rail_pts], 0.022, 2, seg=12)
+    tube(bm, [Vector((1.5, 1.91, zn1(1.5) + 0.45)), Vector((4.5, 1.91, land + 0.45))], 0.012, 2, seg=8)
+    tube(bm, [Vector((4.5, 2.09, zn2(4.5) + 0.45)), Vector((1.5, 2.09, FLOOR2 + 0.45))], 0.012, 2, seg=8)
+    tube(bm, [Vector((1.45, 2.0, FLOOR2 + 0.5)), Vector((1.45, 0.05, FLOOR2 + 0.5))], 0.012, 2, seg=8)
+    for x in (1.65, 2.55, 3.45, 4.35):
+        k = int((x - 1.5) / 0.3)
+        tube(bm, [Vector((x, 1.91, (k + 1) * R)), Vector((x, 1.91, zn1(x) + 0.9))], 0.014, 2, seg=8)
+        k2 = int((4.5 - x) / 0.3)
+        tube(bm, [Vector((x, 2.09, land + (k2 + 1) * R)), Vector((x, 2.09, zn2(x) + 0.9))], 0.014, 2, seg=8)
+    tube(bm, [Vector((4.62, 2.0, land)), Vector((4.62, 2.0, land + 0.9))], 0.016, 2, seg=8)
+    for y in (1.6, 0.9, 0.2):
+        tube(bm, [Vector((1.45, y, FLOOR2)), Vector((1.45, y, FLOOR2 + 1.0))], 0.014, 2, seg=8)
+    # Handlaeufe an den Waenden
+    for yw, yr, z_of in ((y0 - 0.05, y0 + 0.06, zn1), (y3 + 0.05, y3 - 0.06, None)):
+        if z_of is zn1:
+            a, b = (1.4, zn1(1.4) + 0.9), (4.6, land + 0.9)
+        else:
+            a, b = (4.6, zn2(4.6) + 0.9), (1.4, FLOOR2 + 0.9)
+        tube(bm, [Vector((a[0], yr, a[1])), Vector((b[0], yr, b[1]))], 0.02, 2, seg=10)
+        for t_ in (0.12, 0.5, 0.88):
+            x = a[0] + (b[0] - a[0]) * t_
+            z = a[1] + (b[1] - a[1]) * t_
+            tube(bm, [Vector((x, yw, z - 0.06)), Vector((x, yr, z - 0.06)), Vector((x, yr, z - 0.02))], 0.008, 2, seg=6)
+    return finish(name, bm, M, [((4.5, y0, 0), (8.0, y3, land)), ((0, 0, FLOOR2 - 0.25), (1.5, 4.0, FLOOR2))])
+
+def build_bed(name, seed=31):
+    """Krankenbett, Drehpunkt unten am Kopfende (Mitte), Bett laeuft 2,1 m in +x."""
+    bm = bmesh.new()
+    M = ["metall", "kunststoff", "matratze", "gummi", "edelstahl"]
+    L, W, zf = 2.1, 1.0, 0.45
+    for y in (-W / 2 + 0.03, W / 2 - 0.03):
+        box(bm, (0.04, y - 0.025, zf - 0.06), (L - 0.04, y + 0.025, zf), 0, bevel=0.006)
+    for x in (0.1, L * 0.5, L - 0.1):
+        box(bm, (x - 0.025, -W / 2 + 0.055, zf - 0.05), (x + 0.025, W / 2 - 0.055, zf - 0.01), 0, bevel=0.005)
+    box(bm, (0.08, -W / 2 + 0.06, zf - 0.012), (L - 0.08, W / 2 - 0.06, zf), 4, bevel=0.003)
+    for x in (0.12, L - 0.12):
+        for y in (-W / 2 + 0.07, W / 2 - 0.07):
+            tube(bm, [Vector((x, y, 0.15)), Vector((x, y, zf - 0.05))], 0.022, 0, seg=12)
+            box(bm, (x - 0.03, y - 0.028, 0.09), (x + 0.03, y + 0.028, 0.16), 0, bevel=0.006)
+            tube(bm, [Vector((x, y - 0.02, 0.06)), Vector((x, y + 0.02, 0.06))], 0.06, 3, seg=18)
+    for x0, top in ((0.0, 1.0), (L - 0.05, 0.86)):
+        for y in (-W / 2 + 0.02, W / 2 - 0.06):
+            box(bm, (x0, y, zf - 0.06), (x0 + 0.05, y + 0.04, top), 0, bevel=0.012)
+        box(bm, (x0 - 0.005, -W / 2 + 0.02, top - 0.05), (x0 + 0.055, W / 2 - 0.02, top), 0, bevel=0.015)
+        box(bm, (x0 + 0.01, -W / 2 + 0.06, zf + 0.06), (x0 + 0.04, W / 2 - 0.06, top - 0.06), 1, bevel=0.008)
+    mv = box(bm, (0.1, -W / 2 + 0.07, zf), (L - 0.1, W / 2 - 0.07, zf + 0.15), 2, bevel=0.04, segs=4)
+    pv = box(bm, (0.14, -0.32, zf + 0.13), (0.52, 0.32, zf + 0.24), 2, bevel=0.045, segs=4)
+    for v in pv:
+        v.co.z += 0.012 * noise.noise(v.co * 8.0)
+    for f in faces_of(mv + pv):
+        f.smooth = True
+    for (y, up) in ((-W / 2 + 0.005, True), (W / 2 - 0.005, False)):
+        zt = zf + 0.4 if up else zf + 0.06
+        for zz in (zt, zt - 0.14):
+            tube(bm, [Vector((0.55, y, zz)), Vector((1.55, y, zz))], 0.011, 4, seg=10)
+        for xx in (0.6, 1.5):
+            tube(bm, [Vector((xx, y, zf - 0.03)), Vector((xx, y, zt))], 0.011, 4, seg=10)
+    return finish(name, bm, M, [((0, -W / 2, 0), (L, W / 2, zf + 0.16))])
+
+def build_nightstand(name):
+    """Nachttisch, Drehpunkt unten in der Mitte, Vorderseite zeigt nach -y."""
+    bm = bmesh.new()
+    M = ["kunststoff", "edelstahl", "gummi"]
+    w, d, h = 0.5, 0.45, 0.8
+    box(bm, (-w / 2, -d / 2, 0.08), (w / 2, d / 2, h - 0.03), 0, bevel=0.01)
+    box(bm, (-w / 2 - 0.02, -d / 2 - 0.02, h - 0.03), (w / 2 + 0.02, d / 2 + 0.01, h), 0, bevel=0.008)
+    box(bm, (-w / 2 + 0.02, -d / 2 - 0.012, h - 0.21), (w / 2 - 0.02, -d / 2 + 0.002, h - 0.06), 0, bevel=0.004)
+    box(bm, (-w / 2 + 0.02, -d / 2 - 0.012, 0.11), (w / 2 - 0.02, -d / 2 + 0.002, h - 0.23), 0, bevel=0.004)
+    tube(bm, [Vector((-0.08, -d / 2 - 0.012, h - 0.135)), Vector((-0.08, -d / 2 - 0.035, h - 0.135)),
+              Vector((0.08, -d / 2 - 0.035, h - 0.135)), Vector((0.08, -d / 2 - 0.012, h - 0.135))], 0.006, 1, seg=8)
+    tube(bm, [Vector((w / 2 - 0.06, -d / 2 - 0.012, 0.35)), Vector((w / 2 - 0.06, -d / 2 - 0.035, 0.35)),
+              Vector((w / 2 - 0.06, -d / 2 - 0.035, 0.5)), Vector((w / 2 - 0.06, -d / 2 - 0.012, 0.5))], 0.006, 1, seg=8)
+    for x in (-w / 2 + 0.05, w / 2 - 0.05):
+        for y in (-d / 2 + 0.05, d / 2 - 0.05):
+            tube(bm, [Vector((x - 0.015, y, 0.035)), Vector((x + 0.015, y, 0.035))], 0.035, 2, seg=14)
+            tube(bm, [Vector((x, y, 0.06)), Vector((x, y, 0.085))], 0.012, 1, seg=8)
+    return finish(name, bm, M, [((-w / 2, -d / 2, 0), (w / 2, d / 2, h))])
+
+def build_iv(name):
+    """Infusionsstaender mit Beutel, Drehpunkt unten in der Mitte."""
+    bm = bmesh.new()
+    M = ["edelstahl", "gummi", "beutel"]
+    tube(bm, [Vector((0, 0, 0.1)), Vector((0, 0, 1.95))], 0.013, 0, seg=12)
+    tube(bm, [Vector((0, 0, 0.07)), Vector((0, 0, 0.14))], 0.032, 0, seg=14)
+    for k in range(5):
+        a = 2 * math.pi * k / 5
+        p = Vector((math.cos(a) * 0.3, math.sin(a) * 0.3, 0.08))
+        tube(bm, [Vector((0, 0, 0.1)), p], 0.012, 0, seg=8)
+        tube(bm, [p, p + Vector((0, 0, -0.03))], 0.006, 0, seg=6)
+        side = Vector((-math.sin(a), math.cos(a), 0)) * 0.012
+        tube(bm, [p + Vector((0, 0, -0.05)) - side, p + Vector((0, 0, -0.05)) + side], 0.028, 1, seg=12)
+    d0 = None
+    for k in range(4):
+        a = math.pi / 2 * k + math.pi / 4
+        d = Vector((math.cos(a), math.sin(a), 0))
+        d0 = d0 or d
+        tube(bm, [Vector((0, 0, 1.93)), d * 0.1 + Vector((0, 0, 1.93)), d * 0.12 + Vector((0, 0, 1.97))], 0.006, 0, seg=6)
+    c = d0 * 0.115
+    bv = box(bm, (c.x - 0.06, c.y - 0.018, 1.62), (c.x + 0.06, c.y + 0.018, 1.88), 2, bevel=0.015, segs=3)
+    for f in faces_of(bv):
+        f.smooth = True
+    tube(bm, [c + Vector((0, 0, 1.62)), c + Vector((0.03, 0.02, 1.4)), c + Vector((0.1, 0.06, 1.05)), c + Vector((0.2, 0.1, 0.85))], 0.0025, 2, seg=6)
+    return finish(name, bm, M)
+
+def build_curtain(name, seed=41):
+    """Vorhang an einer Deckenschiene. Drehpunkt am Schienenanfang, Schiene laeuft 2,4 m in +x, Vorhang haengt nach unten."""
+    bm = bmesh.new()
+    M = ["vorhang", "edelstahl"]
+    tube(bm, [Vector((0, 0, -0.03)), Vector((2.4, 0, -0.03))], 0.012, 1, seg=10)
+    for x in (0.05, 1.2, 2.35):
+        tube(bm, [Vector((x, 0, -0.03)), Vector((x, 0, 0.0))], 0.006, 1, seg=6)
+    ns, nz = 150, 50
+    s0, s1, top, length = 0.06, 1.8, -0.07, 2.75
+    grid = []
+    phi = 0.0
+    for i in range(ns + 1):
+        u = i / ns
+        s = s0 + (s1 - s0) * u
+        lam = 0.09 + 0.08 * u
+        if i:
+            phi += 2 * math.pi * ((s1 - s0) / ns) / lam
+        col = []
+        for j in range(nz + 1):
+            t = j / nz
+            z = top - t * length
+            y = 0.055 * math.sin(phi) * (0.65 + 0.35 * t) + 0.12 * t * t * noise.noise(Vector((0.7, 0.3, 1.0)))
+            x = s + 0.012 * noise.noise(Vector((s * 3.0, z * 2.0, 0.5)))
+            col.append(bm.verts.new((x, y, z)))
+        grid.append(col)
+    cut = [int(nz * (0.84 + 0.08 * noise.noise(Vector((i * 0.08, 0.5, 0.2))) + 0.05 * noise.noise(Vector((i * 0.6, 1.5, 0.2))))) for i in range(ns + 1)]
+    faces = []
+    for i in range(ns):
+        for j in range(min(cut[i], cut[i + 1], nz)):
+            f = bm.faces.new((grid[i][j], grid[i + 1][j], grid[i + 1][j + 1], grid[i][j + 1]))
+            f.material_index = 0
+            f.smooth = True
+            faces.append(f)
+    loose = [v for col in grid for v in col if not v.link_faces]
+    bmesh.ops.delete(bm, geom=loose, context="VERTS")
+    bm.normal_update()
+    res = bmesh.ops.solidify(bm, geom=faces, thickness=0.003)
+    for f in bm.faces:
+        if f.material_index == 0:
+            f.smooth = True
+    return finish(name, bm, M)
+
 log("Modelle ...")
 w4 = build_wall("SM_Wand_4m", 4.0, seed=1)
 w2 = build_wall("SM_Wand_2m", 2.0, seed=2)
@@ -815,6 +1126,15 @@ fd = build_door_frame("SM_Tuerrahmen")
 fw = build_window_frame("SM_Fensterrahmen")
 la = build_lamp("SM_Deckenlampe")
 ru = build_rubble("SM_Schutt")
+wdd = build_wall("SM_Wand_Doppeltuer_4m", 4.0, door=DDOOR, seed=5)
+fdd = build_door_frame("SM_Doppeltuerrahmen", DDOOR[0], DDOOR[1], DDOOR[2], hinges="beide")
+lf140 = build_door_leaf("SM_Tuerblatt_140", DOOR[1] - DOOR[0] - 0.046, DOOR[2] - 0.033)
+lf90 = build_door_leaf("SM_Tuerblatt_90", (DDOOR[1] - DDOOR[0] - 0.049) / 2, DDOOR[2] - 0.033, seed=52)
+stairs = build_stairs("SM_Treppe_Podest")
+bed = build_bed("SM_Krankenbett")
+nst = build_nightstand("SM_Nachttisch")
+iv = build_iv("SM_Infusionsstaender")
+cu = build_curtain("SM_Vorhang")
 
 log("Export ...")
 for ob, cols in PIECES:
@@ -922,6 +1242,89 @@ vol.inputs["Density"].default_value = 0.03
 fnt.links.new(vol.outputs["Volume"], fnt.nodes["Material Output"].inputs["Volume"])
 fog.data.materials.append(fm)
 
+def fogbox(name, center, size, density):
+    bpy.ops.mesh.primitive_cube_add(size=1, location=center)
+    f = bpy.context.active_object
+    f.name = name
+    f.scale = size
+    m = fm.copy()
+    m.node_tree.nodes["Principled Volume"].inputs["Density"].default_value = density
+    f.data.materials.append(m)
+    return f
+
+# ======================= Szene: Patientenzimmer =======================
+PX = 100.0
+for x in (PX, PX + 4.0):
+    put(fl, (x, 0, 0))
+    put(ce, (x, 0, H))
+put(wd, (PX, 0, 0))
+put(fd, (PX, 0, 0))
+door_leaf = put(lf140, (PX + DOOR[0] + 0.023, -0.02, 0.01))
+door_leaf.rotation_euler = (0, 0, math.radians(-75))
+put(w4, (PX + 4.0, 0, 0))
+for x in (PX + 4.0, PX + 8.0):
+    put(ww, (x, 4.0, 0), rz=math.pi)
+    put(fw, (x, 4.0, 0), rz=math.pi)
+put(w4, (PX, 0, 0), rz=math.pi / 2)
+put(w4, (PX + 8.0, 0, 0), rz=math.pi / 2)
+put(bed, (PX + 4.4, 3.86, 0), rz=-math.pi / 2)
+b2 = put(bed, (PX + 6.95, 3.86, 0), rz=-math.pi / 2 + 0.06)
+put(nst, (PX + 3.55, 3.55, 0))
+put(nst, (PX + 6.0, 3.55, 0), rz=0.12)
+put(iv, (PX + 3.65, 2.65, 0))
+put(cu, (PX + 5.65, 3.86, H), rz=-math.pi / 2)
+put(la, (PX + 2.0, 2.0, H))
+put(la, (PX + 6.0, 2.0, H))
+fogbox("Staub Zimmer", (PX + 4.0, 2.0, H / 2), (8.3, 4.3, H), 0.022)
+area_light("Lampe Zimmer", (PX + 2.0, 2.0, H - 0.115), (1.15, 0.24), 70)
+
+# ======================= Szene: Treppenhaus =======================
+SX = 200.0
+put(stairs, (SX, 0, 0))
+for x in (SX, SX + 4.0):
+    put(fl, (x, 0, 0))
+    put(ce, (x, 0, FLOOR2 + H))
+for z in (0.0, FLOOR2):
+    put(w4, (SX, 0, z))
+    put(w4, (SX + 4.0, 0, z))
+    put(w4, (SX + 8.0, 0, z), rz=math.pi / 2)
+    for x in (SX + 4.0, SX + 8.0):
+        if z > 0:
+            put(ww, (x, 4.0, z), rz=math.pi)
+            put(fw, (x, 4.0, z), rz=math.pi)
+        else:
+            put(w4, (x, 4.0, z), rz=math.pi)
+put(wdd, (SX, 0, 0), rz=math.pi / 2)
+put(fdd, (SX, 0, 0), rz=math.pi / 2)
+put(wd, (SX, 0, FLOOR2), rz=math.pi / 2)
+put(fd, (SX, 0, FLOOR2), rz=math.pi / 2)
+# Tuerblaetter: unten die Doppeltuer geschlossen, oben die Tuer einen Spalt offen
+put(lf90, (SX + 0.02, DDOOR[0] + 0.023, 0.01), rz=math.pi / 2)
+put(lf90, (SX + 0.065, DDOOR[1] - 0.023, 0.01), rz=math.pi * 1.5)
+put(lf140, (SX + 0.02, DOOR[0] + 0.023, FLOOR2 + 0.01), rz=math.pi / 2 - 0.55)
+rb = bmesh.new()
+for lo, hi in (((SX, -T / 2, H), (SX + 8, T / 2, FLOOR2)), ((SX, 4 - T / 2, H), (SX + 8, 4 + T / 2, FLOOR2)),
+               ((SX - T / 2, 0, H), (SX + T / 2, 4, FLOOR2)), ((SX + 8 - T / 2, 0, H), (SX + 8 + T / 2, 4, FLOOR2))):
+    box(rb, lo, hi, 0)
+finish("Ringbalken", rb, ["putz"], export=False)
+fogbox("Staub Treppe", (SX + 4.0, 2.0, 3.5), (8.3, 4.3, 7.1), 0.02)
+put(la, (SX + 6.2, 2.0, FLOOR2 + H))
+area_light("Lampe Treppe", (SX + 6.2, 2.0, FLOOR2 + H - 0.115), (1.15, 0.24), 260)
+
+# ======================= Szene: neue Teile nebeneinander =======================
+LX = 300.0
+TEILE = []
+TEILE.append(put(wdd, (LX, 0, 0)))
+TEILE.append(put(fdd, (LX, 0, 0)))
+TEILE.append(put(lf90, (LX + DDOOR[0] + 0.023, -0.02, 0.01)))
+rl = put(lf90, (LX + DDOOR[1] - 0.023, -0.065, 0.01), rz=math.pi)
+rl.rotation_euler = (0, 0, math.pi + math.radians(55))
+TEILE.append(rl)
+TEILE.append(put(bed, (LX + 4.7, -1.1, 0)))
+TEILE.append(put(nst, (LX + 7.35, -0.75, 0)))
+TEILE.append(put(iv, (LX + 8.3, -0.9, 0)))
+TEILE.append(put(cu, (LX + 9.0, -0.7, 3.05)))
+
 cam_d = bpy.data.cameras.new("Kamera")
 cam = bpy.data.objects.new("Kamera", cam_d)
 scene.collection.objects.link(cam)
@@ -975,6 +1378,51 @@ if "decke" in SHOTS:
     cam.location = (5.0, 2.0, 1.5)
     aim(cam, (9.0, 2.6, 3.2))
     scene.render.filepath = os.path.join(OUT, "hd_decke.png")
+    bpy.ops.render.render(write_still=True)
+
+if "zimmer" in SHOTS:
+    log("Render Patientenzimmer ...")
+    cam_d.lens = 20
+    cam.location = (PX + 1.95, 0.6, 1.6)
+    aim(cam, (PX + 5.3, 3.0, 1.0))
+    spot.location = cam.location + Vector((0.12, -0.05, -0.2))
+    spot_d.energy = 350
+    aim(spot, (PX + 4.4, 2.6, 0.6))
+    scene.render.filepath = os.path.join(OUT, "hd_zimmer.png")
+    bpy.ops.render.render(write_still=True)
+
+if "treppe" in SHOTS:
+    log("Render Treppenhaus ...")
+    cam_d.lens = 18
+    cam.location = (SX + 7.3, 1.05, FLOOR2 / 2 + 1.65)
+    aim(cam, (SX + 2.4, 2.9, FLOOR2 / 2 + 1.05))
+    spot.location = cam.location + Vector((-0.1, 0.1, -0.2))
+    spot_d.energy = 450
+    aim(spot, (SX + 3.6, 2.9, FLOOR2 / 2 + 0.9))
+    scene.render.filepath = os.path.join(OUT, "hd_treppe.png")
+    bpy.ops.render.render(write_still=True)
+
+if "teile" in SHOTS:
+    log("Render neue Teile ...")
+    keep = set(TEILE)
+    for o in list(scene.objects):
+        if o.type in ("MESH", "LIGHT") and o not in keep:
+            o.hide_render = True
+    bpy.ops.mesh.primitive_plane_add(size=80, location=(LX + 6, 0, 0))
+    bpy.context.active_object.data.materials.append(color_material("Hintergrund", "#9a968e", 0.9))
+    key = bpy.data.lights.new("Licht", "SUN")
+    key.energy = 3.2
+    key.angle = math.radians(8)
+    kl = bpy.data.objects.new("Licht", key)
+    kl.rotation_euler = (math.radians(52), 0, math.radians(-28))
+    scene.collection.objects.link(kl)
+    world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.55, 0.58, 0.62, 1)
+    world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.8
+    cam_d.lens = 35
+    cam.location = (LX + 6.0, -12.0, 2.6)
+    aim(cam, (LX + 6.0, -0.5, 1.25))
+    scene.render.resolution_y = int(RES[0] * 0.42)
+    scene.render.filepath = os.path.join(OUT, "hd_teile.png")
     bpy.ops.render.render(write_still=True)
 
 info = {ob.name: sum(len(p.vertices) - 2 for p in ob.data.polygons) for ob, _ in PIECES}
