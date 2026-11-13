@@ -7,6 +7,7 @@ import bpy, bmesh, math, random, os, time, json, zlib
 import numpy as np
 import addon_utils
 from mathutils import Vector, Matrix, Quaternion, noise, geometry
+from mathutils.bvhtree import BVHTree
 
 T0 = time.time()
 def log(*a):
@@ -1217,14 +1218,18 @@ def wand_durchbruch():
     for side in (-1, 1):
         nxp, nyp = 16, 8
         rx, ry, hmax = 0.85, 0.58, 0.26
+        xc = cx * 0.3
         V = []
         for i in range(nxp + 1):
+            sx = 2 * i / nxp - 1                                   # quer: -1 .. 1
+            reach = min(1.0, 0.8 + 0.2 * noise.noise(Vector((sx * 2.2, side * 5.0, 2.7))))   # unregelmaessiger Fuss
             row = []
             for j in range(nyp + 1):
-                x = cx * 0.3 + rx * (2 * i / nxp - 1)
-                t = j / nyp
-                yd = 0.004 + ry * t
-                fall = max(0.0, 1 - (abs(x - cx * 0.3) / rx) ** 2) * max(0.0, 1 - t ** 1.4)
+                t = j / nyp                                        # von der Wand weg: 0 .. 1
+                half = rx * math.sqrt(max(0.0, 1 - (0.8 * t) ** 2)) * (1 + 0.1 * noise.noise(Vector((t * 3.0, side * 3.0, 4.1))))
+                x = xc + half * sx
+                yd = 0.004 + ry * reach * t
+                fall = max(0.0, 1 - sx * sx) * max(0.0, 1 - t ** 1.4)
                 fall *= 1 + 0.3 * noise.noise(Vector((x * 2.5, yd * 2.5, side * 3)))
                 lump = 0.035 * noise.noise(Vector((x * 9, yd * 9, side))) + 0.015 * noise.noise(Vector((x * 24, yd * 24, side + 5)))
                 z = hmax * fall + (lump * min(1.0, 4 * fall) if 0 < i < nxp and j < nyp else 0)
@@ -1236,26 +1241,27 @@ def wand_durchbruch():
                 if max(p.z for p in P) < 0.002:
                     continue
                 pc.face(P, 1, R_PLAN, (0, side * 0.3, 1), reg=PLAN_REG.index("bruch"))
+        # Brocken und Scherben genau auf die Oberflaeche des Haufens legen
+        idx = lambda i, j: i * (nyp + 1) + j
+        tree = BVHTree.FromPolygons([v for row in V for v in row],
+                                    [(idx(i, j), idx(i + 1, j), idx(i + 1, j + 1), idx(i, j + 1)) for i in range(nxp) for j in range(nyp)])
+        def heap_z(x, yd):
+            hit = tree.ray_cast(Vector((x, side * (T2 + yd), 2.0)), Vector((0, 0, -1)))
+            return max(0.0, hit[0].z) if hit[0] is not None else 0.0
         for k in range(14):
-            x = cx * 0.3 + pc.rng.uniform(-0.7, 0.7)
+            x = xc + pc.rng.uniform(-0.7, 0.7)
             yd = pc.rng.uniform(0.04, 0.42)
-            t = yd / ry
-            fall = max(0.0, 1 - ((x - cx * 0.3) / rx) ** 2) * max(0.0, 1 - t ** 1.4)
             s = pc.rng.uniform(0.03, 0.08)
-            chunk(pc, (x, side * (T2 + yd), hmax * fall + s * 0.3), (s * 1.4, s, s * 0.8), 60 + k + (20 if side > 0 else 0), "bruch")
+            chunk(pc, (x, side * (T2 + yd), heap_z(x, yd) + s * 0.3), (s * 1.4, s, s * 0.8), 60 + k + (20 if side > 0 else 0), "bruch")
         for k in range(12):
-            x = cx * 0.3 + pc.rng.uniform(-0.75, 0.75)
+            x = xc + pc.rng.uniform(-0.75, 0.75)
             yd = pc.rng.uniform(0.03, 0.5)
-            t = yd / ry
-            fall = max(0.0, 1 - ((x - cx * 0.3) / rx) ** 2) * max(0.0, 1 - t ** 1.4)
             s = pc.rng.uniform(0.015, 0.035)
-            chunk(pc, (x, side * (T2 + yd), hmax * fall * 0.9 + s * 0.3), (s * 1.3, s, s * 0.7), 120 + k + (30 if side > 0 else 0), "bruch", subdiv=0)
+            chunk(pc, (x, side * (T2 + yd), heap_z(x, yd) * 0.95 + s * 0.3), (s * 1.3, s, s * 0.7), 120 + k + (30 if side > 0 else 0), "bruch", subdiv=0)
         for k in range(12):
-            x = cx * 0.3 + pc.rng.uniform(-0.8, 0.8)
-            yd = pc.rng.uniform(0.05, 0.56)
-            t = yd / ry
-            fall = max(0.0, 1 - ((x - cx * 0.3) / rx) ** 2) * max(0.0, 1 - t ** 1.4)
-            shard(pc, x, side * (T2 + yd), 300 + k + (50 if side > 0 else 0), size=(0.03, 0.07), zbase=max(0.0, hmax * fall - 0.004))
+            x = xc + pc.rng.uniform(-0.8, 0.8)
+            yd = pc.rng.uniform(0.05, 0.5)
+            shard(pc, x, side * (T2 + yd), 300 + k + (50 if side > 0 else 0), size=(0.03, 0.07), zbase=max(0.0, heap_z(x, yd) - 0.004))
     return finish(pc)
 
 def wand_ecke():

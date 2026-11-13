@@ -32,12 +32,12 @@ Schalter für schnelle Tests (Umgebungsvariablen):
 
 | Stück | Was es ist | Dreiecke | Pixeldichte px/m (min–max) | Vorstand |
 |---|---|---|---|---|
-| `krankenhaus_wand_01` | intakte Wand, einzelne fehlende und gesprungene Fliesen | 182 | 1023–1024 | 1,2 cm |
+| `krankenhaus_wand_01` | intakte Wand, einzelne fehlende und gesprungene Fliesen | 182 | 1024–1024 | 1,2 cm |
 | `krankenhaus_wand_02` | stark beschädigt: Putz großflächig ab mit Ziegeln darunter (einzelne Ziegel fehlen), Fliesenfeld abgefallen (Kleber mit Kammspuren), tiefer Riss, Scherben und Putzbrocken am Boden | 1522 | 1024–1024 | 10,6 cm |
 | `krankenhaus_wand_03` | auf +Y zwei Sauerstoffleitungen aus Kupfer und ein Kabelkanal unter der Decke, bündig an beiden Kanten; Notrufkasten auf Brusthöhe mit Leitung zum Kanal | 722 | 1024–1024 | 7,9 cm |
 | `krankenhaus_wand_tuer` | Öffnung 1,30 × 2,20 m, weiß lackierte Stahlzarge mit Rost an den Kanten, 2 cm vorstehend | 450 | 1024–1024 | 2,0 cm |
 | `krankenhaus_wand_fenster` | Öffnung 1,50 × 1,40 m ab 0,95 m, Laibung, Metallrahmen, Fensterbank innen, Blechbank außen | 436 | 1024–1024 | 5,0 cm |
-| `krankenhaus_wand_durchbruch` | Loch ab 0,94 m, zerklüftete Bruchkante, verbogene rostige Eisen, Schuttkegel auf beiden Seiten | 4058 | 1024–1024 | 58,4 cm (Schutt) |
+| `krankenhaus_wand_durchbruch` | Loch 1,47 × 1,30 m ab 0,94 m (in der Wandmitte bis 1,58 × 1,35 m ab 0,91 m), zerklüftete Bruchkante, verbogene rostige Eisen, Schuttkegel mit Brocken und Fliesenscherben auf beiden Seiten | 4058 | 1024–1024 | 49,9 cm (Schutt), Wand 6,4 cm |
 | `krankenhaus_wand_ecke` | Eckpfosten 21 × 21 cm, alle vier Seiten sichtbar | 90 | 1024–1024 | 1,7 cm |
 
 ## Regeln und wie sie eingehalten sind
@@ -46,7 +46,7 @@ Schalter für schnelle Tests (Umgebungsvariablen):
 - **Beide Seiten** sind gestaltet und unterscheiden sich.
 - **Kanten:** Alle sechs Wände haben links und rechts genau dasselbe Kantenbild, auch bei den UVs: Sockel 12,3 cm, Abschlussleiste bei 1,2 m. Bei wand_03 enden zusätzlich Rohre und Kanal bündig an den Kanten, wie verlangt.
 - **Randzone:** Schäden halten mindestens 40 cm Abstand zu den Kanten. Die Prüfung vergleicht jeden Punkt in der Randzone mit dem Kantenbild.
-- **Vorstand:** Nichts ragt mehr als 12 cm vor die Wandfläche. Nur der Schutt am Durchbruch reicht bis 58,4 cm.
+- **Vorstand:** Nichts ragt mehr als 12 cm vor die Wandfläche. Nur der Schutt am Durchbruch reicht bis 49,9 cm.
 - **Dreiecke:** höchstens 3000 je Stück, beim Durchbruch höchstens 6000, beim Pfosten höchstens 800.
 - **Normalen:** keine gekippten oder entarteten Dreiecke, alle Normalen haben die Länge 1.
 - **Schäden** sind Geometrie, keine aufgemalten Flecken: fehlende Fliesen sind 8 mm tief, der Putz ist 2 cm dick, fehlende Ziegel liegen 3 cm tiefer, der Riss ist 7 cm tief.
