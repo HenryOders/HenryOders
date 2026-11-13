@@ -12,7 +12,10 @@ TEXRES = 4096
 W2, H, T2 = 1.9, 3.4, 0.1
 NAMES = ["wand_01", "wand_02", "wand_03", "wand_tuer", "wand_fenster", "wand_durchbruch", "wand_ecke"]
 LIMIT = {"wand_durchbruch": 6000, "wand_ecke": 800}
-RASTER_M = {"krankenhaus": 4.0 / 26, "gefaengnis": 1.0}.get(GEB, 1.0)
+# Texturraster je Gebaeude: (Periode, Versatz Waende, Versatz Pfosten) in Metern des Wandbilds.
+# Krankenhaus/Gefaengnis: am 4-m-Weltraster verankert (Fliesen 4/26 m, Schaltafeln 1 m).
+# Labor: am Stueck verankert (Paneelfugen), x = 0 liegt auf beiden Seiten bei 2,0 m, der Pfosten bei 0.
+RASTER = {"krankenhaus": (4.0 / 26, 0.0, 0.0), "gefaengnis": (1.0, 0.0, 0.0), "labor": (4.0, 2.0, 0.0)}.get(GEB, (1.0, 0.0, 0.0))
 COMP = {5120: np.int8, 5121: np.uint8, 5122: np.int16, 5123: np.uint16, 5125: np.uint32, 5126: np.float32}
 NC = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4}
 
@@ -66,6 +69,7 @@ def images_of(g, path):
 
 report, fehler = {}, []
 edges = {}
+zones = {}
 for short in NAMES:
     name = f"{GEB}_{short}"
     path = os.path.join(ROOT, "Modelle", name, name + ".gltf")
@@ -118,7 +122,12 @@ for short in NAMES:
             at_edge = np.abs(P[:, 0] - s * W2) < 1e-4
             E = {(round(y, 4), round(z, 4)) for y, z in P[at_edge][:, 1:]}
             zone = (s * P[:, 0] > W2 - 0.4) & ~at_edge
-            bad = [tuple(np.round(p, 3)) for p in P[zone] if (round(p[1], 4), round(p[2], 4)) not in E]
+            zones[(short, s)] = {tuple(round(float(c), 4) for c in p) for p in P[zone]}
+            # wand_01 ist das intakte Bezugsstueck: dort muss die Randzone eine Verlaengerung des Kantenbilds sein
+            # (beim Labor liegen dort zusaetzlich die Kanten der Randpaneele und die Tragschienen)
+            bad = []
+            if short == "wand_01" and GEB != "labor":
+                bad = [tuple(np.round(p, 3)) for p in P[zone] if (round(p[1], 4), round(p[2], 4)) not in E]
             rz[s] = len(bad)
             if bad:
                 fehler.append(f"{short}: {len(bad)} Punkte in der 40-cm-Randzone {'rechts' if s > 0 else 'links'} weichen ab, z. B. {bad[:3]}")
@@ -156,18 +165,18 @@ for short in NAMES:
         fehler.append(f"{short}: Pixeldichte {dens.min():.0f}..{dens.max():.0f}")
     # Raster der Wandtextur (Fliesen 4/26 m, Schaltafeln 1 m): auf Wandflaechen und allen vier Pfostenseiten
     # muessen die Fugen auf Vielfachen davon liegen, sonst springen sie an den Stoessen
-    TS = RASTER_M
+    TS, OFF = RASTER[0], (RASTER[2] if short == "wand_ecke" else RASTER[1])
     worst = 0.0
     for p in prims:
         if p["mat"] is None or "Wand" not in g["materials"][p["mat"]]["name"]:
             continue
         n, P_, U = p["N"], p["P"], p["UV"][:, 0] * 4.0
-        sel = [(n[:, 1] < -0.99, U - P_[:, 0]), (n[:, 1] > 0.99, U + P_[:, 0])]
+        sel = [(n[:, 1] < -0.9999, U - P_[:, 0]), (n[:, 1] > 0.9999, U + P_[:, 0])]
         if short == "wand_ecke":
-            sel += [(n[:, 0] > 0.99, U - P_[:, 1]), (n[:, 0] < -0.99, U + P_[:, 1])]
+            sel += [(n[:, 0] > 0.9999, U - P_[:, 1]), (n[:, 0] < -0.9999, U + P_[:, 1])]
         for m, val in sel:
             if m.any():
-                ph = np.mod(val[m], TS)
+                ph = np.mod(val[m] - OFF, TS)
                 worst = max(worst, float(np.minimum(ph, TS - ph).max()))
     r["raster_abweichung_mm"] = round(worst * 1000, 2)
     if worst > 0.0005:
@@ -197,6 +206,20 @@ for s in (-1, 1):
             fehler.append(f"{short}: Kante {key} anders als wand_01 (+{len(extra)} / -{len(miss)} Punkte)")
         elif extra_uv or miss_uv:
             fehler.append(f"{short}: Kante {key}: UVs anders als wand_01 (+{len(extra_uv)} / -{len(miss_uv)})")
+
+# Randzonen aller Stuecke gegen das intakte wand_01: gleiche Punkte, nur bei wand_03 die Leitungen dazu
+for s in (-1, 1):
+    Z0 = zones[("wand_01", s)]
+    for short in NAMES:
+        if short in ("wand_01", "wand_ecke"):
+            continue
+        Zs = zones[(short, s)]
+        extra = {p for p in Zs - Z0 if not (short == "wand_03" and p[1] >= T2 - 1e-4 and p[2] > 2.9)}
+        miss = Z0 - Zs
+        report[short].setdefault("randzone_wie_wand_01", {})["rechts" if s > 0 else "links"] = not (extra or miss)
+        if extra or miss:
+            fehler.append(f"{short}: Randzone {'rechts' if s > 0 else 'links'} anders als beim intakten Stueck "
+                          f"(+{len(extra)} / -{len(miss)} Punkte), z. B. {sorted(extra)[:2]}")
 
 # gleiche Materialien und Bilder ueberall
 mats = {short: json.dumps(report[short]["materialien"], sort_keys=True) for short in NAMES}
