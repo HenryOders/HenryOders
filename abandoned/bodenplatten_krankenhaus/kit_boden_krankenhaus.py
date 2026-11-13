@@ -499,7 +499,7 @@ def tex_detail():
     Rr = Rr * (1 + 0.25 * nz(S, 2.2))
     streak = 0.6 + 0.4 * sm(-1.0, 1.0, nz(S, 1.5) + 0.5 * np.sin(9 * th + 2 * np.sin(4 * th)))
     rust = sm(Rr, Rr * 0.3, rad) * streak * sm(-1.5, 0.5, nz(S, 1.9))
-    rust = np.where(grout, np.minimum(1.0, rust * 1.5), rust)
+    rust = np.where(grout & ~(fl | gr), np.minimum(1.0, rust * 1.5), rust)   # Fugen dunkler, aber nicht unter Flansch und Rost
     near = sm(0.26, ABL_R[3], rad)
     a = mix(a, hexc("#7b4a29"), 0.62 * rust)
     a = mix(a, hexc("#4f2f1b"), 0.45 * near * rust)
