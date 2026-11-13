@@ -15,7 +15,13 @@ LIMIT = {"wand_durchbruch": 6000, "wand_ecke": 800}
 # Texturraster je Gebaeude: (Periode, Versatz Waende, Versatz Pfosten) in Metern des Wandbilds.
 # Krankenhaus/Gefaengnis: am 4-m-Weltraster verankert (Fliesen 4/26 m, Schaltafeln 1 m).
 # Labor: am Stueck verankert (Paneelfugen), x = 0 liegt auf beiden Seiten bei 2,0 m, der Pfosten bei 0.
-RASTER = {"krankenhaus": (4.0 / 26, 0.0, 0.0), "gefaengnis": (1.0, 0.0, 0.0), "labor": (4.0, 2.0, 0.0)}.get(GEB, (1.0, 0.0, 0.0))
+# Schule: am 4-m-Weltraster verankert, Brettfugen alle 10 cm.
+RASTER = {"krankenhaus": (4.0 / 26, 0.0, 0.0), "gefaengnis": (1.0, 0.0, 0.0), "labor": (4.0, 2.0, 0.0),
+          "schule": (0.1, 0.0, 0.0)}.get(GEB, (1.0, 0.0, 0.0))
+# Hoehen (z), in denen bei wand_03 auf +Y Leitungen buendig an den Kanten enden (Ausnahme vom Kantenvergleich)
+PIPE_Z = {"schule": [(0.3, 0.75), (2.9, 3.41)]}.get(GEB, [(2.9, 3.41)])
+# Gebaeude, deren Randzone Fugen oder Kantungen enthaelt (dort ist wand_01 keine reine Verlaengerung der Kante)
+FUGEN_IN_RANDZONE = ("labor", "schule")
 COMP = {5120: np.int8, 5121: np.uint8, 5122: np.int16, 5123: np.uint16, 5125: np.uint32, 5126: np.float32}
 NC = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4}
 
@@ -124,9 +130,9 @@ for short in NAMES:
             zone = (s * P[:, 0] > W2 - 0.4) & ~at_edge
             zones[(short, s)] = {tuple(round(float(c), 4) for c in p) for p in P[zone]}
             # wand_01 ist das intakte Bezugsstueck: dort muss die Randzone eine Verlaengerung des Kantenbilds sein
-            # (beim Labor liegen dort zusaetzlich die Kanten der Randpaneele und die Tragschienen)
+            # (beim Labor liegen dort zusaetzlich die Kanten der Randpaneele und die Tragschienen, bei der Schule die Brettfugen)
             bad = []
-            if short == "wand_01" and GEB != "labor":
+            if short == "wand_01" and GEB not in FUGEN_IN_RANDZONE:
                 bad = [tuple(np.round(p, 3)) for p in P[zone] if (round(p[1], 4), round(p[2], 4)) not in E]
             rz[s] = len(bad)
             if bad:
@@ -163,7 +169,7 @@ for short in NAMES:
                    "mittel": round(float((dens * area).sum() / area.sum()))}
     if dens.min() < 950 or dens.max() > 1100:
         fehler.append(f"{short}: Pixeldichte {dens.min():.0f}..{dens.max():.0f}")
-    # Raster der Wandtextur (Fliesen 4/26 m, Schaltafeln 1 m): auf Wandflaechen und allen vier Pfostenseiten
+    # Raster der Wandtextur (Fliesen 4/26 m, Schaltafeln 1 m, Brettfugen 0,1 m): auf Wandflaechen und allen vier Pfostenseiten
     # muessen die Fugen auf Vielfachen davon liegen, sonst springen sie an den Stoessen
     TS, OFF = RASTER[0], (RASTER[2] if short == "wand_ecke" else RASTER[1])
     worst = 0.0
@@ -187,9 +193,9 @@ for short in NAMES:
         fehler.append(f"{short}: Normalen {r['normalen']}")
     report[short] = r
 
-# Kanten aller Stuecke gegen wand_01 (wand_03: Rohre und Kanal auf +Y unter der Decke enden laut Vorgabe buendig an den Kanten)
+# Kanten aller Stuecke gegen wand_01 (wand_03: die Leitungen auf +Y enden laut Vorgabe buendig an den Kanten)
 def pipe_zone(short, e):
-    return short == "wand_03" and e[0] >= T2 - 1e-4 and e[1] > 2.9
+    return short == "wand_03" and e[0] >= T2 - 1e-4 and any(a < e[1] < b for a, b in PIPE_Z)
 for s in (-1, 1):
     E0, EU0 = edges[("wand_01", s)]
     for short in NAMES:
@@ -214,7 +220,7 @@ for s in (-1, 1):
         if short in ("wand_01", "wand_ecke"):
             continue
         Zs = zones[(short, s)]
-        extra = {p for p in Zs - Z0 if not (short == "wand_03" and p[1] >= T2 - 1e-4 and p[2] > 2.9)}
+        extra = {p for p in Zs - Z0 if not (short == "wand_03" and p[1] >= T2 - 1e-4 and any(a < p[2] < b for a, b in PIPE_Z))}
         miss = Z0 - Zs
         report[short].setdefault("randzone_wie_wand_01", {})["rechts" if s > 0 else "links"] = not (extra or miss)
         if extra or miss:
