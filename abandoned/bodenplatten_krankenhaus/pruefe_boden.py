@@ -5,7 +5,8 @@ Prueft: Aufbau der Dateien (ein Objekt, keine Kamera/Lichter, kein Versatz), Mat
 Masse und Ursprung, exakt flache Raender (aeussere 5 cm auf Z = 0), Hoehen (+-1,5 cm; lose Teile bis 6 cm und
 mindestens 30 cm vom Rand), Dreiecke, Pixeldichte, weltbezogene UV der Oberseite, Normalen und die Texturen
 (4096 x 4096, kachelbar, Rauheit gepackt mit Rot = 255 und Blau = 0). Beim Detail-Atlas kacheln die
-durchgehenden Baender (V 0 .. 2,8 m) in U; darueber liegen Einzelflaechen (Mitte der OP-Platte, Schutt, Papier).
+durchgehenden Baender (unterer Teil, Hoehe je Gebaeude in BAENDER) in U; darueber liegen Einzelflaechen.
+Tiefer als 1,5 cm duerfen nur die Seiten, die Unterseite und die Ausnahmen in TIEF liegen (Bodenablauf, Rinne).
 """
 import json, os, sys, math, struct, zlib
 import numpy as np
@@ -20,6 +21,12 @@ COMP = {5120: np.int8, 5121: np.uint8, 5122: np.int16, 5123: np.uint16, 5125: np
 NC = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4}
 TEXDIR = os.path.join(ROOT, "Texturen", GEB)
 SAETZE = {f"M_{GEB}_Boden": f"T_{GEB}_Boden", f"M_{GEB}_BodenDetail": f"T_{GEB}_BodenDetail"}
+BAENDER = {"krankenhaus": 2.8, "gefaengnis": 2.92}          # Hoehe der durchgehenden Baender im Detail-Atlas (m)
+ANTEIL = BAENDER.get(GEB, 2.8) / 4.0
+TIEF = {
+    ("krankenhaus", "boden_04"): lambda P: np.hypot(P[:, 0], P[:, 1]) <= 0.1001,                       # Topf unter dem Rost
+    ("gefaengnis", "boden_04"): lambda P: (np.abs(P[:, 1]) <= 0.1001) & (np.abs(P[:, 0]) <= 1.9501),  # Trog unter dem Gitter
+}
 
 
 def load(path):
@@ -157,14 +164,14 @@ for mname, prefix in SAETZE.items():
             d["rauheit"] = (round(img[..., 1].min() / 255, 3), round(img[..., 1].max() / 255, 3))
             if d["rot_min"] != 255 or d["blau_max"] != 0:
                 fehler.append(f"{prefix}_Rauheit: Rot muss 255, Blau 0 sein (Rot min {d['rot_min']}, Blau max {d['blau_max']})")
-            k = kachelt(img[..., 1] if prefix.endswith("_Boden") else img[-int(img.shape[0] * 0.7):, :, 1],
+            k = kachelt(img[..., 1] if prefix.endswith("_Boden") else img[-int(img.shape[0] * ANTEIL):, :, 1],
                         (1, 0) if prefix.endswith("_Boden") else (1,))
         else:
             m = img[..., :3].reshape(-1, 3).mean(0)
             d["mittel"] = [round(float(v), 1) for v in m]
             if not (115 < m[0] < 141 and 115 < m[1] < 141 and m[2] > 230):
                 fehler.append(f"{prefix}_Normale: Mittelwert {d['mittel']} passt nicht zu einer OpenGL-Normalkarte")
-            k = kachelt(img[..., 1] if prefix.endswith("_Boden") else img[-int(img.shape[0] * 0.7):, :, 1],
+            k = kachelt(img[..., 1] if prefix.endswith("_Boden") else img[-int(img.shape[0] * ANTEIL):, :, 1],
                         (1, 0) if prefix.endswith("_Boden") else (1,))
         d["kachelt"] = k
         for achse, (r_, i_, ok) in k.items():
@@ -251,8 +258,8 @@ for short in NAMES:
         fehler.append(f"{name}: Schwelle hoeher als 1,5 cm")
     tief = P[:, 2] < -HUB
     erlaubt = (np.abs(np.abs(P[:, 0]) - xh) < 1e-6) | (np.abs(np.abs(P[:, 1]) - yh) < 1e-6) | (np.abs(P[:, 2] + 0.2) < 1e-6)
-    if short == "boden_04":
-        erlaubt |= np.hypot(P[:, 0], P[:, 1]) <= 0.1001          # Topf des Bodenablaufs unter dem Rost
+    if (GEB, short) in TIEF:
+        erlaubt |= TIEF[(GEB, short)](P)
     if np.any(tief & ~erlaubt):
         fehler.append(f"{name}: {int((tief & ~erlaubt).sum())} Punkte tiefer als 1,5 cm (Loch in der Oberflaeche)")
     r["hoehe_cm"] = [round(float(P[~erlaubt][:, 2].min()) * 100, 2) if np.any(~erlaubt) else 0.0, round(float(mx[2]) * 100, 2)]
