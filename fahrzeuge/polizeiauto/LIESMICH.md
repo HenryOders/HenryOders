@@ -43,7 +43,7 @@ Schalter für schnelle Läufe (Umgebungsvariablen):
 | Radstand und Spur | 2,84 m und 1,60 m |
 | Räder | 245/45 R18: Radius 33,5 cm, Breite 23,5 cm, Felge 18 Zoll |
 | Bodenfreiheit | 17 cm |
-| Dreiecke | 133 357 |
+| Dreiecke | rund 133 000 |
 | Materialien | 28 |
 | Texturen | 3: Lack-Flakes (Normal), Reifen (Normal und Farbe) |
 | UV-Karten | `UVMap` für alles, `UV_Flakes` für die Lack-Flakes (Würfelprojektion, 1 UV-Einheit = 1 m) |
@@ -158,6 +158,6 @@ Was alles dran ist:
 
 ## Leistung
 
-- 133 357 Dreiecke und 28 Materialslots passen gut für ein Spielerauto oder eine Zwischensequenz. Jeder Slot kostet einen eigenen Draw Call, die durchsichtigen Slots etwas mehr.
+- Rund 133 000 Dreiecke und 28 Materialslots passen gut für ein Spielerauto oder eine Zwischensequenz. Jeder Slot kostet einen eigenen Draw Call, die durchsichtigen Slots etwas mehr.
 - Für viele Autos gleichzeitig, etwa als Verkehr, im Skeletal-Mesh-Editor LODs erzeugen lassen, zum Beispiel mit 50, 25 und 10 % der Dreiecke. Für weit entfernte Stufen kannst du Innenraum und Leuchten-Innenleben weglassen und einfarbige Materialien zusammenfassen.
 - Die UV-Karte `UVMap` ist automatisch ausgelegt (Smart UV Project, Inseln ohne Überlappung). Nur die Reifen liegen gekachelt darüber, weil ihre Profiltextur sich um den Umfang wiederholt. Für Schmutz- oder Kratzermasken reicht das. Für eigene Texturen legst du die Karte am besten neu aus.
