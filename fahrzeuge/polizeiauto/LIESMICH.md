@@ -23,7 +23,7 @@ blender -b -P pruefe_export.py -- export
   - `polizeiauto.blend` mit Auto und Skelett in Metern, dazu die Nachtszene
   - `polizeiauto_vorne.png`, `_hinten`, `_seite`, `_oben` und `_nacht`
 - `pruefe_export.py` schreibt am Ende „ALLES OK“ oder eine Liste der Fehler.
-- Modell und Export brauchen nur wenige Sekunden. Die fünf Bilder in 1920 × 1080 mit Cycles auf der CPU dauern auf einem Rechner mit vier Kernen etwa 20 Minuten. Mit `SHOTS=` fällt das weg.
+- Modell und Export brauchen nur wenige Sekunden. Die fünf Bilder in 1920 × 1080 mit Cycles auf der CPU dauern auf einem Rechner mit vier Kernen etwa 17 Minuten. Mit `SHOTS=` fällt das weg.
 
 Schalter für schnelle Läufe (Umgebungsvariablen):
 
