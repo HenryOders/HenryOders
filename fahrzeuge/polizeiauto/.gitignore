@@ -3,3 +3,4 @@ export/
 *.blend
 *.blend1
 polizeiauto_*.png
+__pycache__/
