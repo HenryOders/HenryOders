@@ -6,7 +6,7 @@ Ein fahrbarer US-Streifenwagen (Patrol Car) für Unreal Engine 5 (Chaos Vehicles
 
 | Datei | Zweck |
 |---|---|
-| `streifenwagen_us.py` | erzeugt das Auto, die Texturen, das Skelett, FBX und GLB, die `.blend` und sechs Vorschaubilder |
+| `streifenwagen_us.py` | erzeugt das Auto, die Texturen, das Skelett, FBX und GLB, die `.blend` und acht Vorschaubilder |
 | `pruefe_export.py` | prüft die beiden Exporte unabhängig: Einheit und Skalierung der FBX, Knochen, Gewichte, Maße |
 
 ## Erzeugen und prüfen
@@ -23,9 +23,9 @@ blender -b -P pruefe_export.py -- export SK_Streifenwagen_US 2.96 1.64 0.364 0.2
   - `export/SK_Streifenwagen_US.glb` für alle anderen Engines, in Metern, Texturen eingebettet
   - `export/Texturen/` mit den drei Texturen als PNG
   - `streifenwagen_us.blend` mit Auto und Skelett in Metern, dazu die Nachtszene
-  - `streifenwagen_us_vorne.png`, `_hinten`, `_seite`, `_oben`, `_detail` und `_nacht`
+  - `streifenwagen_us_vorne.png`, `_hinten`, `_seite`, `_oben`, `_detail`, `_verfolger`, `_strasse` und `_nacht`
 - `pruefe_export.py` schreibt am Ende „ALLES OK“ oder eine Liste der Fehler.
-- Modell, Texturen und Export brauchen etwa 20 Sekunden. Die sechs Bilder in 1920 × 1080 mit Cycles auf der CPU dauern auf einem Rechner mit vier Kernen etwa 19 Minuten. Mit `SHOTS=` fallen sie weg.
+- Modell, Texturen und Export brauchen etwa 20 Sekunden. Die acht Bilder in 1920 × 1080 mit Cycles auf der CPU dauern auf einem Rechner mit vier Kernen etwa 28 Minuten. Mit `SHOTS=` fallen sie weg.
 
 Schalter für schnelle Läufe (Umgebungsvariablen):
 
@@ -33,6 +33,26 @@ Schalter für schnelle Läufe (Umgebungsvariablen):
 |---|---|
 | `SHOTS=` (leer) | keine Bilder. `SHOTS=vorne,nacht` rendert nur diese beiden |
 | `SAMPLES=16`, `RES=960x540` | schnellere Bilder zum Testen (Standard sind 64 Samples mit Entrauschen) |
+
+## Vorschaubilder
+
+| Bild | Szene |
+|---|---|
+| `_vorne`, `_hinten`, `_seite`, `_oben` | Fotostudio mit großen Softboxen, die sich im Lack spiegeln |
+| `_detail` | Nahaufnahme von Rammschutzbügel, Grill und Scheinwerfer |
+| `_verfolger` | Tagesszene aus der Verfolgerkamera, wie in einem Fahr- oder Polizeispiel |
+| `_strasse` | dieselbe Tagesszene auf Straßenhöhe |
+| `_nacht` | nasse Straße bei Nacht, Rot- und Blaulicht an |
+
+Die Tagesszene ist eine eigene amerikanische Innenstadtstraße und kein Nachbau eines bestimmten Spiels. Dazu gehören:
+
+- zwei Fahrspuren mit gelber Doppellinie, Parkstreifen, Zebrastreifen und Haltelinie
+- Bordsteine und Gehwege mit Fugen
+- Häuserzeilen aus Ziegel, Putz und Beton mit Läden, Markisen und Schildern
+- Laternen, eine Ampel mit Straßenschild, ein Hydrant, Parkuhren und Kanaldeckel
+- drei geparkte Zivilautos aus derselben Karosserie, einfarbig und ohne Polizeiausstattung
+
+Himmel und Sonne sind physikalisch berechnet. Die Szene dient nur den Bildern und ist nicht Teil des Exports.
 
 ## Das Auto
 

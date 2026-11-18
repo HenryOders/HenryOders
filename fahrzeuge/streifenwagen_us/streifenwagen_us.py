@@ -21,7 +21,7 @@ OUT = os.path.dirname(os.path.abspath(__file__))
 EXPORT = os.path.join(OUT, "export")
 TEXDIR = os.path.join(EXPORT, "Texturen")
 os.makedirs(TEXDIR, exist_ok=True)
-SHOTS = [s for s in os.environ.get("SHOTS", "vorne,hinten,seite,oben,detail,nacht").split(",") if s]
+SHOTS = [s for s in os.environ.get("SHOTS", "vorne,hinten,seite,oben,detail,verfolger,strasse,nacht").split(",") if s]
 SAMPLES = int(os.environ.get("SAMPLES", "64"))
 RES = [int(v) for v in os.environ.get("RES", "1920x1080").split("x")]
 
@@ -1656,6 +1656,262 @@ def strasse_nacht():
                                      material("Lampe", hexf("#ffe2b8"), leuchten=25.0)]))
     return obs
 
+# ---------------- Tagesszene: eigene amerikanische Innenstadtstrasse (kein Nachbau eines bestimmten Spiels) ----------------
+def textur_material(name, art, farben, skala, rauheit=0.8, fuge=None, bump=0.3):
+    """Prozedurale Oberflaechen: 'ziegel' (Fassade x/z), 'platten' (Gehweg x/y), 'asphalt'."""
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
+    b.inputs["Roughness"].default_value = rauheit
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(tc.outputs["Object"], sep.inputs[0])
+    cz = nt.nodes.new("ShaderNodeCombineXYZ")
+    if art == "ziegel":
+        nt.links.new(sep.outputs["X"], cz.inputs[0])
+        nt.links.new(sep.outputs["Z"], cz.inputs[1])
+    else:
+        nt.links.new(sep.outputs["X"], cz.inputs[0])
+        nt.links.new(sep.outputs["Y"], cz.inputs[1])
+    farbe_out = None
+    if art in ("ziegel", "platten"):
+        br = nt.nodes.new("ShaderNodeTexBrick")
+        br.offset = 0.5 if art == "ziegel" else 0.0
+        br.inputs["Scale"].default_value = 1.0
+        br.inputs["Brick Width"].default_value, br.inputs["Row Height"].default_value = skala
+        br.inputs["Mortar Size"].default_value = fuge
+        br.inputs["Mortar Smooth"].default_value = 0.3
+        br.inputs["Color1"].default_value = (*farben[0], 1)
+        br.inputs["Color2"].default_value = (*farben[1], 1)
+        br.inputs["Mortar"].default_value = (*farben[2], 1)
+        br.inputs["Bias"].default_value = 0.0
+        nt.links.new(cz.outputs[0], br.inputs["Vector"])
+        farbe_out = br.outputs["Color"]
+        bmp = nt.nodes.new("ShaderNodeBump")
+        bmp.inputs["Strength"].default_value = bump
+        bmp.invert = True
+        nt.links.new(br.outputs["Fac"], bmp.inputs["Height"])
+        nt.links.new(bmp.outputs["Normal"], b.inputs["Normal"])
+    # feine Verschmutzung/Unruhe ueber alles
+    no = nt.nodes.new("ShaderNodeTexNoise")
+    no.inputs["Scale"].default_value = 1.6 if art != "asphalt" else 0.9
+    no.inputs["Detail"].default_value = 8.0
+    nt.links.new(tc.outputs["Object"], no.inputs["Vector"])
+    mix = nt.nodes.new("ShaderNodeMix")
+    mix.data_type = "RGBA"
+    mix.blend_type = "MULTIPLY"
+    mix.inputs[0].default_value = 0.35
+    if farbe_out is not None:
+        nt.links.new(farbe_out, mix.inputs[6])
+    else:
+        ramp = nt.nodes.new("ShaderNodeValToRGB")
+        ramp.color_ramp.elements[0].color = (*farben[0], 1)
+        ramp.color_ramp.elements[1].color = (*farben[1], 1)
+        ramp.color_ramp.elements[0].position, ramp.color_ramp.elements[1].position = 0.35, 0.65
+        no2 = nt.nodes.new("ShaderNodeTexNoise")
+        no2.inputs["Scale"].default_value = 0.25
+        no2.inputs["Detail"].default_value = 4.0
+        nt.links.new(tc.outputs["Object"], no2.inputs["Vector"])
+        nt.links.new(no2.outputs["Fac"], ramp.inputs["Fac"])
+        nt.links.new(ramp.outputs["Color"], mix.inputs[6])
+        fein = nt.nodes.new("ShaderNodeTexNoise")
+        fein.inputs["Scale"].default_value = 160.0
+        bmp = nt.nodes.new("ShaderNodeBump")
+        bmp.inputs["Strength"].default_value = bump
+        nt.links.new(tc.outputs["Object"], fein.inputs["Vector"])
+        nt.links.new(fein.outputs["Fac"], bmp.inputs["Height"])
+        nt.links.new(bmp.outputs["Normal"], b.inputs["Normal"])
+    nt.links.new(no.outputs["Color"], mix.inputs[7])
+    nt.links.new(mix.outputs[2], b.inputs["Base Color"])
+    return m
+
+def us_stadt():
+    """Innenstadtstrasse: zwei Fahrspuren mit gelber Doppellinie, Parkstreifen, Zebrastreifen und Haltelinie,
+    Bordsteine, Gehwege mit Fugen, Haeuserzeilen mit Laeden und Fenstern, Laternen, Ampel mit Strassenschild,
+    Hydrant, Parkuhren, Kanaldeckel."""
+    rng = random.Random(27)
+    obs = []
+    # Asphalt
+    bm = bmesh.new()
+    bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=320)
+    obs.append(objekt("Fahrbahn", bm, [textur_material("Asphalt", "asphalt", (hexf("#3b3b3d"), hexf("#2a2a2c")), None,
+                                                       rauheit=0.9, bump=0.25)]))
+    # Markierungen
+    bm = bmesh.new()       # 0 weiss, 1 gelb, 2 Kanaldeckel
+    for y in (-0.09, 0.09):
+        einfuegen(bm, kasten((50.0, y, 0.003), (220.0, 0.10, 0.006), mi=1))
+    for y in (-3.3, 3.3):
+        einfuegen(bm, kasten((50.0, y, 0.003), (220.0, 0.12, 0.006), mi=0))
+    for k in range(9):
+        einfuegen(bm, kasten((21.0, -5.0 + 1.25 * k, 0.003), (3.0, 0.6, 0.006), mi=0))     # Zebrastreifen
+    einfuegen(bm, kasten((19.0, -2.75, 0.003), (0.45, 5.4, 0.006), mi=0))                   # Haltelinie
+    for x, y in ((-9.0, -1.9), (12.0, 1.6), (33.0, -2.2)):
+        einfuegen(bm, zylinder((x, y, 0.004), 0.33, 0.008, "Z", segs=24, mi=2))
+    obs.append(objekt("Markierung", bm, [material("Markierung_Weiss", hexf("#e4e4de"), rauheit=0.55),
+                                          material("Markierung_Gelb", hexf("#e0ad1c"), rauheit=0.55),
+                                          material("Gusseisen", hexf("#2a2622"), metall=0.7, rauheit=0.6)]))
+    # Bordsteine und Gehwege
+    bm = bmesh.new()
+    for sg in (-1, 1):
+        einfuegen(bm, kasten((50.0, sg * 5.58, 0.075), (220.0, 0.16, 0.15), fase=0.015, mi=0))
+        einfuegen(bm, kasten((50.0, sg * 7.68, 0.07), (220.0, 4.04, 0.14), mi=1))
+    obs.append(objekt("Gehweg", bm, [material("Bordstein", hexf("#8e8d88"), rauheit=0.75),
+                                      textur_material("Gehwegplatten", "platten",
+                                                      (hexf("#9c9a94"), hexf("#8f8d88"), hexf("#5d5c58")),
+                                                      (1.5, 1.5), rauheit=0.85, fuge=0.008, bump=0.4)]))
+    # Haeuserzeilen
+    bau_mats = [textur_material("Ziegel_Rot", "ziegel", (hexf("#8a4433"), hexf("#7a3c2e"), hexf("#b8b0a2")), (0.25, 0.075),
+                                fuge=0.012, bump=0.5),
+                textur_material("Ziegel_Hell", "ziegel", (hexf("#b5916a"), hexf("#a6845f"), hexf("#d2c8b8")), (0.25, 0.075),
+                                fuge=0.012, bump=0.5),
+                material("Putz", hexf("#c8bba0"), rauheit=0.9), material("Beton", hexf("#9c9c98"), rauheit=0.85),
+                material("Rahmen", hexf("#e2ddd2"), rauheit=0.6), material("Fensterglas", hexf("#1b232a"), rauheit=0.04),
+                material("Markise_Rot", hexf("#8e1d1d"), rauheit=0.8), material("Markise_Gruen", hexf("#1f4d2e"), rauheit=0.8),
+                material("Schild", hexf("#1d1f22"), rauheit=0.4), material("Gesims", hexf("#cfc8ba"), rauheit=0.7),
+                material("Fensterglas_Hell", hexf("#3a4650"), rauheit=0.08)]
+    laeden = ["DINER", "COFFEE", "PHARMACY", "BAKERY", "BOOKS", "HARDWARE", "LAUNDRY", "PIZZA", "DELI", "BARBER",
+              "FLOWERS", "TAILOR", "MARKET", "SHOES"]
+    bm = bmesh.new()
+    for sg in (-1, 1):
+        x = -60.0
+        while x < 160.0:
+            breite = rng.choice([8.0, 9.0, 10.0, 12.0, 14.0])
+            etagen = rng.choice([2, 3, 3, 4, 5, 6])
+            hoehe = 4.5 + 3.2 * etagen
+            stil = rng.randrange(4)
+            yf = sg * 9.7
+            xm = x + breite / 2
+            einfuegen(bm, kasten((xm, sg * 15.7, hoehe / 2), (breite - 0.15, 12.0, hoehe), mi=stil))
+            einfuegen(bm, kasten((xm, yf - sg * 0.12, hoehe - 0.25), (breite - 0.1, 0.30, 0.35), mi=9))
+            einfuegen(bm, kasten((xm, yf - sg * 0.10, 4.35), (breite - 0.1, 0.22, 0.22), mi=9))
+            # Laden im Erdgeschoss: Schaufenster mit Rahmen, Tuer, Schild, Markise
+            sb = breite - 3.2
+            einfuegen(bm, kasten((xm - 0.6, yf - sg * 0.01, 1.75), (sb, 0.02, 2.6), mi=5))
+            for dz, hz in ((0.42, 0.12), (3.08, 0.12)):
+                einfuegen(bm, kasten((xm - 0.6, yf - sg * 0.05, dz), (sb + 0.2, 0.10, hz), mi=4))
+            for dx in (-sb / 2, sb / 2):
+                einfuegen(bm, kasten((xm - 0.6 + dx, yf - sg * 0.05, 1.75), (0.12, 0.10, 2.78), mi=4))
+            einfuegen(bm, kasten((x + breite - 1.25, yf - sg * 0.01, 1.2), (1.1, 0.02, 2.3), mi=10))
+            einfuegen(bm, kasten((xm, yf - sg * 0.06, 3.75), (breite - 2.0, 0.10, 0.62), mi=8))
+            name = laeden[rng.randrange(len(laeden))]
+            obs.append(schrift_auf(name, 0.42, MATS.get("Markierung_Weiss"), (xm, yf - sg * 0.115, 3.62),
+                                   (0, -sg, 0), "Ladenschild"))
+            if rng.random() < 0.6:
+                neigung = Matrix.Rotation(sg * math.radians(22), 3, "X")
+                einfuegen(bm, kasten((xm - 0.6, yf - sg * 0.72, 3.05), (sb + 0.3, 1.45, 0.05), rot=neigung,
+                                     mi=6 if rng.random() < 0.5 else 7))
+            # Fenster in den Obergeschossen: Glas buendig, Rahmen und Fensterbank stehen vor
+            n = max(1, int((breite - 1.0) // 2.0))
+            for k in range(etagen):
+                zf = 4.5 + 3.2 * k + 0.85
+                for i in range(n):
+                    xf = x + (breite - (n - 1) * 2.0) / 2 + i * 2.0
+                    einfuegen(bm, kasten((xf, yf - sg * 0.005, zf + 0.8), (1.1, 0.01, 1.6), mi=5 if rng.random() < 0.7 else 10))
+                    for dx in (-0.6, 0.6):
+                        einfuegen(bm, kasten((xf + dx, yf - sg * 0.04, zf + 0.8), (0.1, 0.08, 1.8), mi=4))
+                    einfuegen(bm, kasten((xf, yf - sg * 0.04, zf + 1.65), (1.3, 0.08, 0.1), mi=4))
+                    einfuegen(bm, kasten((xf, yf - sg * 0.06, zf - 0.04), (1.4, 0.12, 0.08), mi=4))
+            x += breite
+    obs.append(objekt("Haeuser", bm, bau_mats))
+    # Strassenmoebel
+    bm = bmesh.new()       # 0 Mast grau, 1 Leuchte, 2 Ampelgelb, 3 schwarz, 4 Rot (Hydrant), 5 Gruen (Schild), 6 Ampel rot,
+    #                        7 Ampel gelb, 8 Ampel gruen (an), 9 Parkuhr
+    for sg in (-1, 1):
+        for xl in (-14.0, 11.0, 36.0, 61.0, 86.0, 111.0, 136.0):
+            einfuegen(bm, zylinder((xl, sg * 6.15, 4.0), 0.08, 8.0, "Z", segs=14, mi=0, r2=0.055))
+            einfuegen(bm, rohr([(xl, sg * 6.15, 7.9), (xl, sg * 5.4, 8.15), (xl, sg * 3.9, 8.2)], 0.04, segs=8, mi=0))
+            einfuegen(bm, kasten((xl, sg * 3.55, 8.16), (0.75, 0.36, 0.14), fase=0.05, mi=0))
+            einfuegen(bm, kasten((xl, sg * 3.55, 8.085), (0.55, 0.26, 0.02), mi=1))
+    einfuegen(bm, zylinder((21.6, -6.3, 3.3), 0.13, 6.6, "Z", segs=16, mi=0))
+    einfuegen(bm, rohr([(21.6, -6.3, 6.15), (21.6, -3.0, 6.35), (21.6, -0.6, 6.45)], 0.075, segs=10, mi=0))
+    for ys, zs in ((-3.9, 5.75), (-1.3, 5.85)):
+        einfuegen(bm, kasten((21.5, ys, zs), (0.32, 0.34, 1.0), fase=0.03, mi=2))
+        einfuegen(bm, kasten((21.67, ys, zs), (0.02, 0.55, 1.2), mi=3))
+        for dz, mi in ((0.31, 6), (0.0, 7), (-0.31, 8)):
+            einfuegen(bm, zylinder((21.335, ys, zs + dz), 0.10, 0.02, "X", segs=20, mi=mi))
+            einfuegen(bm, zylinder((21.30, ys, zs + dz + 0.05), 0.115, 0.10, "X", segs=20, mi=3, deckel=False))
+    einfuegen(bm, kasten((21.55, -2.55, 6.62), (0.03, 1.3, 0.32), fase=0.02, mi=5))
+    obs.append(schrift_auf("MAIN ST", 0.20, MATS.get("Markierung_Weiss"), (21.53, -2.55, 6.56), (-1, 0, 0), "Strassenschild"))
+    hx, hy = -4.2, -6.15
+    einfuegen(bm, zylinder((hx, hy, 0.17), 0.16, 0.06, "Z", segs=20, mi=4))
+    einfuegen(bm, zylinder((hx, hy, 0.45), 0.11, 0.55, "Z", segs=20, mi=4))
+    einfuegen(bm, kugel((hx, hy, 0.72), 0.115, segs=20, ringe=10, skala=(1, 1, 0.6), mi=4))
+    einfuegen(bm, zylinder((hx, hy, 0.80), 0.035, 0.06, "Z", segs=6, mi=4))
+    for sx in (-1, 1):
+        einfuegen(bm, zylinder((hx, hy + sx * 0.14, 0.55), 0.05, 0.10, "Y", segs=14, mi=4))
+    einfuegen(bm, zylinder((hx + 0.14, hy, 0.52), 0.065, 0.10, "X", segs=14, mi=4))
+    for xp in np.arange(-30.0, 18.0, 6.5):
+        einfuegen(bm, zylinder((xp, 6.05, 0.70), 0.03, 1.12, "Z", segs=8, mi=3))
+        einfuegen(bm, kasten((xp, 6.05, 1.36), (0.13, 0.11, 0.26), fase=0.03, mi=9))
+    obs.append(objekt("Strassenmoebel", bm, [material("Mast", hexf("#6e7173"), metall=0.6, rauheit=0.5),
+                                              material("Leuchte", hexf("#f2efe6"), rauheit=0.2),
+                                              material("Ampelgelb", hexf("#d9b21c"), rauheit=0.5),
+                                              material("Schwarz_matt", hexf("#141414"), rauheit=0.7),
+                                              material("Hydrant_Rot", hexf("#b51a17"), rauheit=0.45, lack=0.3),
+                                              material("Schild_Gruen", hexf("#1d6b3a"), rauheit=0.35),
+                                              material("Ampel_Rot", hexf("#3a0606"), rauheit=0.2),
+                                              material("Ampel_Gelb", hexf("#3a2a04"), rauheit=0.2),
+                                              material("Ampel_Gruen", hexf("#1aff7a"), rauheit=0.2, leuchten=6.0),
+                                              material("Parkuhr", hexf("#4a4f55"), metall=0.6, rauheit=0.4)],
+                      glatt=True, auto_glatt=35))
+    return obs
+
+def zivilauto(farbe, ort, gier, name):
+    """Geparktes Zivilauto aus derselben eigenen Karosserie: einfarbig, Scheinwerfer- und Rueckleuchtenglas,
+    silberne Felgen, ohne Polizeiausstattung."""
+    kar = karosserie()
+    s_, f_ = ausschnitte(kar)
+    schneiden(kar, s_, f_)
+    lz = lack("Lack_" + name, hexf(farbe), 0.6)
+    kar.data.materials[K_S] = lz
+    kar.data.materials[K_W] = lz
+    teile = [kar]
+    bm = bmesh.new()
+    for key in list(PATCHES):
+        if key.startswith(("scheinwerfer", "nebel")):
+            einfuegen(bm, von_patch(key, 0))
+        elif key.startswith(("ruecklicht", "heckblitzer")):
+            einfuegen(bm, von_patch(key, 1))
+    teile.append(objekt(name + "_Licht", bm, [M_SW_GLAS, M_RL_GLAS]))
+    silber = material("Felge_Silber", hexf("#c3c7cb"), metall=1.0, rauheit=0.25)
+    for ob in raeder().values():
+        ob.data.materials[1] = silber
+        teile.append(ob)
+    bpy.ops.object.select_all(action="DESELECT")
+    for ob in teile:
+        ob.select_set(True)
+    bpy.context.view_layer.objects.active = kar
+    bpy.ops.object.join()
+    kar.name = name
+    kar.location = ort
+    kar.rotation_euler = (0, 0, gier)
+    return kar
+
+def himmel_tag():
+    """Physikalischer Himmel (ohne Sonnenscheibe) plus Sonne als Lampe fuer scharfe Schatten."""
+    w = bpy.data.worlds.new("Himmel")
+    scene.world = w
+    w.use_nodes = True
+    nt = w.node_tree
+    sky = nt.nodes.new("ShaderNodeTexSky")
+    sky.sky_type = "NISHITA"
+    sky.sun_disc = False
+    hoehe, richtung = math.radians(40), math.radians(258)
+    sky.sun_elevation = hoehe
+    sky.sun_rotation = richtung + math.pi / 2
+    sky.dust_density = 1.6
+    nt.links.new(sky.outputs["Color"], nt.nodes["Background"].inputs["Color"])
+    nt.nodes["Background"].inputs["Strength"].default_value = 0.16
+    d = Vector((math.cos(hoehe) * math.cos(richtung), math.cos(hoehe) * math.sin(richtung), math.sin(hoehe)))
+    sonne = bpy.data.objects.new("Sonne", bpy.data.lights.new("Sonne", "SUN"))
+    scene.collection.objects.link(sonne)
+    sonne.data.energy = 5.5
+    sonne.data.angle = math.radians(0.7)
+    sonne.data.color = (1.0, 0.96, 0.9)
+    sonne.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
+    return sonne
+
 if SHOTS:
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
@@ -1693,6 +1949,28 @@ if SHOTS:
             bpy.ops.render.render(write_still=True)
         for ob in szene:
             bpy.data.objects.remove(ob)
+    STRASSE = {
+        "verfolger": ((-7.6, -1.8, 2.55), (3.0, -1.65, 0.95), 32, None),
+        "strasse": ((9.0, -7.4, 1.35), (0.5, -1.8, 0.85), 38, None),
+    }
+    tag_shots = [s for s in SHOTS if s in STRASSE]
+    if tag_shots:
+        szene = us_stadt() + [himmel_tag()]
+        log("Zivilautos ...")
+        szene += [zivilauto("#6e1416", (-13.5, -4.35, 0.0), 0.0, "Zivil_Rot"),
+                  zivilauto("#a9adb2", (13.0, -4.35, 0.0), 0.0, "Zivil_Silber"),
+                  zivilauto("#1c2b45", (3.5, 4.35, 0.0), math.pi, "Zivil_Blau")]
+        ARM.location.y = -1.8                      # rechte Fahrspur
+        leuchten(30.0, 2.0, 8.0)
+        for s in tag_shots:
+            kamera(*STRASSE[s])
+            scene.render.filepath = os.path.join(OUT, f"{NAME.lower()}_{s}.png")
+            log("Render", s)
+            bpy.ops.render.render(write_still=True)
+        for ob in szene:
+            bpy.data.objects.remove(ob)
+        ARM.location.y = 0.0
+        leuchten(0.0, 0.8, 2.5)
     if "nacht" in SHOTS:
         strasse_nacht()
         welt((0.0025, 0.0035, 0.007))
