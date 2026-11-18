@@ -2,6 +2,8 @@
 
 Ein fahrbarer US-Streifenwagen (Patrol Car) für Unreal Engine 5 (Chaos Vehicles), als glTF auch für Godot, Unity oder three.js. Das Auto ist ein eigenes Limousinen-Design und keiner echten Marke nachgebaut. Die Lackierung folgt dem klassischen amerikanischen Schwarz-Weiß-Schema. Abzeichen, Einheitsnummer und Kennzeichen sind ausgedacht, es gibt kein echtes Department. Modell, Skelett, Materialien und Texturen entstehen komplett per Skript in Blender. Es stecken keine fremden Assets drin.
 
+Das Auto ist kein Neuwagen, sondern ein Streifenwagen im Dienst: Straßenschmutz an Schwellern und Radläufen, Staub, Regenstreifen, Bremsstaub auf den Felgen, einzelne Steinschläge vorn, abgeschabte Kanten am Rammschutzbügel und feine Waschanlagen-Kratzer im Klarlack. Diese Gebrauchsspuren sind in die Texturen gebacken. Bilder, FBX und GLB zeigen also dasselbe Auto.
+
 ## Dateien
 
 | Datei | Zweck |
@@ -21,11 +23,11 @@ blender -b -P pruefe_export.py -- export SK_Streifenwagen_US 2.96 1.64 0.364 0.2
 - Neben dem Skript entstehen:
   - `export/SK_Streifenwagen_US.fbx` für Unreal, in Zentimetern, Texturen eingebettet
   - `export/SK_Streifenwagen_US.glb` für alle anderen Engines, in Metern, Texturen eingebettet
-  - `export/Texturen/` mit den drei Texturen als PNG
+  - `export/Texturen/` mit den acht Texturen als PNG (siehe „Texturen“)
   - `streifenwagen_us.blend` mit Auto und Skelett in Metern, dazu die Nachtszene
   - `streifenwagen_us_vorne.png`, `_hinten`, `_seite`, `_oben`, `_detail`, `_verfolger`, `_strasse` und `_nacht`
 - `pruefe_export.py` schreibt am Ende „ALLES OK“ oder eine Liste der Fehler.
-- Modell, Texturen und Export brauchen etwa 20 Sekunden. Die acht Bilder in 1920 × 1080 mit Cycles auf der CPU dauern auf einem Rechner mit vier Kernen etwa 28 Minuten. Mit `SHOTS=` fallen sie weg.
+- Modell, Texturen, das Backen der Gebrauchsspuren und der Export brauchen auf einem Rechner mit vier Kernen knapp 4 Minuten. Die acht Bilder in 1920 × 1080 mit Cycles auf der CPU dauern etwa 30 Minuten. Mit `SHOTS=` fallen sie weg.
 
 Schalter für schnelle Läufe (Umgebungsvariablen):
 
@@ -33,6 +35,7 @@ Schalter für schnelle Läufe (Umgebungsvariablen):
 |---|---|
 | `SHOTS=` (leer) | keine Bilder. `SHOTS=vorne,nacht` rendert nur diese beiden |
 | `SAMPLES=16`, `RES=960x540` | schnellere Bilder zum Testen (Standard sind 64 Samples mit Entrauschen) |
+| `ATLAS=2048` | Gebrauchsspuren in halber Auflösung backen, etwa viermal schneller (Standard 4096) |
 
 ## Vorschaubilder
 
@@ -64,10 +67,10 @@ Himmel und Sonne sind physikalisch berechnet. Die Szene dient nur den Bildern un
 | Radstand und Spur | 2,96 m und 1,64 m |
 | Räder | 245/55 R18: Radius 36,4 cm, Breite 24,5 cm, schwarze 18-Zoll-Stahlfelge |
 | Bodenfreiheit | 18 cm |
-| Dreiecke | rund 148 000 |
-| Materialien | 35 |
-| Texturen | 3: Lack-Flakes (Normal), Reifen (Normal und Farbe) |
-| UV-Karten | `UVMap` für alles, `UV_Flakes` für die Lack-Flakes (Würfelprojektion, 1 UV-Einheit = 1 m) |
+| Dreiecke | rund 250 000 |
+| Materialien | 41 |
+| Texturen | 8, siehe unten |
+| UV-Karten | `UVMap` als gemeinsamer Atlas (etwa 2 mm je Texel auf der Karosserie), `UV_Flakes` für kachelnde Lacktexturen (Würfelprojektion, 1 UV-Einheit = 1 m) |
 
 Was alles dran ist:
 
@@ -80,21 +83,52 @@ Was alles dran ist:
   - ein US-Kennzeichen „EXEMPT / PD 2740“
 - **Sondersignal:**
   - Lichtbalken: links (Fahrerseite) rot, rechts (Beifahrerseite) blau. In der Mitte sitzen weiße Arbeitslichter nach vorn und ein gelbes Warnlicht nach hinten, an den Enden weiße Seitenlichter.
-  - Dazu rot-blaue Blitzer im Grill, auf dem Rammschutzbügel, im hinteren Stoßfänger und hinter der Heckscheibe.
+  - Wie bei echten Lichtbalken stecken unter den Hauben LED-Module: Jede LED sitzt in einem eigenen Reflektorbecher aus Chrom.
+  - Dazu rot-blaue Blitzer mit denselben LED-Modulen im Grill, auf dem Rammschutzbügel, im hinteren Stoßfänger und hinter der Heckscheibe.
 - **Front:**
   - Rammschutzbügel (Push Bar) mit Gummiauflagen, dahinter der Sirenenlautsprecher
-  - Scheinwerfer mit Projektionslinsen und LED-Tagfahrlicht, Wabengrill, Nebelscheinwerfer
+  - Scheinwerfer mit dunklem Gehäuse, zwei Projektionsmodulen in Reflektorschalen aus Chrom, flachem LED-Lichtleiter als Tagfahrlicht und einem Blinker aus Einzel-LEDs vor einem bernsteinfarbenen Reflektor. Die Gläser sind schwarz eingefasst.
+  - Wabengrill, Nebelscheinwerfer mit Chromschale
+  - gelbe Seitenmarkierungsleuchten vorn und rote hinten, wie in den USA vorgeschrieben
 - **Suchscheinwerfer** an der A-Säule auf der Fahrerseite.
-- **Heck:** Rückleuchten mit LED-Lichtleitern und Rückfahrlicht, Kennzeichen in einer Mulde, Reflektoren und zwei Endrohre.
+- **Heck:** Rückleuchten mit facettiertem Reflektor hinter dem roten Glas (das typische Funkeln), LED-Lichtleiter als C, eine Reihe Einzel-LEDs und ein Rückfahrlicht mit Chromschale. Dazu das Kennzeichen in einer Mulde, Reflektoren und zwei Endrohre.
 - **Dach:** drei Antennen.
 - **Innenraum:**
-  - vorn: Armaturenbrett mit Bildschirm, Lenkrad, Laptop auf einer Halterung und Vordersitze
-  - dahinter ein Trenngitter: unten Stahl, oben eine Scheibe
-  - hinten: Rückbank, Türverkleidungen, Dachhimmel und Hutablage
+  - Vordersitze mit Seitenwangen: Mitte Stoff, Wangen Kunstleder, Kopfstützen auf Chromstangen, Gurtschlösser und Gurte an der B-Säule
+  - Armaturenbrett mit Defroster-Schlitzen, Instrumentenhutze und zwei Rundinstrumenten, Bildschirm, eckigen und runden Lüftungsdüsen, Klimareglern
+  - Lenkrad mit Prallpolster, Lenksäule und Hebeln
+  - Polizeitechnik auf der Mittelkonsole: Funk-Bedienteil mit Display, Sirenen- und Lichtsteuerung mit farbigen Tasten, Mikrofon mit Spiralkabel, robuster Laptop mit Tastatur auf einem Schwenkhalter
+  - Innenspiegel, Sonnenblenden, Innenleuchte, Fußmatten, Türverkleidungen mit Armlehnen, Griffen und Lautsprechern
+  - Trenngitter: unten Stahl, oben eine Scheibe mit Schiebefenster
+  - hinten eine harte, abwaschbare Rückbank mit zwei Sitzmulden, wie in US-Streifenwagen üblich
 - **Räder:**
-  - Reifen 245/55 R18 mit Profil: Längsrillen als Geometrie, Querrillen und Flanke aus der Normal-Karte
-  - schwarze Stahlfelge mit sechs Lüftungslöchern, verchromter Mittelkappe und sechs Radmuttern, dahinter die Bremsscheibe
+  - Reifen 245/55 R18 mit Profil: Längsrillen als Geometrie, Querrillen und Lamellen aus der Normal-Karte. Auf der Außenflanke steht erhabene Schrift mit allgemeinen Angaben (Größe „245/55 R18 98V“, „M+S“, „ALL SEASON“, „TUBELESS“, „RADIAL“, keine Marke), auf beiden Seiten des Autos lesbar.
+  - gepresste schwarze Stahlfelge mit Versteifungssicke und sechs Lüftungslöchern, verchromter Mittelkappe und sechs Radmuttern mit Kegelsitz, dazu das Ventil
+  - innenbelüftete Bremsscheibe mit Kühlrippen
   - Einen Bremssattel gibt es absichtlich nicht: Er hinge am Radknochen und würde sich im Spiel mitdrehen.
+
+## Gebrauchsspuren und Texturen
+
+Das Skript backt mit Cycles Masken in den gemeinsamen UV-Atlas (`UVMap`) und mischt daraus drei Texturen, die sich alle Materialien teilen (außer Glas und Reifen):
+
+- Straßenschmutz: unten am stärksten, um und hinter den Radläufen, am Heck (Sog) und vorn unten
+- Staub auf waagrechten Flächen, Regenstreifen unter den Fenstern, Schmutz in Ritzen und Fugen
+- Bremsstaub auf den Felgen, zur Mitte und nach innen stärker
+- einzelne Steinschläge vorn und hinter den Vorderrädern
+- abgeschabte Kanten, vor allem am Rammschutzbügel (blankes Metall)
+- Umgebungsverdeckung (Ambient Occlusion) für Engines, die sie nutzen
+
+Wo Schmutz liegt, wird die Oberfläche rauer und der Klarlack verschwindet. Der Innenraum bekommt im Atlas weniger Platz, Glas und Unterboden fast keinen. So bleibt für die sichtbare Karosserie die meiste Auflösung.
+
+| Textur | Größe | Inhalt | UV-Karte |
+|---|---|---|---|
+| `T_Streifenwagen_US_BaseColor` | 4096² | Farbe mit Schmutz und Abrieb (sRGB) | `UVMap` |
+| `T_Streifenwagen_US_ORM` | 4096² | R = Umgebungsverdeckung, G = Rauheit, B = Metall (linear) | `UVMap` |
+| `T_Streifenwagen_US_Klarlack` | 2048² | Stärke des Klarlacks (linear) | `UVMap` |
+| `T_Lack_Kratzer_N` | 2048², kachelbar | Normalen des Klarlacks: feine Kratzer in allen Richtungen, Kringel aus der Waschanlage, einige längere Kratzer, leichte Orangenhaut | `UV_Flakes`, Kachelung 1,25 |
+| `T_Lack_Flakes_N` | 512², kachelbar | Metallic-Flakes im Grundlack | `UV_Flakes`, Kachelung 25 |
+| `T_Reflektor_N` | 256², kachelbar | Pyramidenfacetten der Rückleuchten-Reflektoren und Seitenleuchten | `UV_Flakes`, Kachelung 31 bzw. 47 |
+| `T_Reifen_N` / `T_Reifen_BC` | 8192 × 1024 | Profil, Flankenschrift, Staub; einmal um den Umfang | `UVMap` (eigene Abwicklung der Reifen) |
 
 ## Skelett
 
@@ -117,7 +151,7 @@ Was alles dran ist:
   - Vielecke mit mehr als vier Ecken sind trianguliert. Normalen (mit harten Kanten) und Tangenten sind enthalten, die Texturen eingebettet, Animationen nicht.
 - **GLB für alle anderen:**
   - glTF 2.0 in Metern mit +Y oben, das Skelett steckt als Skin drin.
-  - Die Materialien kommen vollständig an: Metallic, Rauheit, Klarlack, Glas, Leuchten und die Texturen. Für die Flakes gilt die zweite UV-Karte mit der Kachelung 25.
+  - Die Materialien kommen vollständig an: Farbe, Rauheit, Metall und Umgebungsverdeckung aus dem Atlas, Klarlack mit eigener Stärke-Textur und Kratzer-Normalen, Glas, Leuchten. Flakes, Kratzer und Facetten nutzen die zweite UV-Karte mit ihrer Kachelung (KHR_texture_transform).
 - **Glas:** Alle Scheiben und Abdeckungen sind einfache Flächen ohne Dicke. Im Material stehen deshalb volle Durchlässigkeit, IOR 1,0 (keine Brechung) und eine Klarlackschicht für die Spiegelung. In Unreal nimmst du dafür ein Translucent-Material.
 - Rot- und Blaulicht leuchten in beiden Dateien nicht. Sie werden in der Engine geschaltet (siehe unten).
 
@@ -140,36 +174,29 @@ Was alles dran ist:
 
 ### Materialien in Unreal
 
-Über FBX kommen meist nur Grundfarbe, Leuchten, Transparenz und die Texturen an. Metallic, Rauheit und Klarlack stellst du am besten von Hand ein. Die Farben sind sRGB-Hexwerte, so wie sie der Farbwähler von Unreal annimmt.
+Über FBX kommen meist nur Grundfarbe, Leuchten und Transparenz an. Am einfachsten baust du ein Master-Material und machst für jeden Slot eine Material Instance davon:
 
-| Material (Slot) | Wo | Farbe | Metallic | Rauheit | Sonst |
-|---|---|---|---|---|---|
-| `Lack_Schwarz` | Kotflügel, Haube, Kofferraum, Spiegel | `#0C0D0F` | 0,4 | 0,32 | Clear Coat 1, Clear Coat Roughness 0,012, Flakes (siehe unten) |
-| `Lack_Weiss` | Türen, Säulen, Dach | `#EEF0F1` | 0 | 0,32 | Clear Coat wie oben, Flakes schwächer |
-| `Kunststoff_Schwarz` | Stoßfänger unten, Radkästen, Halter, Wischer | `#151617` | 0 | 0,62 | |
-| `Hochglanz_Schwarz` | Scheibeneinfassungen, Grill, Lichtbalken | `#0B0C0D` | 0 | 0,10 | Clear Coat 0,8 |
-| `Spalt` | Innenseite der Fugen | `#050505` | 0 | 0,90 | |
-| `Glas` / `Glas_Getoent` | vordere / hintere Scheiben | `#C4D2D0` / `#4F5857` | 0 | 0 | Translucent, Farbe als Tönung |
-| `Chrom` | Griffe, Spiegelglas, Suchscheinwerfer, Mittelkappen, Endrohre | `#DCDEE0` | 1 | 0,05 | |
-| `Scheinwerfer_Innen`, `Reflektor` | Innenleben der Scheinwerfer | `#7D838A`, `#E6E8EA` | 0,9 / 1 | 0,25 / 0,07 | |
-| `Scheinwerfer_Glas` | Abdeckungen, Linsen | `#F1F4F6` | 0 | 0 | Translucent |
-| `Tagfahrlicht` | LED-Leisten, Arbeits- und Seitenlichter im Lichtbalken | `#FFFFFF` | 0 | 0,2 | leuchtet weiß |
-| `Ruecklicht_Glas` / `Ruecklicht_LED` | Rückleuchten | `#D0121A` / `#B0141A` | 0 | 0 / 0,3 | Glas translucent, LED leuchtet rot |
-| `Rotlicht` / `Blaulicht` | LED-Module der Sondersignale | `#D0141C` / `#1A4CFF` | 0 | 0,25 | blinken, siehe unten |
-| `Lichtbalken_Rot` / `_Blau` / `_Klar` | Kappen des Lichtbalkens | `#FF6B6B` / `#6A8FFF` / `#EEF2F4` | 0 | 0 | Translucent |
-| `Blinker` | Blinkerleisten, gelbes Warnlicht | `#B88A55` | 0 | 0,3 | leuchtet orange beim Blinken |
-| `Folie_Schwarz` / `Reflexfolie_Weiss` | Schriften und Nummern | `#0A0A0B` / `#EEF0F0` | 0 | 0,35 | |
-| `Abzeichen_Gold` / `Abzeichen_Blau` | Stern-Abzeichen | `#D4A21E` / `#14254F` | 1 / 0 | 0,3 / 0,4 | |
-| `Rammschutz` | Rammschutzbügel, Halter | `#111213` | 0,6 | 0,45 | |
-| `Reifen` | Reifen | Textur | 0 | 0,88 | Normal-Textur |
-| `Felge_Schwarz` / `Felge_Innen` | Stahlfelgen | `#18191A` / `#2A2C2E` | 0,5 / 0,6 | 0,35 / 0,5 | Felge mit Clear Coat 0,6 |
-| `Bremse` | Bremsscheiben | `#5A5C5E` | 0,85 | 0,38 | |
-| `Innenraum` / `Innenraum_Stoff` | Armaturen, Sitze, Himmel | `#1E1F21` / `#34363A` | 0 | 0,78 / 0,95 | |
-| `Trenngitter` | Trenngitter, Laptop-Halter | `#1A1B1C` | 0,7 | 0,4 | |
-| `Bildschirm` | Laptop | `#0D1520` | 0 | 0,15 | leuchtet leicht blau, wenn an |
-| `Kennzeichen` / `Kennzeichen_Schrift` | Kennzeichen | `#F4F4F0` / `#1C2F7A` | 0 | 0,35 | |
+- Shading Model `Clear Coat`
+- `Base Color` = `T_Streifenwagen_US_BaseColor` (Koordinate 0)
+- `T_Streifenwagen_US_ORM` (Koordinate 0, Compression „Masks“, sRGB aus): R → `Ambient Occlusion`, G → `Roughness`, B → `Metallic`
+- `Clear Coat` = `T_Streifenwagen_US_Klarlack` (Koordinate 0, sRGB aus). Die Textur enthält schon die Stärke je Material und ist dort, wo Schmutz liegt, schwächer.
+- `Clear Coat Roughness` = Parameter je Slot (siehe Tabelle, sonst egal)
+- `Normal` = `T_Lack_Kratzer_N` mit `TextureCoordinate` Index 1 und Kachelung 1,25, Stärke etwa 0,75. Beim Clear-Coat-Modell wirkt `Normal` auf den Klarlack. Nur für die beiden Lacke, sonst die flache Normale (0, 0, 1).
+- Flakes, optional: `T_Lack_Flakes_N` mit Index 1 und Kachelung 25 in `Clear Coat Bottom Normal` (muss in den Projekteinstellungen freigeschaltet sein), Stärke 30 % beim schwarzen und 10 % beim weißen Lack.
 
-**Lack-Flakes:** `T_Lack_Flakes_N` ist eine kachelbare Normal-Karte. Nimm dafür den Knoten `TextureCoordinate` mit Coordinate Index 1 (die Karte `UV_Flakes`) und der Kachelung 25. Schwäche die Normalen auf etwa 30 % ab (beim weißen Lack 10 %) und gib sie nur der Lackschicht unter dem Klarlack. In Unreal heißt der Eingang `Clear Coat Bottom Normal`, er muss in den Projekteinstellungen freigeschaltet sein. Ohne diesen Eingang lässt du die Flakes einfach weg.
+Farbe, Rauheit und Metall stehen für alle undurchsichtigen Materialien schon im Atlas. Eigene Werte brauchen nur diese Slots:
+
+| Material (Slot) | Was gilt |
+|---|---|
+| `Lack_Schwarz`, `Lack_Weiss` | Klarlack-Rauheit 0,012, Kratzer und Flakes wie oben |
+| `Hochglanz_Schwarz`, `Reflexfolie_Weiss`, `Felge_Schwarz` | Klarlack-Rauheit 0,02 / 0,04 / 0,05 |
+| `Innenraum_Kunstleder` | Klarlack-Rauheit 0,3 |
+| `Seitenleuchte_Gelb`, `Seitenleuchte_Rot` | Klarlack-Rauheit 0,01, `T_Reflektor_N` mit Index 1 und Kachelung 47 als Normale (Stärke 0,6) |
+| `Ruecklicht_Reflektor` | `T_Reflektor_N` mit Index 1 und Kachelung 31 als Normale |
+| `Glas` / `Glas_Getoent` | Translucent, Tönung `#C4D2D0` / `#4F5857`, ohne Brechung |
+| `Scheinwerfer_Glas`, `Ruecklicht_Glas`, `Lichtbalken_Rot` / `_Blau` / `_Klar` | Translucent, Tönung `#F1F4F6`, `#D0121A`, `#FF6B6B` / `#6A8FFF` / `#EEF2F4` |
+| `Reifen` | Standard-Shading, `T_Reifen_BC` und `T_Reifen_N` (Koordinate 0), Rauheit 0,88 |
+| `Tagfahrlicht`, `Ruecklicht_LED`, `Rotlicht`, `Blaulicht`, `Blinker`, `Bildschirm` | Emissive, siehe nächster Abschnitt |
 
 **Rot und Blau im Wechsel blinken lassen:** Rot und Blau sind eigene Slots. Beide bekommen dasselbe Material, nur mit anderer Farbe und um eine halbe Periode versetzt.
 
@@ -187,6 +214,6 @@ Was alles dran ist:
 
 ## Leistung
 
-- Rund 148 000 Dreiecke und 35 Materialslots passen für ein Spielerauto oder eine Zwischensequenz. Jeder Slot kostet einen eigenen Draw Call, die durchsichtigen Slots etwas mehr.
-- Für viele Autos gleichzeitig, etwa als Verkehr, im Skeletal-Mesh-Editor LODs erzeugen lassen, zum Beispiel mit 50, 25 und 10 % der Dreiecke. Für weit entfernte Stufen kannst du Innenraum, Leuchten-Innenleben und Antennen weglassen und einfarbige Materialien zusammenfassen.
-- Die UV-Karte `UVMap` ist automatisch ausgelegt (Smart UV Project, Inseln ohne Überlappung). Nur die Reifen liegen gekachelt darüber, weil ihre Profiltextur sich um den Umfang wiederholt. Für Schmutz- oder Kratzermasken reicht das. Für eigene Texturen legst du die Karte am besten neu aus.
+- Rund 250 000 Dreiecke und 41 Materialslots passen für ein Spielerauto oder eine Zwischensequenz. Jeder Slot kostet einen eigenen Draw Call, die durchsichtigen Slots etwas mehr. Weil sich fast alle Slots dieselben drei Atlas-Texturen teilen, kosten die vielen Slots kaum zusätzlichen Texturspeicher.
+- Für viele Autos gleichzeitig, etwa als Verkehr, im Skeletal-Mesh-Editor LODs erzeugen lassen, zum Beispiel mit 50, 25 und 10 % der Dreiecke. Für weit entfernte Stufen kannst du Innenraum, Leuchten-Innenleben und Antennen weglassen und die Atlas-Materialien zu einem zusammenfassen. Die Texturen kannst du in Unreal mit `Maximum Texture Size` auf 2048 begrenzen.
+- Die UV-Karte `UVMap` ist ein automatisch ausgelegter Atlas ohne Überlappung (Smart UV Project, danach nach Wichtigkeit skaliert und neu gepackt). Nur die Reifen liegen mit ihrer eigenen Abwicklung darüber, weil sie eigene Texturen haben.

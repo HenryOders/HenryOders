@@ -78,6 +78,107 @@ def hexf(h):
     h = h.lstrip("#")
     return tuple((int(h[i:i + 2], 16) / 255) ** 2.2 for i in (0, 2, 4))     # sRGB -> linear
 
+class Knoten:
+    """Kurzschreibweise fuer Shader-Knoten: Zahlen werden Eingabewerte, Sockets werden verbunden."""
+    def __init__(self, nt):
+        self.nt = nt
+
+    def ein(self, sock, x):
+        if isinstance(x, (int, float)):
+            sock.default_value = x
+        elif isinstance(x, (tuple, list)):
+            sock.default_value = x
+        else:
+            self.nt.links.new(x, sock)
+
+    def m(self, op, a, b=None, c=None, clamp=False):
+        n = self.nt.nodes.new("ShaderNodeMath")
+        n.operation = op
+        n.use_clamp = clamp
+        for i, x in enumerate((a, b, c)):
+            if x is not None:
+                self.ein(n.inputs[i], x)
+        return n.outputs[0]
+
+    def add(self, *xs):
+        s = xs[0]
+        for x in xs[1:]:
+            s = self.m("ADD", s, x)
+        return s
+
+    def mul(self, *xs):
+        s = xs[0]
+        for x in xs[1:]:
+            s = self.m("MULTIPLY", s, x)
+        return s
+
+    def max(self, *xs):
+        s = xs[0]
+        for x in xs[1:]:
+            s = self.m("MAXIMUM", s, x)
+        return s
+
+    def v(self, op, a, b=None):
+        n = self.nt.nodes.new("ShaderNodeVectorMath")
+        n.operation = op
+        self.ein(n.inputs[0], a)
+        if b is not None:
+            self.ein(n.inputs[1], b)
+        return n.outputs[1] if op in ("DOT_PRODUCT", "LENGTH", "DISTANCE") else n.outputs[0]
+
+    def glatt(self, x, a, b):
+        """Weicher Uebergang von 0 (bei a) nach 1 (bei b); a > b kehrt die Richtung um."""
+        n = self.nt.nodes.new("ShaderNodeMapRange")
+        n.interpolation_type = "SMOOTHSTEP"
+        n.clamp = True
+        self.ein(n.inputs[0], x)
+        self.ein(n.inputs[1], a)
+        self.ein(n.inputs[2], b)
+        return n.outputs[0]
+
+    def rauschen(self, vec, skala, detail=6.0, rau=0.55, verzerrung=0.0):
+        n = self.nt.nodes.new("ShaderNodeTexNoise")
+        n.noise_dimensions = "3D"
+        self.ein(n.inputs["Vector"], vec)
+        n.inputs["Scale"].default_value = skala
+        n.inputs["Detail"].default_value = detail
+        n.inputs["Roughness"].default_value = rau
+        n.inputs["Distortion"].default_value = verzerrung
+        return n.outputs["Fac"]
+
+    def zellen(self, vec, skala):
+        n = self.nt.nodes.new("ShaderNodeTexVoronoi")
+        n.voronoi_dimensions = "3D"
+        n.feature = "F1"
+        self.ein(n.inputs["Vector"], vec)
+        n.inputs["Scale"].default_value = skala
+        n.inputs["Randomness"].default_value = 1.0
+        return n.outputs["Distance"], self.trenne(n.outputs["Color"])
+
+    def trenne(self, vec):
+        n = self.nt.nodes.new("ShaderNodeSeparateXYZ")
+        self.ein(n.inputs[0], vec)
+        return n.outputs[0], n.outputs[1], n.outputs[2]
+
+    def vektor(self, x, y, z):
+        n = self.nt.nodes.new("ShaderNodeCombineXYZ")
+        for i, w in enumerate((x, y, z)):
+            self.ein(n.inputs[i], w)
+        return n.outputs[0]
+
+    def attribut(self, name):
+        n = self.nt.nodes.new("ShaderNodeAttribute")
+        n.attribute_type = "GEOMETRY"
+        n.attribute_name = name
+        return n.outputs["Fac"]
+
+    def geometrie(self):
+        n = self.nt.nodes.new("ShaderNodeNewGeometry")
+        return n.outputs["Position"], n.outputs["Normal"]
+
+def mathe(nt, op, a, b=None):
+    return Knoten(nt).m(op, a, b)
+
 # ---------------- Texturen (numpy, als PNG gespeichert und eingebunden) ----------------
 def bild(name, arr_xy, farbe=True):
     """Bild aus einem Array [x, y, kanal] (Werte 0..1) anlegen, als PNG in export/Texturen speichern."""
@@ -87,6 +188,19 @@ def bild(name, arr_xy, farbe=True):
     img = bpy.data.images.new(name, w, h, alpha=False)
     img.colorspace_settings.name = "sRGB" if farbe else "Non-Color"
     img.pixels.foreach_set(rgba.ravel())
+    img.filepath_raw = os.path.join(TEXDIR, name + ".png")
+    img.file_format = "PNG"
+    img.save()
+    return img
+
+def bild_hw(name, arr, farbe=True):
+    """Bild aus einem Array [Zeile von unten, Spalte, Kanal] (1 oder 3 Kanaele, 0..1) als PNG speichern."""
+    h, w = arr.shape[:2]
+    rgba = np.ones((h, w, 4), dtype=np.float32)
+    rgba[..., :3] = arr[..., :3] if arr.shape[2] >= 3 else arr[..., :1]
+    img = bpy.data.images.new(name, w, h, alpha=False)
+    img.colorspace_settings.name = "sRGB" if farbe else "Non-Color"
+    img.pixels.foreach_set(np.clip(rgba, 0, 1).ravel())
     img.filepath_raw = os.path.join(TEXDIR, name + ".png")
     img.file_format = "PNG"
     img.save()
@@ -124,55 +238,198 @@ def textur_flakes(n=512, zellen=110, seed=7):
     t /= np.linalg.norm(t, axis=-1, keepdims=True)
     return bild("T_Lack_Flakes_N", t * 0.5 + 0.5, farbe=False)
 
-# Reifen-UV: u = 1/8 Umfang je Kachel, v = Profil von innen (0) nach aussen (1)
-REIFEN_V = {"lauf0": 0.34, "lauf1": 0.66}
-def textur_reifen(w=1024, h=512, seed=11):
+FACETTEN_KACHEL = 0.032       # Meter je Kachel der Reflektor-Facetten (8 x 8 Pyramiden, also 4 mm je Facette)
+def textur_facetten(n=256, zellen=8, neigung=26.0):
+    """Reflektor hinter dem Rueckleuchtenglas: Pyramidenfacetten, nahtlos kachelbar. Jede Facette spiegelt das
+    Licht in eine andere Richtung; hinter rotem Glas entsteht das typische Funkeln."""
+    u = (np.arange(n) + 0.5) / n * zellen
+    U, V = np.meshgrid(u, u, indexing="ij")
+    fu, fv = U % 1.0 - 0.5, V % 1.0 - 0.5
+    s = math.sin(math.radians(neigung))
+    nx = np.where(np.abs(fu) >= np.abs(fv), np.sign(fu), 0.0) * s
+    ny = np.where(np.abs(fv) > np.abs(fu), np.sign(fv), 0.0) * s
+    t = np.stack([nx, ny, np.full_like(nx, math.cos(math.radians(neigung)))], -1)
+    return bild("T_Reflektor_N", t * 0.5 + 0.5, farbe=False)
+
+KRATZER_KACHEL = 0.8          # Meter je Kachel der Kratzer-Textur auf "UV_Flakes"
+def textur_kratzer(n=2048, seed=21):
+    """Klarlack-Normalen, nahtlos kachelbar: leichte Orangenhaut, viele feine Waschanlagen-Kratzer in allen
+    Richtungen (im Glanzlicht entstehen daraus die typischen Kringel) und einige laengere Kratzer."""
     rng = np.random.default_rng(seed)
-    U, V = np.meshgrid((np.arange(w) + 0.5) / w, (np.arange(h) + 0.5) / h, indexing="ij")
-    hoehe = np.zeros((w, h))
+    px_m = KRATZER_KACHEL / n
+    # Orangenhaut: bandbegrenztes Rauschen um 3,5 mm Wellenlaenge (per FFT, dadurch von selbst periodisch)
+    fr = np.fft.fftfreq(n, d=px_m)
+    FR = np.hypot(fr[:, None], fr[None, :])
+    band = np.exp(-((np.log(np.maximum(FR, 1e-3)) - np.log(1 / 0.0035)) ** 2) / (2 * 0.45 ** 2))
+    haut = np.fft.ifft2(np.fft.fft2(rng.normal(size=(n, n))) * band).real
+    # Kratzer als Rillen mit gaussfoermigem Querschnitt, auf einer gepolsterten Flaeche gezeichnet und dann
+    # ringsum zurueckgefaltet (nahtlos)
+    rand = 420
+    gross = np.zeros((n + 2 * rand, n + 2 * rand), np.float32)
+    def rille_px(p0, p1, breite, tiefe):
+        p0, p1 = np.asarray(p0, float) + rand, np.asarray(p1, float) + rand
+        r = 3 * breite + 1
+        x0, x1 = int(max(min(p0[0], p1[0]) - r, 0)), int(min(max(p0[0], p1[0]) + r, gross.shape[0] - 1))
+        y0, y1 = int(max(min(p0[1], p1[1]) - r, 0)), int(min(max(p0[1], p1[1]) + r, gross.shape[1] - 1))
+        if x1 <= x0 or y1 <= y0:
+            return
+        X, Y = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5, indexing="ij")
+        d = p1 - p0
+        t = np.clip(((X - p0[0]) * d[0] + (Y - p0[1]) * d[1]) / max(d @ d, 1e-9), 0, 1)
+        ab = np.hypot(X - p0[0] - t * d[0], Y - p0[1] - t * d[1])
+        gross[x0:x1 + 1, y0:y1 + 1] -= tiefe * np.exp(-(ab / breite) ** 2)
+    for _ in range(2600):                      # kurze, feine Kratzer (4 bis 40 mm)
+        p = rng.random(2) * n
+        w = rng.random() * math.pi
+        l = (0.004 + 0.036 * rng.random() ** 2) / px_m
+        rille_px(p, p + l * np.array((math.cos(w), math.sin(w))), 0.35 + 0.25 * rng.random(), 0.25 + 0.6 * rng.random())
+    for _ in range(14):                        # Kringel: Kreisboegen um wenige Mittelpunkte
+        c = rng.random(2) * n
+        for _ in range(28):
+            rr = (0.03 + 0.12 * rng.random()) / px_m
+            w0, dw = rng.random() * 2 * math.pi, (0.15 + 0.5 * rng.random())
+            pts = [c + rr * np.array((math.cos(w0 + dw * k / 5), math.sin(w0 + dw * k / 5))) for k in range(6)]
+            br, ti = 0.35 + 0.2 * rng.random(), 0.2 + 0.4 * rng.random()
+            for a, b in zip(pts, pts[1:]):
+                rille_px(a, b, br, ti)
+    for _ in range(36):                        # laengere, leicht gebogene Kratzer (5 bis 25 cm)
+        p = rng.random(2) * n
+        w = rng.random() * 2 * math.pi
+        l = (0.05 + 0.2 * rng.random()) / px_m
+        kr = rng.normal(0, 0.25)
+        pts = [p]
+        for k in range(8):
+            w += kr / 8
+            pts.append(pts[-1] + l / 8 * np.array((math.cos(w), math.sin(w))))
+        br, ti = 0.5 + 0.4 * rng.random(), 0.6 + 0.6 * rng.random()
+        for a, b in zip(pts, pts[1:]):
+            rille_px(a, b, br, ti)
+    kr = gross[rand:rand + n, rand:rand + n].copy()
+    kr[:rand, :] += gross[n + rand:, rand:rand + n]
+    kr[-rand:, :] += gross[:rand, rand:rand + n]
+    kr[:, :rand] += gross[rand:rand + n, n + rand:]
+    kr[:, -rand:] += gross[rand:rand + n, :rand]
+    kr[:rand, :rand] += gross[n + rand:, n + rand:]
+    kr[-rand:, -rand:] += gross[:rand, :rand]
+    kr[:rand, -rand:] += gross[n + rand:, :rand]
+    kr[-rand:, :rand] += gross[:rand, n + rand:]
+    def grad(h):
+        return (np.roll(h, -1, 0) - np.roll(h, 1, 0)) / 2, (np.roll(h, -1, 1) - np.roll(h, 1, 1)) / 2
+    hx, hy = grad(haut)
+    s_haut = 0.006 / max(np.hypot(hx, hy).std(), 1e-9)          # Orangenhaut: Neigung um 0,006
+    kx, ky = grad(kr)
+    gx, gy = hx * s_haut + kx * 0.16, hy * s_haut + ky * 0.16    # Kratzer: Flankenneigung bis etwa 0,3
+    nrm = np.stack([-gx, -gy, np.ones_like(gx)], -1)
+    nrm /= np.linalg.norm(nrm, axis=-1, keepdims=True)
+    return bild("T_Lack_Kratzer_N", nrm * 0.5 + 0.5, farbe=False)
+
+def text_dreiecke(text):
+    """Text (Blender-Standardschrift) als Dreiecke [n, 3, 2] in der Ebene, mittig ausgerichtet."""
+    cu = bpy.data.curves.new("_text", "FONT")
+    cu.body = text
+    cu.align_x = cu.align_y = "CENTER"
+    cu.fill_mode = "FRONT"
+    cu.resolution_u = 4
+    ob = bpy.data.objects.new("_text", cu)
+    scene.collection.objects.link(ob)
+    me = bpy.data.meshes.new_from_object(ob.evaluated_get(bpy.context.evaluated_depsgraph_get()))
+    bpy.data.objects.remove(ob)
+    bpy.data.curves.remove(cu)
+    me.calc_loop_triangles()
+    co = np.array([v.co[:2] for v in me.vertices])
+    tri = np.array([t.vertices[:] for t in me.loop_triangles])
+    bpy.data.meshes.remove(me)
+    return co[tri]
+
+def dreiecke_rastern(feld, tris, ss=3):
+    """Dreiecke in Pixelkoordinaten (x = erste, y = zweite Achse von feld) kantengeglaettet aufaddieren."""
+    for t in tris:
+        lo = np.maximum(np.floor(t.min(0)).astype(int), 0)
+        hi = np.minimum(np.ceil(t.max(0)).astype(int) + 1, feld.shape)
+        if (hi <= lo).any():
+            continue
+        X, Y = np.meshgrid(lo[0] + (np.arange((hi[0] - lo[0]) * ss) + 0.5) / ss,
+                           lo[1] + (np.arange((hi[1] - lo[1]) * ss) + 0.5) / ss, indexing="ij")
+        (ax, ay), (bx, by), (cx, cy) = t
+        d = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+        if abs(d) < 1e-12:
+            continue
+        w1 = ((bx - X) * (cy - Y) - (by - Y) * (cx - X)) / d
+        w2 = ((cx - X) * (ay - Y) - (cy - Y) * (ax - X)) / d
+        innen = (w1 >= 0) & (w2 >= 0) & (w1 + w2 <= 1)
+        feld[lo[0]:hi[0], lo[1]:hi[1]] += innen.reshape(hi[0] - lo[0], ss, hi[1] - lo[1], ss).mean(axis=(1, 3))
+
+# Reifen-UV: u = einmal um den Umfang (0..1), v = Profil von innen (0) nach aussen (1); die Aussenflanke liegt
+# bei v 0,68..1 (1 = Wulst am Felgenhorn)
+REIFEN_V = {"lauf0": 0.34, "lauf1": 0.66}
+REIFEN_TEXTE = [("245/55 R18 98V", 0.06, 0.012), ("M+S", 0.17, 0.015), ("ALL SEASON", 0.31, 0.014),
+                ("TUBELESS", 0.44, 0.010), ("245/55 R18 98V", 0.56, 0.012), ("M+S", 0.67, 0.015),
+                ("ALL SEASON", 0.81, 0.014), ("RADIAL", 0.94, 0.010)]
+def textur_reifen(w=8192, h=1024, seed=11):
+    """Reifen ueber den ganzen Umfang: Profil (72 Bloecke), Lamellen, Riffelband und erhabene Beschriftung auf der
+    Aussenflanke (nur allgemeine Angaben: Groesse, M+S, Bauart), dazu Staub auf Lauf- und Flanke."""
+    rng = np.random.default_rng(seed)
+    U, V = np.meshgrid((np.arange(w, dtype=np.float32) + 0.5) / w, (np.arange(h, dtype=np.float32) + 0.5) / h,
+                       indexing="ij")
+    UK = U * 8.0                                          # 8 Profil-Kacheln je Umdrehung
+    hoehe = np.zeros((w, h), np.float32)
     kante = lambda d, breite, weich: np.clip((breite / 2 - np.abs(d)) / weich + 0.5, 0, 1)
-    teilung = 1 / 9                                       # 9 Bloecke je Kachel (ca. 2,9 cm)
+    teilung = 1 / 9                                       # 9 Bloecke je Kachel (ca. 3,2 cm)
     # Querrillen in den Schulterrippen, leicht schraeg, laufen zur Flanke aus
     for v0, v1, sg in ((0.27, 0.405, -1), (0.595, 0.73, 1)):
         zone = np.clip((V - v0) / 0.01, 0, 1) * np.clip((v1 - V) / 0.01, 0, 1)
         auslauf = np.clip((0.5 - np.abs(V - 0.5) - 0.23) / 0.04, 0, 1)
-        ph = (U / teilung + sg * 1.6 * (V - 0.5)) % 1.0
+        ph = (UK / teilung + sg * 1.6 * (V - 0.5)) % 1.0
         hoehe -= 0.006 * kante(ph - 0.5, 0.16, 0.03) * zone * (0.35 + 0.65 * auslauf)
     # Lamellen (feine Schlitze) in den Mittelrippen
     for v0, v1 in ((0.412, 0.458), (0.474, 0.526), (0.542, 0.588)):
         zone = np.clip((V - v0) / 0.004, 0, 1) * np.clip((v1 - V) / 0.004, 0, 1)
-        ph = (U / (teilung / 2) + 2.2 * (V - 0.5)) % 1.0
+        ph = (UK / (teilung / 2) + 2.2 * (V - 0.5)) % 1.0
         hoehe -= 0.003 * kante(ph - 0.5, 0.06, 0.02) * zone
-    # Flanke: feine Ringe am Felgenhorn, Riffelband, erhabene Schriftbloecke (ohne lesbaren Text)
+    # Flanke: feine Ringe am Felgenhorn, Riffelband
     for vr in (0.0, 1.0):
         nah = np.clip(1 - np.abs(V - vr) / 0.07, 0, 1)
-        hoehe += 0.0005 * np.sin(2 * np.pi * V * h / 5) * nah
+        hoehe += 0.0005 * np.sin(2 * np.pi * V * h / 10) * nah
     for v0, v1 in ((0.17, 0.205), (0.795, 0.83)):
         zone = np.clip((V - v0) / 0.004, 0, 1) * np.clip((v1 - V) / 0.004, 0, 1)
         hoehe += 0.0004 * (np.sin(2 * np.pi * U * w / 6) > 0.3) * zone
-    for v0, v1 in ((0.10, 0.15), (0.85, 0.90)):
-        for _ in range(26):
-            u0, bu = rng.random(), 0.004 + 0.012 * rng.random()
-            du = (U - u0 + 0.5) % 1.0 - 0.5
-            hoehe += 0.0008 * (np.abs(du) < bu) * (V > v0) * (V < v1)
-    meter_u = 2 * np.pi * RAD_R / 8 / w
+    # Beschriftung: Buchstaben 0,7 mm erhaben; Lesrichtung im Uhrzeigersinn, Oberkante zur Lauflaeche
+    schrift = np.zeros((w, h), np.float32)
+    r_text = FELGE_R + 0.4 * (RAD_R - FELGE_R)
+    u_je_m, v_je_m = 1 / (2 * np.pi * r_text), 1 / 0.45
+    for text, u0, hoch in REIFEN_TEXTE:
+        tris = text_dreiecke(text)
+        y0, y1 = tris[..., 1].min(), tris[..., 1].max()
+        k = hoch / (y1 - y0)
+        px = np.empty_like(tris)
+        px[..., 0] = (u0 + tris[..., 0] * k * u_je_m) * w
+        px[..., 1] = (0.875 - (tris[..., 1] - (y0 + y1) / 2) * k * v_je_m) * h
+        dreiecke_rastern(schrift, px)
+    schrift = np.clip(schrift, 0, 1)
+    hoehe += 0.0007 * schrift
+    meter_u = 2 * np.pi * RAD_R / w
     meter_v = 0.43 / h
     nrm = normal_aus_hoehe(hoehe, meter_u, meter_v)
-    # Grundfarbe: Gummi, in Rillen dunkler, Flanke minimal heller und leicht fleckig
+    # Grundfarbe: Gummi, in Rillen dunkler, Lauflaeche abgefahren etwas heller, Staub zur Wulst hin
     tief = np.clip(-hoehe / 0.006, 0, 1)
     flanke = np.clip((np.abs(V - 0.5) * 2 - 0.42) / 0.58, 0, 1)
-    wolke = np.zeros((w, h))
-    for k in range(1, 5):
-        wolke += np.sin(2 * np.pi * (k * 3 * U + rng.random())) * np.sin(2 * np.pi * (k * 2 * V + rng.random())) / k
-    lin = 0.0105 * (1 - 0.5 * tief) * (1 + 0.15 * flanke) * (1 + 0.06 * wolke)
-    srgb = np.clip(lin, 0, 1) ** (1 / 2.2)
-    return bild("T_Reifen_N", nrm, farbe=False), bild("T_Reifen_BC", np.repeat(srgb[..., None], 3, -1), farbe=True)
+    lauf = np.clip(1 - np.abs(V - 0.5) / 0.17, 0, 1) * (1 - tief)
+    wolke = np.zeros((w, h), np.float32)
+    for k in range(1, 6):
+        wolke += np.sin(2 * np.pi * (k * 5 * U + rng.random())) * np.sin(2 * np.pi * (k * 2 * V + rng.random())) / k
+    lin = 0.0105 * (1 - 0.5 * tief) * (1 + 0.15 * flanke) * (1 + 0.08 * wolke) * (1 + 0.45 * lauf)
+    staub = np.clip((np.abs(V - 0.5) * 2 - 0.72) / 0.28, 0, 1) * np.clip(0.5 + 0.5 * wolke, 0, 1) * 0.22
+    staub += tief * np.clip((0.12 - np.abs(V - 0.5)) / 0.12, 0, 1) * 0.25          # Staub in den Rillen
+    farbe = np.stack([lin, lin, lin], -1) * (1 - staub[..., None]) + np.array(hexf("#5b5246"), np.float32) * staub[..., None] * 0.35
+    srgb = np.clip(farbe, 0, 1) ** (1 / 2.2)
+    return bild("T_Reifen_N", nrm, farbe=False), bild("T_Reifen_BC", srgb, farbe=True)
 
 # ---------------- Materialien ----------------
 MATS = {}
 def material(name, farbe, metall=0.0, rauheit=0.5, lack=0.0, lack_rau=0.03, durch=0.0, ior=1.45, leuchten=0.0,
              leucht_farbe=None, normal=None, normal_uv="UVMap", normal_skala=1.0, normal_staerke=1.0,
-             farb_bild=None, farb_uv="UVMap", farb_skala=1.0):
+             farb_bild=None, farb_uv="UVMap", farb_skala=1.0, lack_normal=None, lack_normal_skala=1.0,
+             lack_normal_staerke=1.0):
     """Principled BSDF mit festen Werten und optional Texturen (exportiert sauber nach glTF und FBX)."""
     if name in MATS:
         return MATS[name]
@@ -211,6 +468,12 @@ def material(name, farbe, metall=0.0, rauheit=0.5, lack=0.0, lack_rau=0.03, durc
         nm.inputs["Strength"].default_value = normal_staerke
         nt.links.new(tex(normal, normal_uv, normal_skala).outputs["Color"], nm.inputs["Color"])
         nt.links.new(nm.outputs["Normal"], b.inputs["Normal"])
+    if lack_normal is not None:                  # Kratzer und Orangenhaut im Klarlack (UV-Karte wie normal_uv)
+        nk = nt.nodes.new("ShaderNodeNormalMap")
+        nk.uv_map = normal_uv
+        nk.inputs["Strength"].default_value = lack_normal_staerke
+        nt.links.new(tex(lack_normal, normal_uv, lack_normal_skala).outputs["Color"], nk.inputs["Color"])
+        nt.links.new(nk.outputs["Normal"], b.inputs["Coat Normal"])
     m.diffuse_color = (*farbe, 1.0)
     MATS[name] = m
     return m
@@ -381,9 +644,18 @@ def patch(umriss, ursprung, achse, e1, e2, bvh, raster=0.012):
             fehl += 1
         else:
             v.co = loc
+    # Entspannen: innere Ecken gleichmaessig auf der Flaeche verteilen. Wo die Projektion die Flaeche streifend
+    # trifft (Leuchten, die um die Ecke laufen), wuerden sich die Dreiecke sonst zusammenschieben und falten.
+    rand = {v for e in bm.edges if len(e.link_faces) < 2 for v in e.verts}
+    innen_v = [v for v in bm.verts if v not in rand and v.link_edges]
+    for _ in range(12):
+        neu = [sum((e.other_vert(v).co for e in v.link_edges), Vector()) / len(v.link_edges) for v in innen_v]
+        for v, p in zip(innen_v, neu):
+            v.co = bvh.find_nearest(p)[0]
     bm.normal_update()
-    for f in bm.faces:
-        if f.normal.dot(d) > 0:
+    for f in bm.faces:                           # nach aussen ausrichten, gemessen an der Flaechennormale darunter
+        aussen = bvh.find_nearest(f.calc_center_median())[1]
+        if f.normal.dot(aussen if aussen is not None else -d) < 0:
             f.normal_flip()
     bm.normal_update()
     return bm, fehl
@@ -441,12 +713,16 @@ def rille(bm, punkte, bvh, breite=0.0045, aussen=0.012, innen=0.009, mi=0, gesch
 # ---------------- Texturen und Materialien ----------------
 log("Texturen ...")
 FLAKES = textur_flakes()
+KRATZER = textur_kratzer()
+FACETTEN = textur_facetten()
 REIFEN_N, REIFEN_BC = textur_reifen()
 FLAKE_SKALA = 25.0            # Flake-Kacheln je Meter auf der UV-Karte "UV_Flakes" (Wuerfelprojektion, 1 UV = 1 m)
 
 def lack(name, farbe, metall, flakes=0.3):
+    """Metallic- oder Uni-Lack mit Klarlack; Flakes im Grundlack, Kratzer und Orangenhaut im Klarlack."""
     return material(name, farbe, metall=metall, rauheit=0.32, lack=1.0, lack_rau=0.012, normal=FLAKES,
-                    normal_uv="UV_Flakes", normal_skala=FLAKE_SKALA, normal_staerke=flakes)
+                    normal_uv="UV_Flakes", normal_skala=FLAKE_SKALA, normal_staerke=flakes, lack_normal=KRATZER,
+                    lack_normal_skala=1 / KRATZER_KACHEL, lack_normal_staerke=0.75)
 
 M_LACK_S = lack("Lack_Schwarz", hexf("#0c0d0f"), 0.4)
 M_LACK_W = lack("Lack_Weiss", hexf("#eef0f1"), 0.0, flakes=0.1)
@@ -456,7 +732,7 @@ M_GLAS_DUNKEL = glas("Glas_Getoent", hexf("#4f5857"))
 M_TRIM = material("Hochglanz_Schwarz", hexf("#0b0c0d"), rauheit=0.1, lack=0.8, lack_rau=0.02)
 M_SPALT = material("Spalt", hexf("#050505"), rauheit=0.9)
 M_CHROM = material("Chrom", hexf("#dcdee0"), metall=1.0, rauheit=0.05)
-M_SW_INNEN = material("Scheinwerfer_Innen", hexf("#7d838a"), metall=0.9, rauheit=0.25)
+M_SW_INNEN = material("Scheinwerfer_Innen", hexf("#2b2e32"), metall=1.0, rauheit=0.3)
 M_SW_GLAS = glas("Scheinwerfer_Glas", hexf("#f1f4f6"))
 M_REFLEKTOR = material("Reflektor", hexf("#e6e8ea"), metall=1.0, rauheit=0.07)
 M_LED = material("Tagfahrlicht", hexf("#ffffff"), rauheit=0.2, leuchten=2.5)
@@ -483,6 +759,15 @@ M_SCHILD_SCHRIFT = material("Kennzeichen_Schrift", hexf("#1c2f7a"), rauheit=0.35
 M_BLINKER = material("Blinker", hexf("#b88a55"), rauheit=0.3, leuchten=0.0, leucht_farbe=hexf("#ff8a10"))
 M_BILDSCHIRM = material("Bildschirm", hexf("#0d1520"), rauheit=0.15, leuchten=0.0, leucht_farbe=hexf("#6f9fe0"))
 M_GITTER = material("Trenngitter", hexf("#1a1b1c"), metall=0.7, rauheit=0.4)
+M_INNEN_LEDER = material("Innenraum_Kunstleder", hexf("#161719"), rauheit=0.5, lack=0.15, lack_rau=0.3)
+M_INSTRUMENT = material("Instrumente_Weiss", hexf("#e6e6e2"), rauheit=0.4)
+M_RL_REFL = material("Ruecklicht_Reflektor", hexf("#d9dbdd"), metall=1.0, rauheit=0.12, normal=FACETTEN,
+                     normal_uv="UV_Flakes", normal_skala=1 / FACETTEN_KACHEL)
+M_BL_REFL = material("Blinker_Reflektor", hexf("#c98a2e"), metall=1.0, rauheit=0.22)
+M_SEITE_GELB = material("Seitenleuchte_Gelb", hexf("#d98a1c"), rauheit=0.08, lack=1.0, lack_rau=0.01, normal=FACETTEN,
+                        normal_uv="UV_Flakes", normal_skala=1.5 / FACETTEN_KACHEL, normal_staerke=0.6)
+M_SEITE_ROT = material("Seitenleuchte_Rot", hexf("#a8121a"), rauheit=0.08, lack=1.0, lack_rau=0.01, normal=FACETTEN,
+                       normal_uv="UV_Flakes", normal_skala=1.5 / FACETTEN_KACHEL, normal_staerke=0.6)
 
 # ---------------- Karosserie: Querschnitte entlang X (Limousine mit Stufenheck) ----------------
 Z_TOP = pchip([(2.55, 0.70), (2.52, 0.79), (2.47, 0.85), (2.32, 0.89), (1.95, 0.94), (1.50, 0.985), (1.30, 1.005),
@@ -717,10 +1002,21 @@ def u_griffmulde(xg):
 PATCHES = {}
 BVH_ROH = None
 def ausschnitte(kar):
-    """Alle Schneidekoerper bauen, mit der unversehrten Karosserie als Projektionsflaeche."""
+    """Alle Schneidekoerper bauen, mit der unversehrten Karosserie als Projektionsflaeche. Projiziert wird auf eine
+    zweimal feiner unterteilte Kopie: Glaeser und Anbauteile liegen dann auf der glatten Grenzflaeche statt auf den
+    Facetten des Netzes, und ihre Spiegelungen brechen nicht an Netzkanten."""
     global BVH_ROH
-    bvh = BVH_ROH = bvh_von(kar)
-    bm = bmesh.new()      # Materialien: 0 Radkasten, 1 Scheinwerfer innen, 2 Hochglanz schwarz, 3 Spalt, 4 Lack schwarz
+    kopie = kar.copy()
+    kopie.data = kar.data.copy()
+    scene.collection.objects.link(kopie)
+    sub = kopie.modifiers.new("Fein", "SUBSURF")
+    sub.levels = sub.render_levels = 2
+    bvh = BVH_ROH = bvh_von(kopie)
+    me = kopie.data
+    bpy.data.objects.remove(kopie)
+    bpy.data.meshes.remove(me)
+    bm = bmesh.new()      # Materialien: 0 Radkasten, 1 Scheinwerfer innen, 2 Hochglanz schwarz, 3 Spalt, 4 Lack schwarz,
+    #                       5 Rueckleuchten-Reflektor
     for name, (x, y) in RAEDER.items():
         einfuegen(bm, zylinder((x, math.copysign(0.94, y), RAD_R), BOGEN_R, 0.74, "Y", segs=56, mi=0))
     def aussparung(name, umriss, ansicht, tiefe, mi_wand, mi_boden, raster=0.012):
@@ -732,14 +1028,14 @@ def ausschnitte(kar):
     for sg, s in ((1, "l"), (-1, "r")):
         aussparung("scheinwerfer_" + s, gespiegelt(U_SCHEINWERFER, sg), VORN, 0.075, 1, 1, 0.010)
         aussparung("nebel_" + s, gespiegelt(U_NEBEL, sg), VORN, 0.05, 2, 2, 0.010)
-        aussparung("ruecklicht_" + s, gespiegelt(U_RUECKLICHT, sg), HINTEN, 0.055, 2, 2, 0.010)
+        aussparung("ruecklicht_" + s, gespiegelt(U_RUECKLICHT, sg), HINTEN, 0.055, 5, 5, 0.010)
         aussparung("heckblitzer_" + s, gespiegelt(U_HECKBLITZER, sg), HINTEN, 0.02, 2, 2, 0.008)
         for xg in GRIFFE:
             aussparung(f"griff_{s}_{xg}", u_griffmulde(xg), SEITE(sg), 0.014, 4, 4, 0.008)
     aussparung("grill", U_GRILL, VORN, 0.06, 2, 3, 0.012)
     aussparung("einlass", U_EINLASS, VORN, 0.06, 2, 3, 0.012)
     aussparung("kennzeichen", U_KENNZEICHEN, HINTEN, 0.02, 4, 2, 0.012)
-    schneider = objekt("_Schneider", bm, [M_SCHWARZ, M_SW_INNEN, M_TRIM, M_SPALT, M_LACK_S])
+    schneider = objekt("_Schneider", bm, [M_SCHWARZ, M_SW_INNEN, M_TRIM, M_SPALT, M_LACK_S, M_RL_REFL])
     # Fugen: Tueren, Tuerunterkanten, Haube, Kofferraumdeckel, Stossfaenger, Tankdeckel
     bm = bmesh.new()
     def seite(x, z, sg):
@@ -904,6 +1200,71 @@ def linse(ansicht, a, b, r, tiefe, mi_ring, mi_glas, mi_grund):
     einfuegen(bm, zylinder((-0.011, 0, 0), r + 0.010, 0.003, "X", segs=28, mi=mi_grund))
     return ausrichten(bm, loc - n * tiefe, n)
 
+def linie_glatt(pts, n=2):
+    """Offenen Linienzug runden (Chaikin); Anfang und Ende bleiben."""
+    for _ in range(n):
+        neu = [pts[0]]
+        for a, b in zip(pts, pts[1:]):
+            a, b = Vector(a), Vector(b)
+            neu += [tuple(a.lerp(b, 0.25)), tuple(a.lerp(b, 0.75))]
+        neu.append(pts[-1])
+        pts = neu
+    return pts
+
+def punkt_auf_linie(pts, t):
+    """Punkt bei Anteil t (0..1) der Laenge eines Linienzugs."""
+    pts = [Vector(p) for p in pts]
+    laengen = [(b - a).length for a, b in zip(pts, pts[1:])]
+    rest = t * sum(laengen)
+    for a, b, l in zip(pts, pts[1:], laengen):
+        if rest <= l or l == laengen[-1]:
+            return tuple(a.lerp(b, min(1.0, rest / max(l, 1e-9))))
+        rest -= l
+    return tuple(pts[-1])
+
+def projektor(ansicht, a, b, r, tiefe, mi_chrom, mi_glas, mi_schwarz):
+    """Projektionsmodul: Reflektorschale aus Chrom, schwarzer Tubus, gewoelbte Linse, Zierring."""
+    loc, n = auf(ansicht, a, b)
+    bm = bmesh.new()
+    einfuegen(bm, zylinder((-0.013, 0, 0), r * 0.85, 0.026, "X", segs=32, mi=mi_chrom, deckel=False, r2=r * 1.55))
+    einfuegen(bm, zylinder((-0.012, 0, 0), r, 0.022, "X", segs=28, mi=mi_schwarz))
+    einfuegen(bm, kugel((0.0012, 0, 0), r, segs=28, ringe=14, skala=(0.42, 1, 1), mi=mi_glas))
+    ring = [(0.0005, r * 1.08 * math.cos(w), r * 1.08 * math.sin(w)) for w in np.linspace(0, 2 * math.pi, 41)]
+    einfuegen(bm, rohr(ring, 0.0016, segs=8, mi=mi_chrom, deckel=False, oben=(1, 0, 0)))
+    return ausrichten(bm, loc - n * tiefe, n)
+
+def einfassung(ansicht, umriss, r, mi, abstand=0.0006):
+    """Duenne Gummi-/Kunststoffeinfassung entlang des Randes einer Leuchte (deckt die Schnittkante ab)."""
+    ring = []
+    for a, b in umriss:
+        loc, n = auf(ansicht, a, b)
+        ring.append(loc + n * abstand)
+    return rohr(ring + [ring[0]], r, segs=8, mi=mi, deckel=False, oben=tuple(-Vector(ansicht["achse"])))
+
+def led_modul(mitte, richtung, laenge, anzahl, mi_led, mi_chrom, mi_grund, hoehe=0.028):
+    """LED-Modul wie in echten Lichtbalken: Grundplatte, je LED ein Chrom-Reflektorbecher mit Leuchtpunkt."""
+    bm = bmesh.new()
+    einfuegen(bm, kasten((-0.009, 0, 0), (0.004, laenge, hoehe), fase=0.0012, mi=mi_grund))
+    rr = min(laenge / anzahl, hoehe) * 0.45
+    for k in range(anzahl):
+        y = (k - (anzahl - 1) / 2) * laenge / anzahl
+        einfuegen(bm, zylinder((-0.0035, y, 0), rr * 0.35, 0.007, "X", segs=16, mi=mi_chrom, deckel=False, r2=rr))
+        einfuegen(bm, kugel((-0.005, y, 0), rr * 0.32, segs=10, ringe=5, mi=mi_led))
+    rot = Vector(richtung).normalized().to_track_quat("X", "Z").to_matrix().to_4x4()
+    bmesh.ops.transform(bm, matrix=Matrix.Translation(Vector(mitte)) @ rot, verts=bm.verts)
+    return bm
+
+def seitenleuchte(sg, xm, zm, laenge, hoehe, mi, mi_rand):
+    """US-Seitenmarkierungsleuchte: flache Linse mit Reflektorfacetten auf dem Kotfluegel, schwarz eingefasst."""
+    l, h = laenge / 2, hoehe / 2
+    u = chaikin([(xm - l, zm - h), (xm + l, zm - h), (xm + l, zm + h), (xm - l, zm + h)], 3)
+    a = SEITE(sg)
+    pb, _ = patch(u, a["ursprung"], a["achse"], a["e1"], a["e2"], BVH_ROH, 0.005)
+    teil = schale(pb, 0.0022, 0.0004, mi, mi)
+    pb.free()
+    einfuegen(teil, einfassung(a, u, 0.0015, mi_rand, abstand=0.0012))
+    return teil
+
 
 R_DACH = R(((0, -1, 0), (1, 0, 0), (0, 0, 1)))       # auf Dach oder Kofferraumdeckel, lesbar von hinten
 
@@ -957,34 +1318,52 @@ def details(kar):
     teile = []
     bm = bmesh.new()
     (A_SCHWARZ, A_CHROM, A_TRIM, A_BLAU, A_ROT, A_SCHILD, A_SCHRIFT, A_LACK, A_BLKAPPE, A_ROTKAPPE, A_KLAR, A_RL, A_LED,
-     A_BLINK, A_REFL, A_SWGLAS, A_RLGLAS, A_GOLD, A_ABZ, A_RAMM) = range(20)
+     A_BLINK, A_REFL, A_SWGLAS, A_RLGLAS, A_GOLD, A_ABZ, A_RAMM, A_BLREFL, A_SEITE_G, A_SEITE_R) = range(23)
     MATS_ANB = [M_SCHWARZ, M_CHROM, M_TRIM, M_BLAULICHT, M_ROTLICHT, M_SCHILD, M_SCHILD_SCHRIFT, M_LACK_S, M_BL_KAPPE,
                 M_ROT_KAPPE, M_KLAR_KAPPE, M_RL_LED, M_LED, M_BLINKER, M_REFLEKTOR, M_SW_GLAS, M_RL_GLAS, M_GOLD,
-                M_ABZ_BLAU, M_RAMMSCHUTZ]
+                M_ABZ_BLAU, M_RAMMSCHUTZ, M_BL_REFL, M_SEITE_GELB, M_SEITE_ROT]
     for sg, s in ((1, "l"), (-1, "r")):
         rotblau = A_ROT if sg > 0 else A_BLAU             # Fahrerseite (links) rot, Beifahrerseite blau
-        # --- Scheinwerfer: Glas, zwei Projektionslinsen, LED-Tagfahrlicht, Blinkerleiste ---
+        # --- Scheinwerfer: Glas mit Einfassung, zwei Projektionsmodule mit Chromschalen, flacher LED-Lichtleiter
+        #     (Tagfahrlicht) in einem schwarzen Kanal, Blinker aus Einzel-LEDs vor einem Bernstein-Reflektor ---
         einfuegen(bm, von_patch("scheinwerfer_" + s, A_SWGLAS))
+        einfuegen(bm, einfassung(VORN, gespiegelt(U_SCHEINWERFER, sg), 0.0024, A_TRIM))
         for a, b, r in ((0.535, 0.641, 0.026), (0.665, 0.645, 0.024)):
-            einfuegen(bm, linse(VORN, sg * a, b, r, 0.032, A_REFL, A_SWGLAS, A_TRIM))
-        drl = [(0.445, 0.662), (0.55, 0.675), (0.66, 0.683), (0.77, 0.686), (0.85, 0.681), (0.884, 0.665), (0.888, 0.645)]
-        einfuegen(bm, rohr(pfad(VORN, [(sg * a, b) for a, b in drl], 0.013), 0.0045, segs=8, mi=A_LED))
-        einfuegen(bm, rohr(pfad(VORN, [(sg * a, b) for a, b in ((0.48, 0.606), (0.62, 0.603), (0.76, 0.611), (0.84, 0.623))],
-                                0.02), 0.0032, segs=6, mi=A_BLINK))
-        # --- Nebelscheinwerfer ---
-        einfuegen(bm, linse(VORN, sg * 0.675, 0.385, 0.03, 0.02, A_CHROM, A_SWGLAS, A_TRIM))
-        # --- Rueckleuchten: rotes Glas, LED-Lichtleiter als C, innerer Balken, Rueckfahrlicht ---
+            einfuegen(bm, projektor(VORN, sg * a, b, r, 0.032, A_REFL, A_SWGLAS, A_TRIM))
+        drl = linie_glatt([(sg * a, b) for a, b in ((0.445, 0.662), (0.55, 0.675), (0.66, 0.683), (0.77, 0.686),
+                                                     (0.85, 0.681), (0.884, 0.665), (0.888, 0.645))], 2)
+        einfuegen(bm, rohr(pfad(VORN, drl, 0.012), 0.0042, 0.0018, segs=12, mi=A_LED, oben=(1, 0, 0), eckig=5))
+        einfuegen(bm, rohr(pfad(VORN, drl, 0.0155), 0.0064, 0.0016, segs=12, mi=A_TRIM, oben=(1, 0, 0), eckig=5))
+        bl = linie_glatt([(sg * a, b) for a, b in ((0.48, 0.606), (0.62, 0.603), (0.76, 0.611), (0.84, 0.623))], 2)
+        einfuegen(bm, rohr(pfad(VORN, bl, 0.025), 0.0068, 0.0012, segs=12, mi=A_BLREFL, oben=(1, 0, 0), eckig=5))
+        for t in np.linspace(0.04, 0.96, 10):
+            loc, n = auf(VORN, *punkt_auf_linie(bl, t))
+            einfuegen(bm, ausrichten(zylinder((0, 0, 0), 0.0026, 0.003, "X", segs=10, mi=A_BLINK), loc - n * 0.022, n))
+        # --- Nebelscheinwerfer mit Chromschale und Einfassung ---
+        einfuegen(bm, projektor(VORN, sg * 0.675, 0.385, 0.026, 0.02, A_CHROM, A_SWGLAS, A_TRIM))
+        einfuegen(bm, einfassung(VORN, gespiegelt(U_NEBEL, sg), 0.003, A_TRIM))
+        # --- Rueckleuchten: rotes Glas vor facettiertem Reflektor, LED-Lichtleiter als C, LED-Reihe,
+        #     Rueckfahrlicht mit Chromschale ---
         einfuegen(bm, von_patch("ruecklicht_" + s, A_RLGLAS))
-        c = [(0.54, 0.86), (0.60, 0.832), (0.72, 0.822), (0.85, 0.827), (0.905, 0.855), (0.91, 0.915), (0.87, 0.945),
-             (0.72, 0.947), (0.60, 0.93)]
-        einfuegen(bm, rohr(pfad(HINTEN, [(sg * a, b) for a, b in c], 0.016), 0.005, segs=8, mi=A_RL))
-        einfuegen(bm, rohr(pfad(HINTEN, [(sg * a, b) for a, b in ((0.60, 0.886), (0.72, 0.888), (0.84, 0.89))], 0.022),
-                           0.0042, segs=6, mi=A_RL))
-        einfuegen(bm, linse(HINTEN, sg * 0.79, 0.862, 0.016, 0.024, A_REFL, A_SWGLAS, A_TRIM))
+        einfuegen(bm, einfassung(HINTEN, gespiegelt(U_RUECKLICHT, sg), 0.0022, A_TRIM))
+        c = linie_glatt([(sg * a, b) for a, b in ((0.54, 0.86), (0.60, 0.832), (0.72, 0.822), (0.85, 0.827),
+                                                   (0.905, 0.855), (0.91, 0.915), (0.87, 0.945), (0.72, 0.947),
+                                                   (0.60, 0.93))], 2)
+        einfuegen(bm, rohr(pfad(HINTEN, c, 0.014), 0.0048, 0.0018, segs=12, mi=A_RL, oben=(1, 0, 0), eckig=5))
+        einfuegen(bm, rohr(pfad(HINTEN, c, 0.0175), 0.0068, 0.0015, segs=12, mi=A_TRIM, oben=(1, 0, 0), eckig=5))
+        reihe = [(sg * 0.60, 0.886), (sg * 0.74, 0.888)]
+        for t in np.linspace(0.0, 1.0, 7):
+            loc, n = auf(HINTEN, *punkt_auf_linie(reihe, t))
+            einfuegen(bm, ausrichten(kugel((0, 0, 0), 0.0045, segs=12, ringe=6, skala=(0.5, 1, 1), mi=A_RL),
+                                     loc - n * 0.022, n))
+        einfuegen(bm, projektor(HINTEN, sg * 0.79, 0.862, 0.014, 0.026, A_REFL, A_SWGLAS, A_TRIM))
         # --- Blitzer im hinteren Stossfaenger (links rot, rechts blau) ---
         einfuegen(bm, von_patch("heckblitzer_" + s, A_SWGLAS))
         loc, n = auf(HINTEN, sg * 0.30, 0.5365)
-        einfuegen(bm, ausrichten(kasten((0, 0, 0), (0.008, 0.105, 0.026), fase=0.003, mi=rotblau), loc - n * 0.009, n))
+        einfuegen(bm, led_modul(loc - n * 0.004, n, 0.105, 4, rotblau, A_REFL, A_TRIM, hoehe=0.026))
+        # --- Seitenmarkierungsleuchten (vorn gelb, hinten rot), wie in den USA vorgeschrieben ---
+        einfuegen(bm, seitenleuchte(sg, 2.24, 0.665, 0.065, 0.019, A_SEITE_G, A_TRIM))
+        einfuegen(bm, seitenleuchte(sg, -2.30, 0.865, 0.065, 0.019, A_SEITE_R, A_TRIM))
         # --- Reflektoren an den Stossfaengerecken ---
         u = chaikin([(0.60, 0.47), (0.78, 0.47), (0.78, 0.495), (0.60, 0.495)], 2)
         pb, _ = patch(gespiegelt(u, sg), HINTEN["ursprung"], HINTEN["achse"], HINTEN["e1"], HINTEN["e2"], BVH_ROH, 0.008)
@@ -1004,8 +1383,8 @@ def details(kar):
     for sg in (-1, 1):
         for yy in (0.13, 0.25):
             loc, n = auf(VORN, sg * yy, 0.585)
-            einfuegen(bm, ausrichten(kasten((0, 0, 0), (0.012, 0.075, 0.024), fase=0.004, mi=A_ROT if sg > 0 else A_BLAU),
-                                     loc - n * 0.014, n))
+            einfuegen(bm, led_modul(loc - n * 0.008, n, 0.075, 3, A_ROT if sg > 0 else A_BLAU, A_REFL, A_TRIM,
+                                    hoehe=0.024))
     einfuegen(bm, waben(U_EINLASS, VORN, 0.018, 0.004, 0.006, 0.028, A_TRIM))
     # --- Rammschutzbuegel mit Gummiauflagen, Blitzern und Sirenenlautsprecher ---
     xr = 2.705
@@ -1016,8 +1395,8 @@ def details(kar):
         einfuegen(bm, rohr([(xr - 0.02, y, 0.29), (2.52, y, 0.275), (2.30, y, 0.27)], 0.022, 0.03, segs=10, mi=A_RAMM,
                            oben=(0, 0, 1), eckig=4))
         einfuegen(bm, kasten((xr + 0.042, y, 0.58), (0.016, 0.046, 0.30), fase=0.006, mi=A_SCHWARZ))
-        loc = Vector((xr + 0.032, sg * 0.18, 0.752))
-        einfuegen(bm, kasten(loc, (0.012, 0.10, 0.024), fase=0.004, mi=A_ROT if sg > 0 else A_BLAU))
+        einfuegen(bm, led_modul((xr + 0.038, sg * 0.18, 0.752), (1, 0, 0), 0.10, 4, A_ROT if sg > 0 else A_BLAU,
+                                A_REFL, A_TRIM, hoehe=0.024))
     einfuegen(bm, rohr([(xr, y, 0.752) for y in np.linspace(-0.42, 0.42, 20)], 0.032, 0.026, segs=12, mi=A_RAMM, eckig=4))
     einfuegen(bm, rohr([(xr, y, 0.52) for y in np.linspace(-0.30, 0.30, 16)], 0.026, 0.024, segs=12, mi=A_RAMM, eckig=4))
     einfuegen(bm, kasten((2.635, 0.0, 0.40), (0.10, 0.22, 0.13), fase=0.012, mi=A_SCHWARZ))
@@ -1076,21 +1455,22 @@ def details(kar):
         farbe = A_ROT if sg > 0 else A_BLAU
         for k in range(4):
             yk = sg * (0.24 + 0.11 * k)
-            for dx in (0.103, -0.103):
-                einfuegen(bm, kasten((xb + dx, yk, zr + 0.118), (0.012, 0.085, 0.026), fase=0.003, mi=farbe))
-        einfuegen(bm, kasten((xb, sg * 0.672, zr + 0.118), (0.12, 0.012, 0.026), fase=0.003, mi=A_LED))   # Seitenlicht
+            for dx, rx in ((0.103, 1), (-0.103, -1)):
+                einfuegen(bm, led_modul((xb + dx, yk, zr + 0.118), (rx, 0, 0), 0.088, 3, farbe, A_REFL, A_TRIM))
+        einfuegen(bm, led_modul((xb, sg * 0.672, zr + 0.118), (0, sg, 0), 0.12, 3, A_LED, A_REFL, A_TRIM))  # Seitenlicht
     einfuegen(bm, kasten((xb, 0.0, zr + 0.12), (0.30, 0.36, 0.065), fase=0.026, mi=A_KLAR))
     for yk in (-0.08, 0.08):
-        einfuegen(bm, kasten((xb + 0.103, yk, zr + 0.118), (0.012, 0.11, 0.03), fase=0.004, mi=A_LED))
+        einfuegen(bm, led_modul((xb + 0.103, yk, zr + 0.118), (1, 0, 0), 0.11, 4, A_LED, A_REFL, A_TRIM, hoehe=0.03))
     for yk in (-0.12, -0.04, 0.04, 0.12):
-        einfuegen(bm, kasten((xb - 0.103, yk, zr + 0.118), (0.012, 0.065, 0.024), fase=0.003, mi=A_BLINK))
+        einfuegen(bm, led_modul((xb - 0.103, yk, zr + 0.118), (-1, 0, 0), 0.065, 2, A_BLINK, A_REFL, A_TRIM,
+                                hoehe=0.024))
     # --- Blitzer hinter der Heckscheibe (links rot, rechts blau) ---
     xd, zd = -1.075, Z_TOP(-1.075) - 0.075
     einfuegen(bm, kasten((xd, 0.0, zd), (0.05, 1.0, 0.035), fase=0.008, mi=A_TRIM))
     for sg in (-1, 1):
         for k in range(4):
-            einfuegen(bm, kasten((xd - 0.027, sg * (0.07 + 0.11 * k), zd), (0.006, 0.085, 0.022), fase=0.002,
-                                 mi=A_ROT if sg > 0 else A_BLAU))
+            einfuegen(bm, led_modul((xd - 0.024, sg * (0.07 + 0.11 * k), zd), (-1, 0, 0), 0.085, 3,
+                                    A_ROT if sg > 0 else A_BLAU, A_REFL, A_TRIM, hoehe=0.022))
     # --- Antennen auf dem Dach ---
     xa = -0.56                                         # zwischen Lichtbalken und Dachnummer
     for yy in (-0.32, 0.32):
@@ -1118,59 +1498,208 @@ def details(kar):
     teile.append(innenraum())
     return teile
 
+def polster(mitte, groesse, wulst=0.0, mulde=0.0, rot=None, mi=1, mi_wange=None, eck=0.3, segs=28, ringe=18):
+    """Weich geformtes Teil (Polster, Kopfstuetze, Armlehne): abgerundeter Quader (Superellipsoid), oben mit
+    Seitenwangen (wulst) und Mulde; Wangen optional in eigenem Material. Lokal: x Tiefe, y Breite, z Dicke."""
+    a, b, c = groesse[0] / 2, groesse[1] / 2, groesse[2] / 2
+    bm = kugel((0, 0, 0), 1.0, segs=segs, ringe=ringe, mi=mi)
+    quer = {}
+    for v in bm.verts:
+        x, y, z = (math.copysign(abs(t) ** eck, t) for t in v.co)
+        if z > 0:
+            z += wulst * abs(y) ** 6 - mulde * (1 - y * y) * (1 - x * x) ** 2
+        quer[v] = abs(y)
+        v.co = (x * a, y * b, z * c)
+    if mi_wange is not None:
+        for f in bm.faces:
+            if sum(quer[v] for v in f.verts) / len(f.verts) > 0.68:
+                f.material_index = mi_wange
+    M = Matrix.Translation(Vector(mitte)) @ (rot.to_4x4() if rot is not None else Matrix.Identity(4))
+    bmesh.ops.transform(bm, matrix=M, verts=bm.verts)
+    return bm
+
+def profil_y(profil, y0, y1, n=24, mi=0):
+    """Geschlossenes Profil (x, z) entlang Y extrudieren, mit Deckeln."""
+    bm = bmesh.new()
+    ringe = [[bm.verts.new((x, y, z)) for x, z in profil] for y in np.linspace(y0, y1, n)]
+    m = len(profil)
+    for r0, r1 in zip(ringe, ringe[1:]):
+        for k in range(m):
+            bm.faces.new((r0[k], r0[(k + 1) % m], r1[(k + 1) % m], r1[k])).material_index = mi
+    for r in (ringe[0], ringe[-1][::-1]):
+        bm.faces.new(r).material_index = mi
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return bm
+
 def innenraum():
-    """Innenraum, durch die Scheiben sichtbar: Armaturen, Lenkrad, Laptop, Sitze, Trenngitter, Verkleidungen."""
-    bm = bmesh.new()       # 0 dunkler Kunststoff, 1 Stoff, 2 Hochglanz, 3 Gitter, 4 Glas, 5 Bildschirm
-    einfuegen(bm, kasten((1.06, 0.0, 0.89), (0.36, 1.66, 0.17), fase=0.05, mi=0))                 # Armaturentafel
-    einfuegen(bm, kasten((0.90, 0.37, 0.965), (0.13, 0.34, 0.06), fase=0.025, mi=0))              # Instrumente
-    einfuegen(bm, kasten((0.87, 0.0, 0.955), (0.012, 0.25, 0.15), fase=0.004, mi=2,
-                         rot=Matrix.Rotation(math.radians(-12), 3, "Y")))                       # Mittelbildschirm
-    einfuegen(bm, kasten((0.36, 0.0, 0.44), (0.90, 0.22, 0.20), fase=0.03, mi=0))                 # Mittelkonsole
-    lr = rohr([(0.0, 0.185 * math.cos(w), 0.185 * math.sin(w)) for w in np.linspace(0, 2 * math.pi, 33)], 0.016,
-              segs=10, mi=0, deckel=False)
-    for w in (math.pi / 2, math.pi * 7 / 6, math.pi * 11 / 6):
-        einfuegen(lr, kasten((0.0, 0.09 * math.cos(w), 0.09 * math.sin(w)), (0.012, 0.17, 0.035),
-                             rot=Matrix.Rotation(w, 3, "X"), fase=0.005, mi=0))
-    einfuegen(lr, zylinder((0.0, 0, 0), 0.05, 0.03, "X", segs=16, mi=0))
+    """Innenraum, durch die Scheiben sichtbar: geformte Sitze, Armaturenbrett mit Instrumenten und Duesen,
+    Lenkrad mit Airbag, Polizeitechnik (Funk, Sirenen-/Lichtsteuerung, Mikrofon mit Spiralkabel, Laptop),
+    Innenspiegel, Sonnenblenden, Gurte, Trenngitter, harte Kunststoff-Rueckbank, Fussmatten, Tuerverkleidungen."""
+    bm = bmesh.new()
+    (I_KUNST, I_STOFF, I_GLANZ, I_GITTER, I_GLAS, I_SCHIRM, I_LEDER, I_CHROM, I_ROT, I_BLAU, I_GELB,
+     I_WEISS) = range(12)
+    # --- Armaturenbrett: gerundetes Profil ueber die ganze Breite ---
+    profil = chaikin([(1.24, 0.985), (1.10, 0.985), (0.98, 0.975), (0.915, 0.952), (0.882, 0.925), (0.878, 0.86),
+                      (0.90, 0.78), (0.95, 0.70), (1.05, 0.66), (1.22, 0.67), (1.27, 0.80), (1.27, 0.95)], 2)
+    einfuegen(bm, profil_y(profil, -0.82, 0.82, n=30, mi=I_KUNST))
+    for y in (-0.42, 0.42):                                             # Defroster-Schlitze
+        einfuegen(bm, kasten((1.16, y, 0.986), (0.035, 0.42, 0.004), mi=I_GLANZ))
+    # Instrumentenhutze und zwei Rundinstrumente vor dem Fahrer
+    einfuegen(bm, polster((0.93, 0.37, 0.985), (0.16, 0.42, 0.09), eck=0.45, mi=I_KUNST))
+    neig = Matrix.Rotation(math.radians(-18), 3, "Y")
+    for dy in (-0.085, 0.085):
+        c = Vector((0.892, 0.37 + dy, 0.925))
+        einfuegen(bm, kasten(c, (0.004, 0.13, 0.13), rot=neig, fase=0.002, mi=I_GLANZ))
+        ring = [c + neig @ Vector((-0.003, 0.055 * math.cos(w), 0.055 * math.sin(w))) for w in np.linspace(0, 2 * math.pi, 41)]
+        einfuegen(bm, rohr(ring, 0.0028, segs=6, mi=I_CHROM, deckel=False, oben=tuple(neig @ Vector((1, 0, 0)))))
+        for k in range(9):                                              # Skalenstriche
+            w = math.radians(-135 + 270 * k / 8)
+            einfuegen(bm, kasten(c + neig @ Vector((-0.003, 0.044 * math.sin(w), 0.044 * math.cos(w))),
+                                 (0.002, 0.003, 0.01), rot=neig @ Matrix.Rotation(-w, 3, "X"), mi=I_WEISS))
+        einfuegen(bm, kasten(c + neig @ Vector((-0.004, 0.012, 0.014)), (0.002, 0.003, 0.04),
+                             rot=neig @ Matrix.Rotation(math.radians(-40), 3, "X"), mi=I_ROT))      # Zeiger
+    # Mittelkonsole oben: Bildschirm, zwei eckige Duesen, Klimaregler; runde Duesen an den Enden
+    einfuegen(bm, kasten((0.90, 0.0, 0.70), (0.06, 0.26, 0.30), fase=0.015, mi=I_KUNST))
+    einfuegen(bm, kasten((0.872, 0.0, 0.875), (0.012, 0.24, 0.13), fase=0.004, rot=Matrix.Rotation(math.radians(-10), 3, "Y"), mi=I_GLANZ))
+    for y in (-0.085, 0.085):
+        einfuegen(bm, kasten((0.884, y, 0.785), (0.012, 0.075, 0.05), fase=0.004, mi=I_GLANZ))
+        for k in range(4):
+            einfuegen(bm, kasten((0.879, y, 0.768 + 0.011 * k), (0.004, 0.068, 0.0035), mi=I_KUNST))
+    for y in (-0.05, 0.0, 0.05):
+        einfuegen(bm, zylinder((0.865, y, 0.68), 0.015, 0.02, "X", segs=20, mi=I_KUNST))
+        einfuegen(bm, zylinder((0.868, y, 0.68), 0.017, 0.006, "X", segs=20, mi=I_CHROM, deckel=False))
+    for y in (-0.70, 0.70):
+        c = Vector((0.892, y, 0.885))
+        einfuegen(bm, zylinder(c, 0.036, 0.01, "X", segs=24, mi=I_GLANZ))
+        ring = [c + Vector((-0.006, 0.037 * math.cos(w), 0.037 * math.sin(w))) for w in np.linspace(0, 2 * math.pi, 33)]
+        einfuegen(bm, rohr(ring, 0.004, segs=6, mi=I_CHROM, deckel=False, oben=(1, 0, 0)))
+        for k in range(5):
+            einfuegen(bm, kasten((0.884, y, 0.861 + 0.012 * k), (0.004, 0.06, 0.003), mi=I_KUNST))
+    einfuegen(bm, kasten((0.889, -0.45, 0.80), (0.004, 0.36, 0.004), mi=I_GLANZ))           # Handschuhfach-Fuge
+    # --- Lenkrad mit Prallpolster, Lenksaeule und Hebeln ---
+    lr = rohr([(0.0, 0.185 * math.cos(w), 0.185 * math.sin(w)) for w in np.linspace(0, 2 * math.pi, 49)], 0.018,
+              segs=12, mi=I_LEDER, deckel=False, oben=(1, 0, 0))
+    for w in (0.0, math.pi, math.pi * 3 / 2):
+        einfuegen(lr, kasten((0.006, 0.105 * math.cos(w), 0.105 * math.sin(w)), (0.014, 0.15, 0.045),
+                             rot=Matrix.Rotation(w, 3, "X"), fase=0.006, mi=I_KUNST))
+    einfuegen(lr, polster((-0.012, 0, 0.0), (0.05, 0.17, 0.14), eck=0.4, rot=Matrix.Rotation(math.radians(-90), 3, "Y"), mi=I_KUNST))
+    einfuegen(lr, zylinder((0.17, 0, 0), 0.042, 0.30, "X", segs=20, mi=I_KUNST, r2=0.05))
+    for sy in (-1, 1):
+        einfuegen(lr, rohr([(0.07, sy * 0.05, 0.0), (0.075, sy * 0.16, -0.01)], 0.006, segs=8, mi=I_KUNST))
     bmesh.ops.transform(lr, matrix=Matrix.Translation((0.80, 0.37, 0.96)) @ Matrix.Rotation(math.radians(-22), 4, "Y"),
                         verts=lr.verts)
     einfuegen(bm, lr)
-    # Laptop auf Halterung ueber der Mittelkonsole
-    einfuegen(bm, rohr([(0.50, 0.0, 0.54), (0.56, 0.02, 0.70), (0.60, 0.05, 0.78)], 0.012, segs=8, mi=3))
-    kipp = Matrix.Rotation(math.radians(-8), 3, "Y") @ Matrix.Rotation(math.radians(18), 3, "Z")
-    einfuegen(bm, kasten((0.60, 0.06, 0.79), (0.24, 0.32, 0.022), fase=0.006, rot=kipp, mi=2))
-    schirm = Matrix.Rotation(math.radians(18), 3, "Z") @ Matrix.Rotation(math.radians(-70), 3, "Y")
-    einfuegen(bm, kasten((0.49, 0.025, 0.90), (0.22, 0.31, 0.012), fase=0.004, rot=schirm, mi=5))
+    # --- Mittelkonsole mit Funk-Bedienteil, Sirenen-/Lichtsteuerung, Becherhaltern ---
+    einfuegen(bm, kasten((0.38, 0.0, 0.44), (0.92, 0.24, 0.20), fase=0.03, mi=I_KUNST))
+    kipp = Matrix.Rotation(math.radians(-28), 3, "Y")
+    einfuegen(bm, kasten((0.70, 0.0, 0.575), (0.10, 0.20, 0.06), fase=0.006, rot=kipp, mi=I_KUNST))          # Funk
+    funk = Vector((0.70, 0.0, 0.575))
+    einfuegen(bm, kasten(funk + kipp @ Vector((0.0, 0.0, 0.031)), (0.04, 0.10, 0.002), rot=kipp, mi=I_SCHIRM))
+    for k in range(6):
+        einfuegen(bm, kasten(funk + kipp @ Vector((-0.033, -0.08 + 0.032 * k, 0.031)), (0.012, 0.018, 0.004),
+                             rot=kipp, mi=I_GLANZ))
+    c = Vector((0.40, 0.0, 0.575))
+    einfuegen(bm, kasten(c, (0.13, 0.21, 0.06), fase=0.008, rot=kipp, mi=I_KUNST))                          # Sirene/Licht
+    farben = [I_ROT, I_BLAU, I_GELB, I_WEISS, I_GLANZ, I_GLANZ]
+    for reihe in range(2):
+        for k in range(6):
+            einfuegen(bm, kasten(c + kipp @ Vector((-0.03 + 0.045 * reihe, -0.075 + 0.03 * k, 0.031)), (0.022, 0.022, 0.006),
+                                 fase=0.002, rot=kipp, mi=farben[(k + reihe) % 6] if reihe == 0 else I_GLANZ))
+    for x in (0.08, 0.17):
+        einfuegen(bm, zylinder((x, 0.0, 0.535), 0.038, 0.012, "Z", segs=24, mi=I_GLANZ, deckel=False))
+    # Mikrofon am Armaturenbrett mit Spiralkabel zum Funkgeraet
+    mik = Vector((0.875, 0.16, 0.64))
+    einfuegen(bm, polster(mik, (0.035, 0.06, 0.085), eck=0.4, rot=Matrix.Rotation(math.radians(90), 3, "Y"), mi=I_KUNST))
+    einfuegen(bm, kasten(mik + Vector((0.015, 0, 0.05)), (0.012, 0.03, 0.03), fase=0.003, mi=I_CHROM))
+    a, b = mik + Vector((0.0, 0.0, -0.045)), Vector((0.66, 0.06, 0.56))
+    spirale = []
+    for t in np.linspace(0, 1, 260):
+        p = a.lerp(b, t) + Vector((0, 0, -0.10 * math.sin(math.pi * t)))
+        q = (b - a).normalized()
+        e1 = q.cross(Vector((0, 0, 1))).normalized()
+        e2 = q.cross(e1)
+        w = 2 * math.pi * 22 * t
+        spirale.append(p + (e1 * math.cos(w) + e2 * math.sin(w)) * 0.006)
+    einfuegen(bm, rohr(spirale, 0.0016, segs=5, mi=I_KUNST))
+    # Laptop (robustes Geraet) auf Schwenkhalter, zum Fahrer gedreht, mit Tastatur
+    lap = bmesh.new()
+    einfuegen(lap, kasten((0, 0, 0), (0.24, 0.33, 0.025), fase=0.006, mi=I_KUNST))
+    for r_ in range(5):
+        for k in range(13):
+            einfuegen(lap, kasten((-0.085 + 0.033 * r_, -0.144 + 0.024 * k, 0.0135), (0.022, 0.018, 0.003), mi=I_GLANZ))
+    deckel = Matrix.Rotation(math.radians(15), 3, "Y")
+    scharnier = Vector((0.12, 0, 0.0125))
+    einfuegen(lap, kasten(scharnier + deckel @ Vector((0, 0, 0.11)), (0.014, 0.33, 0.22), fase=0.006, rot=deckel, mi=I_KUNST))
+    einfuegen(lap, kasten(scharnier + deckel @ Vector((-0.0075, 0, 0.11)), (0.002, 0.29, 0.18), rot=deckel, mi=I_SCHIRM))
+    bmesh.ops.transform(lap, matrix=Matrix.Translation((0.58, 0.08, 0.80)) @ Matrix.Rotation(math.radians(-29), 4, "Z"),
+                        verts=lap.verts)
+    einfuegen(bm, lap)
+    einfuegen(bm, rohr([(0.52, 0.0, 0.54), (0.56, 0.03, 0.70), (0.58, 0.07, 0.785)], 0.013, segs=10, mi=I_GITTER))
+    einfuegen(bm, kasten((0.58, 0.08, 0.785), (0.12, 0.12, 0.012), mi=I_GITTER))
+    # --- Vordersitze: Sitzflaeche und Lehne mit Seitenwangen (Mitte Stoff, Wangen Kunstleder), Kopfstuetzen,
+    #     Sitzunterbau, Gurtschloss, Gurt an der B-Saeule ---
     for yy in (0.40, -0.40):
-        einfuegen(bm, kasten((0.22, yy, 0.48), (0.50, 0.40, 0.12), fase=0.05, mi=1))              # Sitzflaeche
-        for ys in (-0.21, 0.21):
-            einfuegen(bm, kasten((0.22, yy + ys, 0.51), (0.48, 0.07, 0.15), fase=0.03, mi=1))     # Seitenwangen
-        lehne = Matrix.Rotation(math.radians(-14), 3, "Y")
-        einfuegen(bm, kasten((-0.03, yy, 0.83), (0.13, 0.40, 0.60), fase=0.05, rot=lehne, mi=1))
-        for ys in (-0.21, 0.21):
-            einfuegen(bm, kasten((-0.01, yy + ys, 0.81), (0.16, 0.07, 0.55), fase=0.03, rot=lehne, mi=1))
-        einfuegen(bm, kasten((-0.09, yy, 1.19), (0.09, 0.26, 0.17), fase=0.04, mi=1))             # Kopfstuetze
-    # Trenngitter zwischen vorn und hinten: unten Stahlblech, oben durchsichtige Scheibe, Rahmen aus Rohr
+        sg = 1 if yy > 0 else -1
+        einfuegen(bm, kasten((0.20, yy, 0.33), (0.44, 0.40, 0.16), fase=0.02, mi=I_KUNST))
+        einfuegen(bm, polster((0.22, yy, 0.47), (0.52, 0.50, 0.13), wulst=0.6, mulde=0.22,
+                              rot=Matrix.Rotation(math.radians(-5), 3, "Y"), mi=I_STOFF, mi_wange=I_LEDER))
+        lehne = Matrix.Rotation(math.radians(76), 3, "Y")
+        einfuegen(bm, polster((-0.04, yy, 0.83), (0.62, 0.50, 0.13), wulst=0.7, mulde=0.15, rot=lehne,
+                              mi=I_STOFF, mi_wange=I_LEDER))
+        einfuegen(bm, polster((-0.10, yy, 1.21), (0.10, 0.27, 0.17), eck=0.38, mi=I_LEDER))
+        for dy in (-0.07, 0.07):
+            einfuegen(bm, rohr([(-0.09, yy + dy, 1.13), (-0.075, yy + dy, 1.07)], 0.0055, segs=8, mi=I_CHROM))
+        einfuegen(bm, kasten((0.02, yy - sg * 0.27, 0.53), (0.05, 0.03, 0.03), fase=0.006, mi=I_KUNST))   # Gurtschloss
+        einfuegen(bm, kasten((0.02, yy - sg * 0.27, 0.552), (0.035, 0.022, 0.012), mi=I_CHROM))
+        gurt = [(-0.15, sg * 0.79, 1.27), (-0.16, sg * 0.80, 0.95), (-0.17, sg * 0.81, 0.40)]
+        einfuegen(bm, rohr(gurt, 0.0015, 0.024, segs=6, mi=I_KUNST, oben=(1, 0, 0), eckig=4))
+    # Fussmatten
+    for x, l in ((0.62, 0.42), (-0.62, 0.30)):
+        for yy in (0.41, -0.41):
+            einfuegen(bm, kasten((x, yy, 0.226), (l, 0.40, 0.012), fase=0.004, mi=I_KUNST))
+    # --- Trenngitter: unten Stahlblech, oben Scheibe mit Schiebefenster, Rahmen aus Rohr ---
     xp = -0.30
-    einfuegen(bm, kasten((xp, 0.0, 0.70), (0.012, 1.46, 0.50), fase=0.004, mi=3))
-    einfuegen(bm, kasten((xp, 0.0, 1.17), (0.008, 1.40, 0.42), mi=4))
+    einfuegen(bm, kasten((xp, 0.0, 0.70), (0.012, 1.46, 0.50), fase=0.004, mi=I_GITTER))
+    einfuegen(bm, kasten((xp, 0.0, 1.17), (0.008, 1.40, 0.42), mi=I_GLAS))
     rahmen = [(xp, -0.73, 0.45), (xp, -0.73, 1.36), (xp, 0.73, 1.36), (xp, 0.73, 0.45)]
-    einfuegen(bm, rohr(rahmen, 0.014, segs=8, mi=3))
-    einfuegen(bm, rohr([(xp, -0.73, 0.95), (xp, 0.73, 0.95)], 0.012, segs=8, mi=3))
-    einfuegen(bm, kasten((-0.85, 0.0, 0.48), (0.50, 1.44, 0.14), fase=0.05, mi=1))               # Ruecksitzbank
-    einfuegen(bm, kasten((-1.10, 0.0, 0.84), (0.13, 1.44, 0.60), fase=0.05,
-                         rot=Matrix.Rotation(math.radians(-14), 3, "Y"), mi=1))
+    einfuegen(bm, rohr(rahmen, 0.014, segs=8, mi=I_GITTER))
+    einfuegen(bm, rohr([(xp, -0.73, 0.95), (xp, 0.73, 0.95)], 0.012, segs=8, mi=I_GITTER))
+    fenster = [(xp - 0.008, y, z) for y, z in ((-0.22, 1.02), (0.22, 1.02), (0.22, 1.28), (-0.22, 1.28), (-0.22, 1.02))]
+    einfuegen(bm, rohr(fenster, 0.006, segs=6, mi=I_GITTER, deckel=False, oben=(1, 0, 0)))
+    # --- Rueckbank aus hartem Kunststoff (zwei Sitzmulden), Lehne, Boden ---
+    for yy in (0.36, -0.36):
+        einfuegen(bm, polster((-0.86, yy, 0.46), (0.52, 0.68, 0.11), wulst=0.35, mulde=0.55, eck=0.25, mi=I_LEDER))
+    einfuegen(bm, polster((-1.12, 0.0, 0.84), (0.60, 1.44, 0.10), mulde=0.2, eck=0.25,
+                          rot=Matrix.Rotation(math.radians(72), 3, "Y"), mi=I_LEDER))
+    einfuegen(bm, kasten((-0.86, 0.0, 0.33), (0.50, 1.44, 0.16), fase=0.02, mi=I_KUNST))
     for yy in (-0.50, 0.0, 0.50):
-        einfuegen(bm, kasten((-1.18, yy, 1.19), (0.08, 0.24, 0.14), fase=0.035, mi=1))
-    einfuegen(bm, kasten((0.0, 0.0, 0.20), (2.60, 1.66, 0.04), mi=0))                            # Boden
-    einfuegen(bm, kasten((-1.45, 0.0, 1.03), (0.56, 1.42, 0.02), mi=0))                          # Hutablage
+        einfuegen(bm, kasten((-1.20, yy, 1.19), (0.08, 0.24, 0.14), fase=0.035, mi=I_LEDER))
+    einfuegen(bm, kasten((0.0, 0.0, 0.20), (2.60, 1.66, 0.04), mi=I_KUNST))                        # Boden
+    einfuegen(bm, kasten((-1.45, 0.0, 1.03), (0.56, 1.42, 0.02), mi=I_KUNST))                      # Hutablage
+    # --- Tuerverkleidungen mit Armlehne, Griff, Lautsprecher, Fensterheberschaltern ---
     for sg in (-1, 1):
-        einfuegen(bm, kasten((0.0, sg * 0.86, 0.72), (2.30, 0.05, 0.42), fase=0.02, mi=0))       # Tuerverkleidungen
-    einfuegen(bm, kasten((-0.36, 0.0, 1.395), (1.26, 1.32, 0.02), fase=0.01, mi=1))              # Dachhimmel
-    return objekt("Innenraum", bm, [M_INNEN, M_INNEN_HELL, M_TRIM, M_GITTER, M_GLAS, M_BILDSCHIRM], glatt=True,
+        einfuegen(bm, kasten((0.0, sg * 0.86, 0.72), (2.30, 0.05, 0.42), fase=0.02, mi=I_KUNST))
+        for xt in (0.52, -0.62):
+            einfuegen(bm, polster((xt, sg * 0.82, 0.70), (0.38, 0.06, 0.045), eck=0.35, mi=I_LEDER))
+            einfuegen(bm, kasten((xt + 0.22, sg * 0.832, 0.81), (0.07, 0.012, 0.022), fase=0.004, mi=I_CHROM))
+            einfuegen(bm, zylinder((xt - 0.05, sg * 0.833, 0.46), 0.065, 0.01, "Y", segs=24, mi=I_GLANZ))
+            for k in range(2):
+                einfuegen(bm, kasten((xt + 0.06 + 0.03 * k, sg * 0.82, 0.726), (0.018, 0.012, 0.006), mi=I_GLANZ))
+    # --- Dachhimmel mit Innenleuchte, Sonnenblenden, Innenspiegel ---
+    einfuegen(bm, kasten((-0.36, 0.0, 1.395), (1.26, 1.32, 0.02), fase=0.01, mi=I_STOFF))
+    einfuegen(bm, kasten((-0.36, 0.0, 1.383), (0.10, 0.22, 0.008), fase=0.003, mi=I_WEISS))
+    for yy in (0.38, -0.38):
+        einfuegen(bm, polster((0.33, yy, 1.375), (0.14, 0.36, 0.022), eck=0.25,
+                              rot=Matrix.Rotation(math.radians(-14), 3, "Y"), mi=I_STOFF))
+    einfuegen(bm, rohr([(0.33, 0.0, 1.43), (0.37, 0.0, 1.37)], 0.007, segs=8, mi=I_KUNST))
+    einfuegen(bm, polster((0.38, 0.0, 1.355), (0.035, 0.26, 0.075), eck=0.35, mi=I_KUNST))
+    einfuegen(bm, kasten((0.362, 0.0, 1.355), (0.002, 0.23, 0.058), mi=I_CHROM))
+    return objekt("Innenraum", bm, [M_INNEN, M_INNEN_HELL, M_TRIM, M_GITTER, M_GLAS, M_BILDSCHIRM, M_INNEN_LEDER,
+                                    M_CHROM, M_ROTLICHT, M_BLAULICHT, M_BLINKER, M_INSTRUMENT], glatt=True,
                   auto_glatt=40)
 
-# ---------------- Raeder: Reifen mit Profil, schwarze 18-Zoll-Stahlfelge mit Chromkappe, Bremsscheibe ----------------
+# ---------------- Raeder: Reifen mit Profil und Flankenbeschriftung, schwarze 18-Zoll-Stahlfelge mit Sicken,
+# Chromkappe und Radmuttern, Ventil, innenbelueftete Bremsscheibe ----------------
 def drehkoerper(bm, profil, segs, mi, uv=None, kacheln=8, geschlossen=False):
     """Profil [(r, a[, v])] um die Radachse (lokal Y) drehen. Mit uv-Layer: u laeuft um den Umfang
     (kacheln je Umdrehung), v kommt aus dem Profil. geschlossen: letzter Profilpunkt wird mit dem ersten verbunden."""
@@ -1224,15 +1753,17 @@ def ausrichten_ref(faces, ref_r, ref_a, nach_aussen=True):
 
 SCHUESSEL = None
 def stahlschuessel():
-    """Felgenschuessel als geschlossener Koerper mit sechs ovalen Lueftungsloechern (Boolesche Differenz),
-    einmal gebaut und fuer alle Raeder wiederverwendet."""
+    """Gepresste Felgenschuessel (4 mm Blech) als geschlossener Koerper: schraeger Aussenring mit sechs ovalen
+    Lueftungsloechern (Boolesche Differenz), erhabene Versteifungssicke, ebene Anlageflaeche fuer die Radmuttern,
+    Mittelloch. Einmal gebaut und fuer alle Raeder wiederverwendet."""
     global SCHUESSEL
     if SCHUESSEL is None:
         bm = bmesh.new()
-        schnitt_ = [(0.214, 0.090), (0.196, 0.082), (0.168, 0.074), (0.138, 0.068), (0.108, 0.064), (0.092, 0.063),
-                    (0.086, 0.058), (0.010, 0.058), (0.010, 0.054), (0.086, 0.054), (0.092, 0.059), (0.108, 0.060),
-                    (0.138, 0.064), (0.168, 0.070), (0.196, 0.078), (0.214, 0.086)]
-        drehkoerper(bm, schnitt_, 72, 0, geschlossen=True)
+        aussen = [(0.214, 0.090), (0.204, 0.0865), (0.188, 0.0815), (0.170, 0.0765), (0.150, 0.0720), (0.134, 0.0695),
+                  (0.126, 0.0715), (0.119, 0.0758), (0.112, 0.0775), (0.105, 0.0760), (0.098, 0.0700), (0.090, 0.0662),
+                  (0.080, 0.0655), (0.058, 0.0652), (0.047, 0.0640), (0.041, 0.0605)]
+        schnitt_ = aussen + [(r, a - 0.004) for r, a in reversed(aussen)]
+        drehkoerper(bm, schnitt_, 96, 0, geschlossen=True)
         bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
         ob = objekt("_Schuessel", bm, [M_FELGE])
         bm = bmesh.new()
@@ -1260,22 +1791,39 @@ def stahlschuessel():
 
 def rad_bmesh():
     """Ein Rad mit Aussenseite nach +Y (lokal), Mitte im Ursprung. Materialien: 0 Reifen, 1 Felge, 2 Felge innen,
-    3 Chrom, 4 Bremse."""
+    3 Chrom, 4 Bremse, 5 Gummi (Ventil)."""
     bm = bmesh.new()
     uv = bm.loops.layers.uv.new("UVMap")
-    reifen = drehkoerper(bm, reifen_profil(), 72, 0, uv=uv)
+    reifen = drehkoerper(bm, reifen_profil(), 96, 0, uv=uv, kacheln=1)
     bett = drehkoerper(bm, [(0.240, -0.104), (0.240, -0.097), (0.228, -0.095), (0.226, -0.080), (0.203, -0.072),
                             (0.199, -0.030), (0.199, 0.030), (0.212, 0.045), (0.226, 0.055), (0.228, 0.092)], 72, 2)
     horn = drehkoerper(bm, [(0.228, 0.092), (0.241, 0.096), (0.244, 0.103), (0.240, 0.1085), (0.229, 0.1085),
                             (0.216, 0.101), (0.211, 0.088)], 72, 1)
     einfuegen(bm, stahlschuessel())
-    # sechs Radmuttern, verchromte Mittelkappe
+    # sechs Radmuttern (Kegelsitz, Sechskant, gewoelbte Kappe), verchromte Mittelkappe mit schwarzem Ring
     for k in range(6):
         w = 2 * math.pi * k / 6
-        einfuegen(bm, zylinder((0.068 * math.cos(w), 0.064, 0.068 * math.sin(w)), 0.0105, 0.014, "Y", segs=6, mi=3))
-    einfuegen(bm, kugel((0, 0.060, 0), 0.054, segs=32, ringe=12, skala=(1, 0.32, 1), mi=3))
-    # Bremsscheibe mit Topf (rund, darf sich mitdrehen; einen Bremssattel gibt es nicht, er wuerde mitdrehen)
-    einfuegen(bm, zylinder((0, -0.028, 0), 0.172, 0.028, "Y", segs=60, mi=4))
+        c, s_ = 0.068 * math.cos(w), 0.068 * math.sin(w)
+        einfuegen(bm, zylinder((c, 0.0665, s_), 0.0135, 0.004, "Y", segs=16, mi=3, r2=0.0108))
+        einfuegen(bm, zylinder((c, 0.0745, s_), 0.0108, 0.012, "Y", segs=6, mi=3))
+        einfuegen(bm, kugel((c, 0.0805, s_), 0.0094, segs=16, ringe=8, skala=(1, 0.55, 1), mi=3))
+    einfuegen(bm, kugel((0, 0.060, 0), 0.054, segs=40, ringe=14, skala=(1, 0.32, 1), mi=3))
+    ring = [(0.036 * math.cos(w), 0.0748, 0.036 * math.sin(w)) for w in np.linspace(0, 2 * math.pi, 41)]
+    einfuegen(bm, rohr(ring, 0.0022, segs=6, mi=2, deckel=False, oben=(0, 1, 0)))
+    # Ventil am Felgenrand
+    wv = math.radians(30)
+    fuss = Vector((0.207 * math.cos(wv), 0.062, 0.207 * math.sin(wv)))
+    spitze = Vector((0.199 * math.cos(wv), 0.088, 0.199 * math.sin(wv)))
+    einfuegen(bm, rohr([fuss, spitze], 0.0042, segs=10, mi=5))
+    einfuegen(bm, rohr([spitze, spitze + (spitze - fuss).normalized() * 0.009], 0.0045, segs=10, mi=3))
+    # innenbelueftete Bremsscheibe: zwei Reibringe mit radialen Kuehlrippen, Topf (rund, darf sich mitdrehen;
+    # einen Bremssattel gibt es nicht, er wuerde mitdrehen)
+    for a0, a1 in ((-0.012, -0.003), (-0.031, -0.022)):
+        drehkoerper(bm, [(0.095, a0), (0.172, a0), (0.172, a1), (0.095, a1)], 72, 4, geschlossen=True)
+    for k in range(36):
+        w = 2 * math.pi * (k + 0.5) / 36
+        einfuegen(bm, kasten((0.134 * math.cos(w), -0.0170, 0.134 * math.sin(w)), (0.074, 0.010, 0.0055),
+                             rot=Matrix.Rotation(-w, 3, "Y"), mi=4))
     einfuegen(bm, zylinder((0, 0.004, 0), 0.092, 0.036, "Y", segs=40, mi=2))
     bm.normal_update()
     offen = set(reifen) | set(bett) | set(horn)
@@ -1293,12 +1841,17 @@ def raeder():
         if y < 0:
             bmesh.ops.scale(bm, vec=Vector((1, -1, 1)), verts=bm.verts)
             bmesh.ops.reverse_faces(bm, faces=bm.faces)
+            uv = bm.loops.layers.uv["UVMap"]
+            for f in bm.faces:                         # Flankenschrift bleibt auf der rechten Seite lesbar
+                if f.material_index == 0:
+                    for l in f.loops:
+                        l[uv].uv.x = 1.0 - l[uv].uv.x
         bmesh.ops.translate(bm, vec=Vector((x, y, RAD_R)), verts=bm.verts)
-        obs[name] = objekt("Rad_" + name, bm, [M_GUMMI, M_FELGE, M_FELGE_DUNKEL, M_CHROM, M_BREMSE], glatt=True,
-                           auto_glatt=40)
+        obs[name] = objekt("Rad_" + name, bm, [M_GUMMI, M_FELGE, M_FELGE_DUNKEL, M_CHROM, M_BREMSE, M_SCHWARZ],
+                           glatt=True, auto_glatt=40)
     return obs
 
-# ---------------- Zusammenbauen, UV-Karten, Skelett, Export ----------------
+# ---------------- Zusammenbauen und UV-Karten ----------------
 log("Karosserie ...")
 KAR = karosserie()
 log("Ausschnitte und Fugen ...")
@@ -1326,8 +1879,29 @@ for ob in ALLE:
     bm.to_mesh(ob.data)
     bm.free()
 
-# UV-Karten: "UVMap" per Smart UV Project fuer alles ausser den Reifen (die haben eine eigene Abwicklung fuer die
-# Profiltextur), "UV_Flakes" als Wuerfelprojektion in Metern fuer die Lack-Flakes
+# Hilfswerte je Ecke fuer das Schmutz-Backen (werden vor dem Export wieder entfernt):
+# teil 0 = aussen, 1 = Rad, 2 = Innenraum; rad_r = Abstand zur Radachse, rad_a = Abstand zur Radmitte nach aussen
+def eckwerte(ob, name, werte):
+    a = ob.data.attributes.new(name, "FLOAT", "POINT")
+    a.data.foreach_set("value", werte)
+
+for ob in ALLE:
+    n = len(ob.data.vertices)
+    teil = 1.0 if ob in RAEDER_OB.values() else (2.0 if ob.name.startswith("Innenraum") else 0.0)
+    eckwerte(ob, "teil", [teil] * n)
+    if teil == 1.0:
+        x0 = XV if ob.name.endswith(("fl", "fr")) else XH
+        sy = 1.0 if ob.name.endswith(("fl", "rl")) else -1.0
+        eckwerte(ob, "rad_r", [math.hypot(v.co.x - x0, v.co.z - RAD_R) for v in ob.data.vertices])
+        eckwerte(ob, "rad_a", [sy * v.co.y - YR for v in ob.data.vertices])
+    else:
+        eckwerte(ob, "rad_r", [0.0] * n)
+        eckwerte(ob, "rad_a", [0.0] * n)
+
+# UV-Karten: "UVMap" ist ein gemeinsamer Atlas fuer alles ausser den Reifen (die haben eine eigene Abwicklung fuer
+# die Profiltextur). Smart UV Project schneidet die Inseln, danach bekommt der Innenraum (nur durch die Scheiben zu
+# sehen) halbe Aufloesung und alles wird neu gepackt. "UV_Flakes" ist eine Wuerfelprojektion in Metern fuer
+# kachelnde Lacktexturen (Flakes, Kratzer).
 log("UV-Karten ...")
 bpy.context.tool_settings.mesh_select_mode = (False, False, True)
 for ob in ALLE:
@@ -1343,6 +1917,93 @@ bpy.context.view_layer.objects.active = KAR
 bpy.ops.object.mode_set(mode="EDIT")
 bpy.ops.uv.smart_project(angle_limit=math.radians(60), island_margin=0.002, scale_to_bounds=False)
 bpy.ops.object.mode_set(mode="OBJECT")
+def inseln_skalieren(ob, faktor):
+    """UV-Inseln um ihre Mitte skalieren. faktor(ob, Flaeche) liefert den Wunsch je Flaeche; Inseln werden dort
+    getrennt, wo sich der Wunsch aendert (z. B. Scheibe und Einfassung), damit jede Insel einheitlich ist."""
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    lay = bm.loops.layers.uv["UVMap"]
+    bm.faces.ensure_lookup_table()
+    wunsch = [faktor(ob, f) for f in bm.faces]
+    eltern = list(range(len(bm.faces)))
+    def wurzel(i):
+        while eltern[i] != i:
+            eltern[i] = eltern[eltern[i]]
+            i = eltern[i]
+        return i
+    def uv_an(f, v):
+        for l in f.loops:
+            if l.vert is v:
+                return l[lay].uv
+    for e in bm.edges:
+        if len(e.link_faces) != 2:
+            continue
+        f1, f2 = e.link_faces
+        if wunsch[f1.index] == wunsch[f2.index] and all((uv_an(f1, v) - uv_an(f2, v)).length < 1e-6 for v in e.verts):
+            a, b = wurzel(f1.index), wurzel(f2.index)
+            if a != b:
+                eltern[a] = b
+    inseln = {}
+    for f in bm.faces:
+        inseln.setdefault(wurzel(f.index), []).append(f)
+    for fl in inseln.values():
+        k = wunsch[fl[0].index]
+        if k == 1.0:
+            continue
+        uvs = [l[lay] for f in fl for l in f.loops]
+        mitte = sum((u.uv for u in uvs), Vector((0, 0))) / len(uvs)
+        for u in uvs:
+            u.uv = mitte + (u.uv - mitte) * k
+    bm.to_mesh(ob.data)
+    bm.free()
+
+def uv_wunsch(ob, f):
+    """Texturaufloesung je Flaeche: Innenraum, Glas (ohne Textur) und Unterboden brauchen wenig."""
+    m = ob.data.materials[f.material_index]
+    if m.name == "Reifen":
+        return 1.0
+    b = m.node_tree.nodes.get("Principled BSDF")
+    if b is not None and b.inputs["Transmission Weight"].default_value >= 0.5:
+        return 0.2
+    if ob.name.startswith("Innenraum"):
+        return 0.35
+    if f.normal.z < -0.6 and f.calc_center_median().z < 0.45:
+        return 0.3
+    return 1.0
+
+t0 = time.time()
+for ob in ALLE:
+    inseln_skalieren(ob, uv_wunsch)
+bpy.ops.object.mode_set(mode="EDIT")
+bpy.ops.uv.select_all(action="SELECT")
+bpy.ops.uv.pack_islands(rotate=True, scale=True, margin_method="FRACTION", margin=0.0008, shape_method="CONCAVE")
+bpy.ops.object.mode_set(mode="OBJECT")
+log(f"  Inseln skaliert und gepackt ({time.time() - t0:.0f} s)")
+
+def texeldichte():
+    """Atlas-Texel je Meter fuer die volle Aufloesung (sichtbare Aussenflaechen) bei 4096 Pixeln."""
+    uv_flaeche = flaeche = 0.0
+    for ob in ALLE:
+        if ob.name.startswith("Innenraum"):
+            continue
+        me = ob.data
+        uv = me.uv_layers["UVMap"].data
+        bm = bmesh.new()
+        bm.from_mesh(me)
+        bm.faces.ensure_lookup_table()
+        p_bm = bm.faces
+        for p in me.polygons:
+            if uv_wunsch(ob, p_bm[p.index]) != 1.0 or me.materials[p.material_index].name == "Reifen":
+                continue
+            pts = [uv[i].uv for i in p.loop_indices]
+            uv_flaeche += abs(sum(pts[i].x * pts[i - 1].y - pts[i - 1].x * pts[i].y for i in range(len(pts)))) / 2
+            flaeche += p.area
+        bm.free()
+    return 4096 * math.sqrt(uv_flaeche / max(flaeche, 1e-9))
+
+TEXEL_JE_M = texeldichte()
+log(f"Atlas: {TEXEL_JE_M:.0f} Texel je Meter bei 4096 px ({1000 / TEXEL_JE_M:.2f} mm je Texel)")
+
 for ob in ALLE:
     bm = bmesh.new()
     bm.from_mesh(ob.data)
@@ -1372,6 +2033,299 @@ bpy.context.view_layer.objects.active = KAR
 bpy.ops.object.join()
 AUTO = bpy.context.view_layer.objects.active
 AUTO.name = AUTO.data.name = "SK_" + NAME
+
+# ---------------- Gebrauchsspuren: Schmutz, Staub, Regenstreifen, Steinschlaege, Kantenabrieb ----------------
+# Cycles backt Masken in den gemeinsamen UV-Atlas ("UVMap"). Daraus entstehen drei Texturen, die alle Materialien
+# des Autos teilen (ausser Glas und Reifen):
+#   T_<NAME>_BaseColor  Farbe mit Schmutz und Abrieb (sRGB)
+#   T_<NAME>_ORM        R = Umgebungsverdeckung, G = Rauheit, B = Metall (linear)
+#   T_<NAME>_Klarlack   Klarlack-Staerke: dort, wo Schmutz liegt, glaenzt der Lack nicht mehr
+# Bilder und Export verwenden dieselben Texturen; was gerendert wird, steckt also auch in FBX und GLB.
+ATLAS = int(os.environ.get("ATLAS", "4096"))
+
+# Je Material: (Schmutz-Anteil, Abrieb-Anteil, Abriebfarbe, Metall im Abrieb[, Schmutzfarbe]).
+# Nicht genannte: (0.8, 0.25, heller, 0)
+SCHMUTZ_REGELN = {
+    "Lack_Schwarz": (1.0, 0.3, "#5d5f62", 0.0), "Lack_Weiss": (1.0, 0.3, "#5d5f62", 0.0),
+    "Kunststoff_Schwarz": (1.0, 0.2, "#3c3d3e", 0.0), "Hochglanz_Schwarz": (0.6, 0.15, "#3a3b3c", 0.0),
+    "Spalt": (0.0, 0.0, None, 0.0), "Chrom": (0.25, 0.0, None, 1.0), "Scheinwerfer_Innen": (0.05, 0.0, None, 0.0),
+    "Reflektor": (0.05, 0.0, None, 1.0), "Tagfahrlicht": (0.1, 0.0, None, 0.0), "Ruecklicht_LED": (0.1, 0.0, None, 0.0),
+    "Blaulicht": (0.15, 0.0, None, 0.0), "Rotlicht": (0.15, 0.0, None, 0.0), "Blinker": (0.15, 0.0, None, 0.0),
+    "Folie_Schwarz": (1.0, 0.6, "#8d8e8f", 0.0), "Reflexfolie_Weiss": (1.0, 0.6, "#5d5f62", 0.0),
+    "Abzeichen_Gold": (0.6, 0.3, "#8a6a1e", 1.0), "Abzeichen_Blau": (0.6, 0.3, "#c9a43a", 1.0),
+    "Rammschutz": (1.0, 1.0, "#8b8e91", 1.0), "Felge_Schwarz": (1.0, 0.7, "#7c7f82", 1.0, "bremse"),
+    "Felge_Innen": (1.0, 0.4, "#6d7073", 1.0, "bremse"), "Bremse": (1.0, 0.0, None, 1.0, "bremse"),
+    "Innenraum": (0.25, 0.3, "#3a3b3d", 0.0), "Innenraum_Stoff": (0.2, 0.0, None, 0.0),
+    "Kennzeichen": (0.7, 0.4, "#9a9c9e", 1.0), "Kennzeichen_Schrift": (0.7, 0.0, None, 0.0),
+    "Bildschirm": (0.1, 0.0, None, 0.0), "Trenngitter": (0.6, 0.5, "#6a6d70", 1.0),
+    "Ruecklicht_Reflektor": (0.0, 0.0, None, 1.0), "Blinker_Reflektor": (0.0, 0.0, None, 1.0),
+    "Innenraum_Kunstleder": (0.2, 0.2, "#2c2d2f", 0.0), "Instrumente_Weiss": (0.1, 0.0, None, 0.0),
+    "Seitenleuchte_Gelb": (0.5, 0.0, None, 0.0), "Seitenleuchte_Rot": (0.5, 0.0, None, 0.0),
+}
+SCHMUTZ_FARBEN = {
+    "dreck": hexf("#4b4137"),      # Strassenschmutz, braun
+    "dreck_grau": hexf("#55524d"), # Strassenschmutz, grau
+    "staub": hexf("#9b9384"),      # heller Staub
+    "streifen": hexf("#3b3732"),   # Regenstreifen
+    "bremse": hexf("#261f1a"),     # Bremsstaub
+    "stein": hexf("#8f8d88"),      # Steinschlag: Grundierung
+}
+
+def atlas_material(teil):
+    """True, wenn das Material Texturen aus dem Atlas bekommt (Glas und Reifen nicht)."""
+    if teil.name == "Reifen":
+        return False
+    b = teil.node_tree.nodes.get("Principled BSDF")
+    return b is not None and b.inputs["Transmission Weight"].default_value < 0.5
+
+def back_material(name, farbe_von, bild_ziel):
+    """Material nur fuer das Backen: Emission mit der berechneten Farbe, Ziel ist das aktive Bild."""
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    nt.nodes.clear()
+    aus = nt.nodes.new("ShaderNodeOutputMaterial")
+    em = nt.nodes.new("ShaderNodeEmission")
+    nt.links.new(em.outputs[0], aus.inputs["Surface"])
+    if farbe_von is not None:
+        nt.links.new(farbe_von(Knoten(nt)), em.inputs["Color"])
+    else:
+        em.inputs["Color"].default_value = (0, 0, 0, 1)
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bild_ziel
+    nt.nodes.active = tex
+    return m
+
+def maske_id(K):
+    v = K.m("DIVIDE", K.m("ADD", K.attribut("mat_id"), 1.0), 255.0)
+    return K.vektor(v, v, v)
+
+def maske_schmutz(K):
+    """R = Strassenschmutz, G = Staub, B = Regenstreifen."""
+    P, N = K.geometrie()
+    x, y, z = K.trenne(P)
+    nx, ny, nz = K.trenne(N)
+    teil = K.attribut("teil")
+    aussen = K.m("LESS_THAN", teil, 0.5)
+    innen = K.m("GREATER_THAN", teil, 1.5)
+    rad = K.m("SUBTRACT", K.m("SUBTRACT", 1.0, aussen), innen)
+    fleck = K.rauschen(P, 2.6, detail=8, rau=0.6)
+    fleck_fein = K.rauschen(P, 9.0, detail=6, rau=0.6)
+    gischt = K.rauschen(K.v("MULTIPLY", P, (1.0, 9.0, 9.0)), 1.0, detail=6, rau=0.6)
+    seite = K.glatt(K.m("ABSOLUTE", ny), 0.3, 0.7)
+    # aussen: unten am meisten, um und hinter den Radlaeufen, am Heck (Sog), vorn unten, Unterboden
+    teile = [K.mul(K.glatt(z, 0.50, 0.12), 0.45), K.mul(K.glatt(z, 0.30, 0.20), 0.65)]
+    for a in (XV, XH):
+        dx = K.m("SUBTRACT", x, a)
+        dz = K.m("SUBTRACT", z, RAD_R)
+        d = K.m("SQRT", K.add(K.mul(dx, dx), K.mul(dz, dz)))
+        bogen = K.mul(K.glatt(d, BOGEN_R + 0.13, BOGEN_R + 0.02), K.add(0.35, K.mul(0.65, K.glatt(z, 0.75, 0.35))))
+        t = K.m("DIVIDE", K.m("ADD", dx, 0.5), 0.42)
+        hinter = K.mul(K.m("EXPONENT", K.mul(t, t, -1.0)), K.glatt(z, 0.62, 0.20), seite, 0.6)
+        teile += [bogen, hinter]
+    teile.append(K.mul(K.glatt(x, -2.15, -2.55), K.glatt(z, 0.80, 0.35), K.glatt(nx, -0.1, -0.6), 0.45))
+    teile.append(K.mul(K.glatt(x, 2.25, 2.62), K.glatt(z, 0.55, 0.22), 0.35))
+    teile.append(K.glatt(nz, -0.25, -0.75))
+    roh = K.max(*teile)
+    muster = K.mul(K.add(0.35, K.mul(0.65, K.glatt(fleck, 0.30, 0.72))), K.add(0.55, K.mul(0.9, gischt)))
+    dreck_aussen = K.glatt(K.mul(roh, muster), 0.12, 0.9)
+    oben = K.glatt(nz, 0.25, 0.85)
+    staub_n = K.rauschen(P, 1.3, detail=6, rau=0.5)
+    staub_aussen = K.add(K.mul(oben, K.add(0.15, K.mul(0.85, K.glatt(staub_n, 0.45, 0.8))), 0.35),
+                         K.mul(0.03, K.glatt(staub_n, 0.5, 0.85)))
+    senk = K.glatt(K.m("ABSOLUTE", nz), 0.55, 0.25)
+    regen = K.rauschen(K.v("MULTIPLY", P, (22.0, 22.0, 0.9)), 1.0, detail=3, rau=0.5)
+    streifen_aussen = K.mul(K.glatt(regen, 0.60, 0.72), senk, K.glatt(z, 1.02, 0.92), K.glatt(z, 0.30, 0.55),
+                            K.add(0.3, K.mul(0.7, fleck)), 0.35)
+    # Raeder: Bremsstaub, zur Mitte und zur Innenseite hin mehr
+    rad_r = K.attribut("rad_r")
+    rad_a = K.attribut("rad_a")
+    dreck_rad = K.add(0.10, K.mul(0.15, fleck_fein), K.mul(0.12, K.glatt(rad_r, 0.14, 0.05)),
+                      K.mul(0.35, K.glatt(rad_a, -0.03, -0.10)))
+    # Innenraum: Boden schmutzig, waagrechte Flaechen leicht staubig
+    dreck_innen = K.mul(K.glatt(z, 0.32, 0.24), oben, K.add(0.3, K.mul(0.7, fleck)), 0.6)
+    staub_innen = K.mul(oben, K.glatt(staub_n, 0.3, 0.8), 0.25)
+    r = K.add(K.mul(aussen, dreck_aussen), K.mul(rad, dreck_rad), K.mul(innen, dreck_innen))
+    g = K.add(K.mul(aussen, staub_aussen), K.mul(rad, 0.08), K.mul(innen, staub_innen))
+    b = K.mul(aussen, streifen_aussen)
+    return K.vektor(r, g, b)
+
+def maske_stein(K):
+    """R = Steinschlaege, G = feines Rauschen fuer den Kantenabrieb, B = Farbton des Schmutzes."""
+    P, N = K.geometrie()
+    x, y, z = K.trenne(P)
+    nx, ny, nz = K.trenne(N)
+    aussen = K.m("LESS_THAN", K.attribut("teil"), 0.5)
+    dichte = K.max(K.mul(K.glatt(nx, 0.25, 0.8), K.glatt(x, 2.0, 2.45), 0.07),
+                   K.mul(K.glatt(nz, 0.4, 0.8), K.glatt(x, 2.05, 2.45), 0.03),
+                   K.mul(K.glatt(x, XV - 1.05, XV - 0.75), K.glatt(x, XV - 0.25, XV - 0.45), K.glatt(z, 0.6, 0.4), 0.04),
+                   K.mul(K.glatt(z, 0.32, 0.22), 0.025))
+    abst, (zr, zg, zb) = K.zellen(P, 90.0)
+    radius = K.add(0.05, K.mul(0.08, zg))
+    punkt = K.glatt(abst, K.add(radius, 0.04), radius)
+    stein = K.mul(punkt, K.m("GREATER_THAN", zr, K.m("SUBTRACT", 1.0, dichte)), aussen)
+    return K.vektor(stein, K.rauschen(P, 35.0, detail=4, rau=0.65), K.rauschen(P, 0.9, detail=3))
+
+def maske_licht(K):
+    """R = Verdeckung im Nahbereich (Ritzen), G = Kante (Bevel-Abweichung), B = Umgebungsverdeckung."""
+    P, N = K.geometrie()
+    nt = K.nt
+    ao_k = nt.nodes.new("ShaderNodeAmbientOcclusion")
+    ao_k.samples, ao_k.only_local = 12, True
+    ao_k.inputs["Distance"].default_value = 0.04
+    ao_g = nt.nodes.new("ShaderNodeAmbientOcclusion")
+    ao_g.samples, ao_g.only_local = 12, True
+    ao_g.inputs["Distance"].default_value = 0.35
+    bev = nt.nodes.new("ShaderNodeBevel")
+    bev.samples = 8
+    bev.inputs["Radius"].default_value = 0.005
+    kante = K.m("MULTIPLY", K.m("SUBTRACT", 1.0, K.v("DOT_PRODUCT", bev.outputs["Normal"], N)), 10.0, clamp=True)
+    return K.vektor(ao_k.outputs["AO"], kante, ao_g.outputs["AO"])
+
+def backen(auto, name, farbe_von, proben, aufl):
+    """Ein Bake-Durchgang: alle Atlas-Materialien voruebergehend durch ein Emissions-Material ersetzen."""
+    ziel = bpy.data.images.new("_bake_" + name, aufl, aufl, alpha=False, float_buffer=True)
+    ziel.colorspace_settings.name = "Non-Color"
+    leer = bpy.data.images.new("_bake_leer", 64, 64, alpha=False, float_buffer=True)
+    m_atlas = back_material("_Bake_" + name, farbe_von, ziel)
+    m_leer = back_material("_Bake_leer", None, leer)
+    alt = list(auto.data.materials)
+    for i, m in enumerate(alt):
+        auto.data.materials[i] = m_atlas if atlas_material(m) else m_leer
+    scene.cycles.samples = proben
+    scene.render.bake.margin = 6
+    scene.render.bake.margin_type = "EXTEND"
+    bpy.ops.object.select_all(action="DESELECT")
+    auto.select_set(True)
+    bpy.context.view_layer.objects.active = auto
+    t0 = time.time()
+    bpy.ops.object.bake(type="EMIT", uv_layer="UVMap", margin=6, use_clear=True)
+    for i, m in enumerate(alt):
+        auto.data.materials[i] = m
+    px = np.empty(aufl * aufl * 4, dtype=np.float32)
+    ziel.pixels.foreach_get(px)
+    for d in (m_atlas, m_leer):
+        bpy.data.materials.remove(d)
+    for d in (ziel, leer):
+        bpy.data.images.remove(d)
+    log(f"  gebacken: {name} ({time.time() - t0:.0f} s)")
+    return px.reshape(aufl, aufl, 4)[..., :3]
+
+def mischen(mats, id_px, schmutz, stein, licht):
+    """Texturen aus den Masken und den Materialwerten berechnen (numpy, je Texel)."""
+    n = len(mats)
+    albedo = np.zeros((n + 1, 3), np.float32)
+    rau, metall, lack = np.zeros(n + 1, np.float32), np.zeros(n + 1, np.float32), np.zeros(n + 1, np.float32)
+    f_dreck, f_abrieb = np.zeros(n + 1, np.float32), np.zeros(n + 1, np.float32)
+    abrieb_farbe, abrieb_metall = np.zeros((n + 1, 3), np.float32), np.zeros(n + 1, np.float32)
+    bremsstaub = np.zeros(n + 1, bool)
+    for i, m in enumerate(mats, start=1):
+        b = m.node_tree.nodes["Principled BSDF"]
+        albedo[i] = b.inputs["Base Color"].default_value[:3]
+        rau[i] = b.inputs["Roughness"].default_value
+        metall[i] = b.inputs["Metallic"].default_value
+        lack[i] = b.inputs["Coat Weight"].default_value
+        regel = SCHMUTZ_REGELN.get(m.name, (0.8, 0.25, None, 0.0))
+        d, a, farbe, am = regel[:4]
+        f_dreck[i], f_abrieb[i], abrieb_metall[i] = d, a, am
+        bremsstaub[i] = len(regel) > 4 and regel[4] == "bremse"
+        abrieb_farbe[i] = hexf(farbe) if farbe else np.minimum(albedo[i] * 1.8 + 0.03, 1.0)
+    idx = np.clip(np.rint(id_px[..., 0] * 255.0), 0, n).astype(np.int32)
+    sd, sa = f_dreck[idx], f_abrieb[idx]
+    dreck = schmutz[..., 0] * sd
+    staub = schmutz[..., 1] * sd
+    streifen = schmutz[..., 2] * sd
+    ao_k, kante, ao_g = licht[..., 0], licht[..., 1], licht[..., 2]
+    ritze = np.clip((0.8 - ao_k) / 0.5, 0, 1) ** 1.2
+    dreck = np.clip(dreck + ritze * 0.35 * sd, 0, 1)
+    konvex = np.clip((ao_k - 0.82) / 0.12, 0, 1)
+    abrieb = np.clip((kante * konvex * (0.4 + stein[..., 1]) - 0.5) * 3.0, 0, 1) * sa
+    stein_m = np.clip(stein[..., 0] * sa, 0, 1)
+    F = SCHMUTZ_FARBEN
+    def mix(a, b, t):
+        return a + (b - a) * t[..., None]
+    farbe = albedo[idx]
+    farbe = mix(farbe, np.array(F["staub"], np.float32), staub * 0.4)
+    farbe = mix(farbe, np.array(F["streifen"], np.float32), streifen * 0.5)
+    dreck_farbe = mix(np.broadcast_to(np.array(F["dreck"], np.float32), farbe.shape),
+                      np.array(F["dreck_grau"], np.float32), stein[..., 2])
+    bs = bremsstaub[idx]
+    dreck_farbe[bs] = F["bremse"]
+    farbe = farbe + (dreck_farbe - farbe) * (dreck * 0.75)[..., None]
+    farbe = farbe + (abrieb_farbe[idx] - farbe) * abrieb[..., None]
+    farbe = mix(farbe, np.array(F["stein"], np.float32), stein_m)
+    belag = np.clip(dreck * 0.9 + staub * 0.5 + streifen * 0.4, 0, 1)
+    r = rau[idx] + (0.9 - rau[idx]) * belag
+    r = r + (0.5 - r) * np.maximum(abrieb, stein_m)
+    mt = metall[idx] * (1 - np.clip(dreck + staub * 0.5, 0, 1))
+    mt = mt + (abrieb_metall[idx] - mt) * abrieb
+    kl = lack[idx] * (1 - np.clip(dreck * 1.1 + staub * 0.6 + streifen * 0.3 + abrieb + stein_m, 0, 1))
+    ao = 0.25 + 0.75 * ao_g
+    leer = idx == 0
+    farbe[leer] = 0.5
+    srgb = np.clip(farbe, 0, 1) ** (1 / 2.2)
+    orm = np.stack([ao, np.clip(r, 0.03, 1), np.clip(mt, 0, 1)], -1)
+    orm[leer] = (1.0, 0.5, 0.0)
+    kl[leer] = 0.0
+    k = kl.reshape(kl.shape[0] // 2, 2, kl.shape[1] // 2, 2).mean(axis=(1, 3))      # halbe Aufloesung genuegt
+    return srgb, orm, k[..., None]
+
+SAUBER = {}       # unverschmutzte Kopien der Materialien (fuer die Zivilautos in der Strassenszene)
+def schmutz_texturen(auto):
+    log("Gebrauchsspuren backen ...")
+    scene.render.engine = "CYCLES"
+    scene.cycles.device = "CPU"
+    mats = list(auto.data.materials)
+    ids = np.array([p.material_index for p in auto.data.polygons], dtype=np.float32)
+    a = auto.data.attributes.new("mat_id", "FLOAT", "FACE")
+    a.data.foreach_set("value", ids)
+    id_px = backen(auto, "id", maske_id, 1, ATLAS)
+    schmutz = backen(auto, "schmutz", maske_schmutz, 1, ATLAS)
+    stein = backen(auto, "stein", maske_stein, 1, ATLAS)
+    licht = backen(auto, "licht", maske_licht, 6, ATLAS)
+    auto.data.attributes.remove(auto.data.attributes["mat_id"])
+    t0 = time.time()
+    srgb, orm, klar = mischen(mats, id_px, schmutz, stein, licht)
+    del id_px, schmutz, stein, licht
+    bc = bild_hw("T_" + NAME + "_BaseColor", srgb, farbe=True)
+    orm_bild = bild_hw("T_" + NAME + "_ORM", orm, farbe=False)
+    klar_bild = bild_hw("T_" + NAME + "_Klarlack", klar, farbe=False)
+    log(f"  Texturen gemischt und gespeichert ({time.time() - t0:.0f} s)")
+    # Materialien umstellen: Farbe, Rauheit/Metall (und AO fuer glTF) und Klarlack aus dem Atlas
+    gltf_gruppe = bpy.data.node_groups.get("glTF Material Output")
+    if gltf_gruppe is None:
+        gltf_gruppe = bpy.data.node_groups.new("glTF Material Output", "ShaderNodeTree")
+        gltf_gruppe.interface.new_socket("Occlusion", in_out="INPUT", socket_type="NodeSocketFloat")
+        gltf_gruppe.interface.new_socket("Thickness", in_out="INPUT", socket_type="NodeSocketFloat")
+        gltf_gruppe.nodes.new("NodeGroupInput")
+        gltf_gruppe.nodes.new("NodeGroupOutput")
+    for m in mats:
+        if not atlas_material(m):
+            continue
+        kopie = m.copy()
+        kopie.name = m.name + "_sauber"
+        SAUBER[m.name] = kopie
+        nt = m.node_tree
+        b = nt.nodes["Principled BSDF"]
+        uvn = nt.nodes.new("ShaderNodeUVMap")
+        uvn.uv_map = "UVMap"
+        def tex(img):
+            t = nt.nodes.new("ShaderNodeTexImage")
+            t.image = img
+            nt.links.new(uvn.outputs["UV"], t.inputs["Vector"])
+            return t
+        nt.links.new(tex(bc).outputs["Color"], b.inputs["Base Color"])
+        sep = nt.nodes.new("ShaderNodeSeparateColor")
+        nt.links.new(tex(orm_bild).outputs["Color"], sep.inputs["Color"])
+        nt.links.new(sep.outputs["Green"], b.inputs["Roughness"])
+        nt.links.new(sep.outputs["Blue"], b.inputs["Metallic"])
+        gl = nt.nodes.new("ShaderNodeGroup")
+        gl.node_tree = gltf_gruppe
+        nt.links.new(sep.outputs["Red"], gl.inputs["Occlusion"])
+        if b.inputs["Coat Weight"].default_value > 0:
+            nt.links.new(tex(klar_bild).outputs["Color"], b.inputs["Coat Weight"])
+
+schmutz_texturen(AUTO)
 
 # Skelett: root am Boden zwischen den Achsen, je ein Knochen pro Rad (alle gleich ausgerichtet wie root)
 arm_data = bpy.data.armatures.new(NAME + "_Skelett")
@@ -1409,6 +2363,10 @@ def skalieren(f):
     for b in ARM.data.edit_bones:
         b.head, b.tail = b.head * f, b.tail * f
     bpy.ops.object.mode_set(mode="OBJECT")
+
+for name in ("teil", "rad_r", "rad_a"):                 # Hilfswerte des Schmutz-Backens gehoeren nicht in den Export
+    if name in AUTO.data.attributes:
+        AUTO.data.attributes.remove(AUTO.data.attributes[name])
 
 # Vielecke mit mehr als vier Ecken triangulieren (sauber auch bei konkaven Flaechen, und erst dann schreibt der
 # FBX-Exporter Tangenten), danach doppelte Flaechen entfernen; beide Exporte bekommen genau dieses Netz
@@ -1546,18 +2504,6 @@ def studio():
                flaechenlicht("Heck", (-7.5, 3.6, 3.2), (0, 0, 0.7), 3.0, 2.0, 1000)]
     welt((0.022, 0.024, 0.027))
     return [ob] + lichter
-
-def mathe(nt, op, a, b=None):
-    n = nt.nodes.new("ShaderNodeMath")
-    n.operation = op
-    for i, x in enumerate((a, b)):
-        if x is None:
-            continue
-        if isinstance(x, (int, float)):
-            n.inputs[i].default_value = x
-        else:
-            nt.links.new(x, n.inputs[i])
-    return n.outputs[0]
 
 def fassade_material():
     """Hausfassaden: Putz mit Fensterraster, zufaellig beleuchtete Fenster."""
@@ -1883,6 +2829,9 @@ def zivilauto(farbe, ort, gier, name):
         ob.select_set(True)
     bpy.context.view_layer.objects.active = kar
     bpy.ops.object.join()
+    for i, m in enumerate(kar.data.materials):          # saubere Materialien statt der verschmutzten Atlas-Materialien
+        if m is not None and m.name in SAUBER:
+            kar.data.materials[i] = SAUBER[m.name]
     kar.name = name
     kar.location = ort
     kar.rotation_euler = (0, 0, gier)
@@ -1938,6 +2887,10 @@ if SHOTS:
         "oben": ((-5.0, -5.6, 6.2), (-0.15, 0.0, 0.55), 40, None),
         "detail": ((4.45, -2.3, 0.86), (2.5, -0.45, 0.62), 55, 2.8),
     }
+    for i, k in enumerate(os.environ.get("KAMERAS", "").split("|")):    # Testansichten: "ort;ziel;brennweite|..."
+        if k:
+            o, z, f = k.split(";")
+            STUDIO[f"test{i}"] = (tuple(map(float, o.split(","))), tuple(map(float, z.split(","))), float(f), None)
     studio_shots = [s for s in SHOTS if s in STUDIO]
     if studio_shots:
         szene = studio()
@@ -2005,5 +2958,7 @@ if SHOTS:
         leuchten(0.0, 0.8, 2.5)
 
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, NAME.lower() + ".blend"), compress=True)
+bpy.ops.file.make_paths_relative()                 # Texturen relativ zur .blend (export/Texturen), damit sie mitwandern
+bpy.ops.wm.save_mainfile(compress=True)
 log("fertig")
 
