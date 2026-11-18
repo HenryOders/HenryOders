@@ -1203,6 +1203,22 @@ log("Raeder ...")
 RAEDER_OB = raeder()
 ALLE = [KAR] + TEILE + list(RAEDER_OB.values())
 
+# Entartete Flaechen und Kanten entfernen (z. B. wo abgerundete Kanten duenner Kaesten aufeinandertreffen):
+# unsichtbar, aber unsauber fuer ein Spiel-Asset
+for ob in ALLE:
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    bmesh.ops.dissolve_degenerate(bm, dist=1e-5, edges=bm.edges[:])
+    gesehen, doppelt = set(), []                    # Flaechen mit genau denselben Ecken nur einmal behalten
+    for f in bm.faces:
+        k = frozenset(f.verts)
+        if k in gesehen:
+            doppelt.append(f)
+        gesehen.add(k)
+    bmesh.ops.delete(bm, geom=doppelt, context="FACES_ONLY")
+    bm.to_mesh(ob.data)
+    bm.free()
+
 # UV-Karten: "UVMap" per Smart UV Project fuer alles ausser den Reifen (die haben eine eigene Abwicklung fuer die
 # Profiltextur), "UV_Flakes" als Wuerfelprojektion in Metern fuer die Lack-Flakes
 log("UV-Karten ...")
@@ -1287,19 +1303,31 @@ def skalieren(f):
         b.head, b.tail = b.head * f, b.tail * f
     bpy.ops.object.mode_set(mode="OBJECT")
 
+# Vielecke mit mehr als vier Ecken triangulieren (sauber auch bei konkaven Flaechen, und erst dann schreibt der
+# FBX-Exporter Tangenten), danach doppelte Flaechen entfernen; beide Exporte bekommen genau dieses Netz
+bm = bmesh.new()
+bm.from_mesh(AUTO.data)
+bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4], quad_method="BEAUTY", ngon_method="BEAUTY")
+gesehen, doppelt = set(), []
+for f in bm.faces:
+    k = frozenset(f.verts)
+    if k in gesehen:
+        doppelt.append(f)
+    gesehen.add(k)
+bmesh.ops.delete(bm, geom=doppelt, context="FACES_ONLY")
+bm.to_mesh(AUTO.data)
+bm.free()
+AUTO.data.calc_loop_triangles()
+DREIECKE = len(AUTO.data.loop_triangles)
+log("fuer den Export:", DREIECKE, "Dreiecke")
+
 # glTF in Metern
 auswahl()
 bpy.ops.export_scene.gltf(filepath=os.path.join(EXPORT, "SK_Polizeiauto.glb"), export_format="GLB", use_selection=True,
                           export_yup=True, export_apply=False, export_skins=True, export_animations=False,
                           export_cameras=False, export_lights=False, export_image_format="AUTO")
 # FBX fuer Unreal: Zentimeter, ueberall Skalierung 1. Mesh und Knochen werden dafuer kurz x100 gesetzt und die
-# Szeneneinheit auf 0,01; danach geht alles zurueck. Vielecke mit mehr als vier Ecken werden trianguliert
-# (sauber auch bei konkaven Flaechen), erst dann schreibt der Exporter Tangenten.
-bm = bmesh.new()
-bm.from_mesh(AUTO.data)
-bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4], quad_method="BEAUTY", ngon_method="BEAUTY")
-bm.to_mesh(AUTO.data)
-bm.free()
+# Szeneneinheit auf 0,01; danach geht alles zurueck.
 scene.unit_settings.scale_length = 0.01
 skalieren(100.0)
 auswahl()

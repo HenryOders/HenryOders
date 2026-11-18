@@ -1,0 +1,6 @@
+# vom Skript erzeugt
+export/
+*.blend
+*.blend1
+streifenwagen_us_*.png
+__pycache__/

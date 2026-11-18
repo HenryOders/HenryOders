@@ -1,6 +1,9 @@
 """Prueft die Exporte des Streifenwagens.
 
-Start:  blender -b -P pruefe_export.py -- export      (oder mit dem bpy-Modul: python pruefe_export.py -- export)
+Start:  blender -b -P pruefe_export.py -- export [NAME RADSTAND SPUR RADRADIUS REIFENBREITE]
+        (oder mit dem bpy-Modul: python pruefe_export.py -- export ...)
+        Ohne Angaben gelten die Werte des deutschen Streifenwagens: SK_Polizeiauto 2.84 1.60 0.335 0.235
+        US-Streifenwagen: python pruefe_export.py -- export SK_Streifenwagen_US 2.96 1.64 0.364 0.245
 
 1. FBX roh gelesen: Einheit Zentimeter, an jedem Knoten Skalierung 1, die fuenf Knochen.
 2. FBX und GLB in Blender neu importiert: genau ein Mesh "SK_Polizeiauto", die fuenf Knochen an der richtigen Stelle,
@@ -13,12 +16,16 @@ import bpy
 from mathutils import Vector
 from io_scene_fbx import parse_fbx
 
-EXP = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else "export"
-FBX = os.path.join(EXP, "SK_Polizeiauto.fbx")
-GLB = os.path.join(EXP, "SK_Polizeiauto.glb")
-KNOCHEN = {"root": (0.0, 0.0, 0.0), "wheel_fl": (1.42, 0.80, 0.335), "wheel_fr": (1.42, -0.80, 0.335),
-           "wheel_rl": (-1.42, 0.80, 0.335), "wheel_rr": (-1.42, -0.80, 0.335)}
-RAD_R, RAD_HALB = 0.335, 0.125
+ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+EXP = ARGS[0] if ARGS else "export"
+NAME = ARGS[1] if len(ARGS) > 1 else "SK_Polizeiauto"
+RADSTAND, SPUR, RAD_R, BREITE = (float(v) for v in (ARGS[2:6] if len(ARGS) >= 6 else ("2.84", "1.60", "0.335", "0.235")))
+FBX = os.path.join(EXP, NAME + ".fbx")
+GLB = os.path.join(EXP, NAME + ".glb")
+XV, YR = RADSTAND / 2, SPUR / 2
+KNOCHEN = {"root": (0.0, 0.0, 0.0), "wheel_fl": (XV, YR, RAD_R), "wheel_fr": (XV, -YR, RAD_R),
+           "wheel_rl": (-XV, YR, RAD_R), "wheel_rr": (-XV, -YR, RAD_R)}
+RAD_HALB = BREITE / 2 + 0.007
 FEHLER = []
 
 def fehler(text):
@@ -63,9 +70,9 @@ def pruefe_import(pfad, importer):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     importer(filepath=pfad)
     arms = [o for o in bpy.data.objects if o.type == "ARMATURE"]
-    autos = [o for o in bpy.data.objects if o.type == "MESH" and o.name.startswith("SK_Polizeiauto")]
+    autos = [o for o in bpy.data.objects if o.type == "MESH" and o.name.startswith(NAME)]
     if len(arms) != 1 or len(autos) != 1:
-        fehler(f"{os.path.basename(pfad)}: {len(arms)} Armaturen und {len(autos)} Meshes SK_Polizeiauto statt je einer")
+        fehler(f"{os.path.basename(pfad)}: {len(arms)} Armaturen und {len(autos)} Meshes {NAME} statt je einer")
         return None
     arm, auto = arms[0], autos[0]
     koepfe = {b.name: arm.matrix_world @ b.head_local for b in arm.data.bones}
