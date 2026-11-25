@@ -146,7 +146,7 @@ Das Hautmuster ist prozedural und wird mit Cycles in einen gemeinsamen UV-Atlas 
 ## In Unreal Engine 5 einrichten
 
 1. **Import:** `SK_TRex.fbx` in den Content Browser ziehen. Als Skeletal Mesh importieren, `Import Animations` an, ein Physics Asset erstellen lassen. Die Transformation bleibt unverändert: Drehung 0, Skalierung 1,0, `Convert Scene Unit` aus.
-2. **Texturen:** Farbe und Normalen kommen mit. `export/Texturen/T_TRex_ORM.png` zusätzlich importieren, sRGB aus, Compression „Masks“.
+2. **Texturen:** Farbe und Normalen kommen mit. Bei der kleinen Fassung liegen sie nicht in der FBX, sondern daneben im Ordner `Texturen`. Lass den Ordner neben der FBX liegen, dann findet Unreal sie beim Import. `T_TRex_ORM` zusätzlich importieren (aus `export/Texturen` bzw. `klein/Texturen`), sRGB aus, Compression „Masks“.
 3. **Material `M_TRex_Haut`:** Shading Model `Subsurface` (oder `Default Lit`).
    - `Base Color` = `T_TRex_BaseColor`
    - `T_TRex_ORM`: R → `Ambient Occlusion`, G → `Roughness`, B → `Metallic`
