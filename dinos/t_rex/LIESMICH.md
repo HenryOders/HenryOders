@@ -1,6 +1,6 @@
 # Tyrannosaurus rex für Spiele
 
-Ein ausgewachsener T. rex als spielfertiges Skeletal Mesh für Unreal Engine 5, als glTF auch für Godot, Unity oder three.js. Das Tier ist ein eigenes Design nach heutigem Wissensstand und kein Nachbau eines Film-Dinos: schuppige Haut mit kleinen Schuppen, größere Schuppen entlang des Rückens, schuppige Lippen am Kieferrand, kleine zweifingrige Arme, drei tragende Zehen und eine kleine erste Zehe. Form, Skelett, Gewichte, Animationen, Texturen und Szenen entstehen komplett per Skript in Blender. Es stecken keine fremden Assets drin.
+Ein ausgewachsener T. rex als spielfertiges Skeletal Mesh für Unreal Engine 5, als glTF auch für Godot, Unity oder three.js. Das Tier ist ein eigenes Design nach heutigem Wissensstand und kein Nachbau eines Film-Dinos: ein massiger Körper mit kräftigen Beinen, schwere Knochenwülste über den Augen, eine Reihe Höcker vom Hinterkopf bis zur Schwanzspitze, schuppige Haut in Oliv-Ocker mit dunklen Querstreifen, schuppige Lippen am Kieferrand, kleine zweifingrige Arme, drei tragende Zehen und eine kleine erste Zehe. Form, Skelett, Gewichte, Animationen, Texturen und Szenen entstehen komplett per Skript in Blender. Es stecken keine fremden Assets drin.
 
 ## Dateien
 
@@ -73,7 +73,7 @@ Alle Pflanzen sind per Skript gebaut und als verknüpfte Kopien verteilt. Die Sz
 | Materialien | 2 (`M_TRex_Haut`, `M_TRex_Auge`) |
 | Texturen | 5, siehe unten |
 
-- **Form:** Rumpf, Hals, Kopf und Schwanz sind ein Profilkörper, dazu Muskeln (Oberschenkel, Wade, Hals- und Kiefermuskeln), Schädelhöcker, Augenhöhlen, Nasenlöcher und die Mundhöhle. Alles ist als Abstandsfeld weich verschmolzen und daraus als gleichmäßiges Vierecksnetz (3,5 cm Kantenlänge) erzeugt. Das Körpernetz ist geschlossen, ohne Löcher und doppelte Flächen.
+- **Form:** Rumpf, Hals, Kopf und Schwanz sind ein Profilkörper, dazu Muskeln (Oberschenkel, Wade, Hals- und Kiefermuskeln), Brauenwülste und Höcker vor den Augen, die Höckerreihe auf Rücken, Schwanz und Schnauze, Augenhöhlen, Nasenlöcher und die Mundhöhle. Alles ist als Abstandsfeld weich verschmolzen und daraus als gleichmäßiges Vierecksnetz (3,5 cm Kantenlänge) erzeugt. Das Körpernetz ist geschlossen, ohne Löcher und doppelte Flächen.
 - **Maul:** Unterkiefer, Zunge, Gaumen und Rachen sind echte Geometrie. Im Maul sitzen 58 einzelne, leicht gebogene Zähne, oben 15 und unten 14 je Seite. Sie sind verschieden lang (Ersatzzähne) und stecken 5 cm tief im Zahnfleisch hinter der Lippe.
 - **Augen:** eigene Augäpfel mit goldbrauner Iris und runder Pupille, mandelförmige Lidspalte, darüber der Knochenwulst.
 - **Krallen:** drei große Zehenkrallen und eine kleine an der ersten Zehe je Fuß, zwei Fingerkrallen je Hand.
@@ -82,12 +82,12 @@ Alle Pflanzen sind per Skript gebaut und als verknüpfte Kopien verteilt. Die Sz
 
 Das Hautmuster ist prozedural und wird mit Cycles in einen gemeinsamen UV-Atlas gebacken. Zähne und Krallen liegen im selben Atlas wie die Haut.
 
-- Gegenschattierung: dunkler Rücken, hellerer Bauch und Kehle
-- dunkle Querbänder über Rücken und Schwanz, unregelmäßige Flecken an den Flanken
-- rotbraune Schnauze, dunkle Haut um die Augen, dunkle Lippen und Füße
-- jede Schuppe etwas anders gefärbt, dunklere Fugen dazwischen
+- Grundfarbe Oliv-Ocker, der Rücken dunkler, Kehle und Bauch hell
+- dunkle Querstreifen vom Rücken die Flanken hinunter, am Schwanz als Ringe, mit unregelmäßigen Rändern
+- gefleckt: jede Schuppe etwas anders gefärbt, einzelne ganz dunkel, dunklere Fugen dazwischen
+- dunkle Haut um die Augen, dunkle Lippen, dunkle Höcker auf dem Rücken, Unterschenkel und Füße bräunlicher
 - Maul: Zahnfleisch, Zunge und ein dunkler Rachen; Zähne zur Spitze heller, Krallen dunkel mit hellerer Spitze
-- Normalen aus einem zweimal unterteilten Netz mit Hautfalten (Kehle, Knie, Knöchel, Zehen, Schwanzunterseite) und Schuppenrelief: kleine Schuppen an Bauch und Kopf, mittlere an den Flanken, große Schilde entlang des Rückgrats, Höcker auf dem Schädel
+- Normalen aus einem zweimal unterteilten Netz mit Hautfalten (Hals und Kehle, Knie, Knöchel, Zehen, Schwanzunterseite) und Schuppenrelief: kleine Schuppen an Bauch und Kopf, mittlere an den Flanken, große Schilde entlang des Rückgrats, quer liegende Hornschilde an Unterschenkeln und Zehen, raue Höcker auf dem Schädel
 
 | Textur | Größe | Inhalt |
 |---|---|---|
@@ -111,7 +111,7 @@ Das Hautmuster ist prozedural und wird mit Cycles in einen gemeinsamen UV-Atlas 
 | `jaw` | 3,80 / 0 / 3,02 (Kiefergelenk) | 380 / 0 / 302 |
 | `tail_01` … `tail_12` | 0 / 0 / 3,05 bis −6,55 / 0 / 2,00 | 0 / 0 / 305 bis −655 / 0 / 200 |
 | `thigh_l`, `calf_l`, `foot_l`, `toe_l` | Hüfte 0 / 0,40 / 3,00, Knie 0,50 / 0,50 / 1,86, Knöchel −0,08 / 0,47 / 0,78, Ballen 0,14 / 0,45 / 0,13 | 0 / −40 / 300, 50 / −50 / 186, −8 / −47 / 78, 14 / −45 / 13 |
-| `upperarm_l`, `lowerarm_l`, `hand_l` | Schulter 2,20 / 0,40 / 2,56, Ellbogen 2,18 / 0,55 / 2,22, Handgelenk 2,40 / 0,52 / 2,08 | 220 / −40 / 256, 218 / −55 / 222, 240 / −52 / 208 |
+| `upperarm_l`, `lowerarm_l`, `hand_l` | Schulter 2,20 / 0,44 / 2,56, Ellbogen 2,18 / 0,60 / 2,22, Handgelenk 2,40 / 0,57 / 2,08 | 220 / −44 / 256, 218 / −60 / 222, 240 / −57 / 208 |
 | `…_r` | gespiegelt (Y negativ) | gespiegelt (Y positiv) |
 
 - `root` liegt am Boden unter den Hüftgelenken, `pelvis` ist das Becken. Rumpf und Schwanz hängen am Becken, die Arme an `spine_03`, der Unterkiefer am Kopf.

@@ -24,7 +24,7 @@ KNOCHEN = (["root", "pelvis", "spine_01", "spine_02", "spine_03", "neck_01", "ne
            + [f"{n}_{s}" for s in "lr" for n in ("thigh", "calf", "foot", "toe", "upperarm", "lowerarm", "hand")])
 ORTE = {"root": (0, 0, 0), "pelvis": (0, 0, 3.05), "head": (3.72, 0, 3.36), "jaw": (3.80, 0, 3.02),
         "thigh_l": (0, 0.40, 3.00), "foot_l": (-0.08, 0.47, 0.78), "toe_r": (0.14, -0.45, 0.13),
-        "tail_12": (-6.55, 0, 2.00), "upperarm_r": (2.20, -0.40, 2.56)}
+        "tail_12": (-6.55, 0, 2.00), "upperarm_r": (2.20, -0.44, 2.56)}
 AKTIONEN = {"Idle": 121, "Walk": 55, "Roar": 101}       # Bilder je Aktion (Schleifen mit Endbild = Anfangsbild)
 FEHLER = []
 

@@ -698,20 +698,20 @@ def profil(pts, xs=XS):
     return np.array([f(x) for x in xs])
 
 RUMPF_OBEN = [(-7.30, 1.86), (-6.5, 2.07), (-5.5, 2.34), (-4.5, 2.61), (-3.5, 2.87), (-2.5, 3.09), (-1.5, 3.28),
-              (-0.8, 3.40), (-0.2, 3.47), (0.4, 3.47), (1.0, 3.39), (1.6, 3.31), (2.2, 3.22), (2.65, 3.17),
-              (3.05, 3.22), (3.40, 3.42), (3.68, 3.68), (3.90, 3.81), (4.08, 3.82), (4.35, 3.74), (4.65, 3.61),
-              (4.90, 3.49), (5.05, 3.40), (5.12, 3.31)]
-RUMPF_UNTEN = [(-7.30, 1.80), (-6.5, 1.91), (-5.5, 2.05), (-4.5, 2.17), (-3.5, 2.26), (-2.5, 2.31), (-1.5, 2.31),
-               (-0.8, 2.20), (-0.3, 2.00), (0.15, 1.86), (0.6, 1.82), (1.2, 1.84), (1.8, 1.94), (2.3, 2.12),
-               (2.7, 2.36), (3.1, 2.56), (3.45, 2.66), (3.68, 2.72), (3.82, 2.88), (3.95, 3.06), (4.3, 3.04),
-               (4.7, 3.05), (4.95, 3.08), (5.12, 3.13)]
-RUMPF_BREITE = [(-7.30, 0.035), (-6.5, 0.10), (-5.5, 0.17), (-4.5, 0.24), (-3.5, 0.31), (-2.5, 0.39), (-1.5, 0.48),
-                (-0.8, 0.56), (0.0, 0.62), (0.6, 0.70), (1.2, 0.74), (1.8, 0.70), (2.3, 0.60), (2.7, 0.50),
-                (3.1, 0.45), (3.45, 0.43), (3.70, 0.44), (3.95, 0.42), (4.15, 0.335), (4.45, 0.235), (4.75, 0.18),
+              (-0.8, 3.40), (-0.2, 3.47), (0.4, 3.47), (1.0, 3.39), (1.6, 3.32), (2.2, 3.26), (2.65, 3.24),
+              (3.05, 3.32), (3.40, 3.48), (3.68, 3.68), (3.90, 3.80), (4.08, 3.81), (4.35, 3.72), (4.65, 3.62),
+              (4.90, 3.52), (5.05, 3.45), (5.12, 3.36)]
+RUMPF_UNTEN = [(-7.30, 1.80), (-6.5, 1.90), (-5.5, 2.03), (-4.5, 2.14), (-3.5, 2.22), (-2.5, 2.27), (-1.5, 2.28),
+               (-0.8, 2.15), (-0.3, 1.93), (0.15, 1.78), (0.6, 1.73), (1.2, 1.75), (1.8, 1.86), (2.3, 2.04),
+               (2.7, 2.27), (3.1, 2.48), (3.45, 2.61), (3.68, 2.72), (3.82, 2.88), (3.95, 3.06), (4.3, 3.04),
+               (4.7, 3.045), (4.95, 3.06), (5.12, 3.085)]
+RUMPF_BREITE = [(-7.30, 0.035), (-6.5, 0.105), (-5.5, 0.185), (-4.5, 0.265), (-3.5, 0.345), (-2.5, 0.43), (-1.5, 0.53),
+                (-0.8, 0.61), (0.0, 0.67), (0.6, 0.76), (1.2, 0.80), (1.8, 0.76), (2.3, 0.66), (2.7, 0.56),
+                (3.1, 0.50), (3.45, 0.46), (3.70, 0.44), (3.95, 0.42), (4.15, 0.335), (4.45, 0.235), (4.75, 0.18),
                 (5.0, 0.145), (5.12, 0.12)]
-RUMPF_EXPO = [(-7.3, 2.3), (-1.0, 2.3), (0.5, 2.15), (2.5, 2.2), (3.3, 2.4), (3.8, 2.9), (4.4, 3.0), (5.1, 2.7)]
+RUMPF_EXPO = [(-7.3, 2.3), (-1.0, 2.3), (0.5, 2.15), (2.5, 2.2), (3.3, 2.4), (3.8, 3.2), (4.4, 3.7), (5.1, 3.1)]
 RUMPF_SCHIEF = [(-7.3, -0.05), (-3.0, -0.10), (-1.0, -0.10), (0.0, 0.05), (1.2, 0.08), (2.3, 0.02), (3.3, 0.0),
-                (3.8, -0.12), (4.4, -0.22), (5.1, -0.20)]
+                (3.8, -0.10), (4.4, -0.13), (5.1, -0.12)]
 BREITE_F = pchip(RUMPF_BREITE)
 OBEN_F, UNTEN_F = pchip(RUMPF_OBEN), pchip(RUMPF_UNTEN)
 
@@ -720,7 +720,7 @@ KIEFER_GELENK = (3.80, 0.0, 3.02)
 KIEFER_AUF = float(os.environ.get("KIEFER_AUF", "12"))  # Grad offen in der Bindepose
 KIEFER_M = drehung("Y", KIEFER_AUF)
 XJ = np.linspace(3.62, 5.05, 144)
-KIEFER_OBEN = [(3.62, 2.98), (3.72, 3.01), (3.85, 3.025), (4.1, 3.03), (4.6, 3.035), (4.9, 3.05), (5.05, 3.07)]
+KIEFER_OBEN = [(3.62, 2.98), (3.72, 3.01), (3.85, 3.025), (4.1, 3.03), (4.6, 3.032), (4.9, 3.038), (5.05, 3.048)]
 KIEFER_UNTEN = [(3.62, 2.84), (3.72, 2.66), (3.88, 2.56), (4.1, 2.57), (4.4, 2.62), (4.7, 2.70), (4.92, 2.78),
                 (5.05, 2.86)]
 
@@ -737,8 +737,8 @@ def kiefer_welt(p):
 # Gelenke der Bindepose (linke Seite, y > 0); die rechte Seite ist gespiegelt
 BEIN = {"huefte": (0.00, 0.40, 3.00), "knie": (0.50, 0.50, 1.86), "knoechel": (-0.08, 0.47, 0.78),
         "ballen": (0.14, 0.45, 0.13), "zehe": (0.62, 0.45, 0.05)}
-ARM = {"schulter": (2.20, 0.40, 2.56), "ellbogen": (2.18, 0.55, 2.22), "handgelenk": (2.40, 0.52, 2.08),
-       "hand": (2.53, 0.49, 2.02)}
+ARM = {"schulter": (2.20, 0.44, 2.56), "ellbogen": (2.18, 0.60, 2.22), "handgelenk": (2.40, 0.57, 2.08),
+       "hand": (2.53, 0.54, 2.02)}
 
 def spiegel(p, sg):
     return (p[0], sg * p[1], p[2])
@@ -752,20 +752,20 @@ def bein_bausteine(sg):
     teile = []
     femur = J["knie"] - J["huefte"]
     # Oberschenkel: grosse Muskelmasse am Becken, Kegel bis zum Knie
-    teile.append(Ellipsoid((0.10, sg * 0.60, 2.45), (0.74, 0.38, 0.84), M=ausrichtung(femur, (1, 0, 0)),
+    teile.append(Ellipsoid((0.10, sg * 0.62, 2.44), (0.80, 0.42, 0.90), M=ausrichtung(femur, (1, 0, 0)),
                            gruppe=g, k=0.24))
-    teile.append(Kegel(J["huefte"], J["knie"], 0.40, 0.25, gruppe=g, k=0.14))
-    teile.append(Kugel(J["knie"] + np.array((0.03, 0, 0)), 0.23, gruppe=g, k=0.08))
+    teile.append(Kegel(J["huefte"], J["knie"], 0.44, 0.29, gruppe=g, k=0.14))
+    teile.append(Kugel(J["knie"] + np.array((0.03, 0, 0)), 0.26, gruppe=g, k=0.08))
     # Unterschenkel mit Wadenmuskel hinten oben
-    teile.append(Kegel(J["knie"], J["knoechel"], 0.24, 0.145, gruppe=g, k=0.08))
+    teile.append(Kegel(J["knie"], J["knoechel"], 0.27, 0.17, gruppe=g, k=0.08))
     schien = J["knoechel"] - J["knie"]
-    teile.append(Ellipsoid(J["knie"] + 0.34 * schien + np.array((-0.10, 0, -0.02)), (0.23, 0.21, 0.52),
+    teile.append(Ellipsoid(J["knie"] + 0.34 * schien + np.array((-0.10, 0, -0.02)), (0.27, 0.245, 0.55),
                            M=ausrichtung(schien, (1, 0, 0)), gruppe=g, k=0.10))
-    teile.append(Kugel(J["knoechel"], 0.15, gruppe=g, k=0.05))
+    teile.append(Kugel(J["knoechel"], 0.17, gruppe=g, k=0.05))
     # Mittelfuss, Ballen, drei Zehen mit Polstern, kleine erste Zehe hinten innen
-    teile.append(Kegel(J["knoechel"], J["ballen"], 0.14, 0.125, gruppe=g, k=0.05))
-    teile.append(Ellipsoid(J["ballen"] + np.array((0.03, 0, -0.04)), (0.26, 0.22, 0.10), gruppe=g, k=0.06))
-    for winkel, l1, l2, r0 in ((-24, 0.23, 0.19, 0.105), (0, 0.28, 0.23, 0.118), (22, 0.23, 0.19, 0.105)):
+    teile.append(Kegel(J["knoechel"], J["ballen"], 0.16, 0.14, gruppe=g, k=0.05))
+    teile.append(Ellipsoid(J["ballen"] + np.array((0.03, 0, -0.03)), (0.29, 0.25, 0.11), gruppe=g, k=0.06))
+    for winkel, l1, l2, r0 in ((-24, 0.24, 0.20, 0.12), (0, 0.29, 0.24, 0.135), (22, 0.24, 0.20, 0.12)):
         w = math.radians(winkel)
         rich = np.array((math.cos(w), sg * math.sin(w), 0.0))
         p0 = J["ballen"] + np.array((0.02, 0, -0.01)) + rich * 0.03
@@ -775,7 +775,7 @@ def bein_bausteine(sg):
         teile.append(Kegel(p1, p2, r0 * 0.8, r0 * 0.62, gruppe=g, k=0.025))
         teile.append(Ellipsoid(p1 + np.array((0, 0, -0.03)), (0.07, 0.055, 0.04), gruppe=g, k=0.02))
         KRALLEN.append((p2 + rich * 0.02 + np.array((0, 0, 0.005)), rich + np.array((0, 0, -0.25)),
-                        0.15 if winkel == 0 else 0.12, r0 * 1.15, r0 * 0.85, 0.35, "toe_" + s))
+                        0.19 if winkel == 0 else 0.155, r0 * 1.15, r0 * 0.85, 0.42, "toe_" + s))
     teile.append(Kegel(np.array((-0.02, sg * 0.41, 0.36)), np.array((-0.10, sg * 0.39, 0.27)), 0.045, 0.035,
                        gruppe=g, k=0.03))
     KRALLEN.append((np.array((-0.115, sg * 0.385, 0.255)), np.array((-0.6, sg * -0.1, -0.8)), 0.06, 0.05, 0.04,
@@ -813,10 +813,18 @@ def t_rex_feld(fein=False):
                                gruppe="rumpf", k=0.10))
         teile.append(Ellipsoid((3.70, sg * 0.34, 3.46), (0.20, 0.12, 0.17), gruppe="rumpf", k=0.09))
         teile.append(Ellipsoid((3.98, sg * 0.38, 3.22), (0.22, 0.05, 0.05), gruppe="rumpf", k=0.06))
-        teile.append(Ellipsoid((3.93, sg * 0.315, 3.69), (0.11, 0.07, 0.045), gruppe="rumpf", k=0.07))
-        teile.append(Ellipsoid((4.04, sg * 0.29, 3.675), (0.19, 0.065, 0.045), gruppe="rumpf", k=0.08))
-        teile.append(Ellipsoid((4.20, sg * 0.225, 3.725), (0.10, 0.05, 0.03), gruppe="rumpf", k=0.07))
-        teile.append(Ellipsoid((2.20, sg * 0.50, 2.74), (0.30, 0.12, 0.30), gruppe="rumpf", k=0.10))
+        teile.append(Ellipsoid((3.95, sg * 0.335, 3.665), (0.18, 0.085, 0.06), gruppe="rumpf", k=0.05))
+        teile.append(Ellipsoid((4.12, sg * 0.275, 3.675), (0.17, 0.07, 0.05), gruppe="rumpf", k=0.06))
+        teile.append(Ellipsoid((2.20, sg * 0.56, 2.74), (0.30, 0.12, 0.30), gruppe="rumpf", k=0.10))
+    # Hoecker entlang der Rueckenlinie vom Hinterkopf bis zur Schwanzspitze, kleinere paarig auf dem Schnauzenruecken
+    for x in np.arange(-6.95, 3.45, 0.135):
+        r = float(np.interp(x, [-7.0, -4.5, -1.5, 0.5, 2.5, 3.45], [0.024, 0.042, 0.06, 0.062, 0.052, 0.045]))
+        teile.append(Ellipsoid((x, 0, OBEN_F(x) - 0.3 * r), (0.75 * r, 0.6 * r, r), gruppe="rumpf", k=0.012))
+    for x in np.arange(3.62, 4.95, 0.085):
+        r = float(np.interp(x, [3.6, 4.1, 4.95], [0.036, 0.031, 0.022]))
+        for sg in (1, -1):
+            teile.append(Ellipsoid((x, sg * 0.065, OBEN_F(x) - 0.014 - 0.35 * r), (0.8 * r, 0.7 * r, r), gruppe="rumpf",
+                                   k=0.012))
     for sg in (1, -1):
         teile += bein_bausteine(sg)
         teile += arm_bausteine(sg)
@@ -855,13 +863,19 @@ def hautfalten(P):
             c = np.array(spiegel(BEIN[gel], sg))
             nah = np.clip(1 - np.linalg.norm(P - c, axis=1) / r, 0, 1)
             out += 0.004 * nah * np.sin(2 * np.pi * z / wl + 2 * np.sin(x * 11))
+    hals = np.clip((x - 2.3) / 0.3, 0, 1) * np.clip((3.75 - x) / 0.2, 0, 1)
+    out += 0.008 * hals * np.sin(2 * np.pi * x / 0.105 + 2.5 * np.sin(z * 5 + np.abs(y) * 3)) \
+        * (0.35 + 0.65 * np.clip((OBEN_F_V(x) - z) / 0.35, 0, 1))
     schwanz = np.clip((-0.6 - x) / 0.5, 0, 1) * np.clip((UNTEN_F_V(x) + 0.12 - z) / 0.1, 0, 1)
     out += 0.003 * schwanz * np.sin(2 * np.pi * y / 0.06)
     return out
 
-_UNTEN_DICHT = profil(RUMPF_UNTEN)
+_UNTEN_DICHT, _OBEN_DICHT = profil(RUMPF_UNTEN), profil(RUMPF_OBEN)
 def UNTEN_F_V(x):
     return np.interp(x, XS, _UNTEN_DICHT)
+
+def OBEN_F_V(x):
+    return np.interp(x, XS, _OBEN_DICHT)
 
 # ---------------- Zaehne, Augen, Krallen (eigene Teile, starr an ihrem Knochen) ----------------
 def aussen_y(prof, x, z, lokal=False):
@@ -1494,6 +1508,8 @@ def masken(V, N, feld):
              * glatt_np(L[:, 2], jt - 0.09, jt - 0.04))
     m["lippe"] = np.maximum(lip_o, lip_u) * (1 - m["mund"])
     m["fuss"] = glieder * glatt_np(z, 0.50, 0.25)
+    m["koerper"] = c["rumpf"]
+    m["bein"] = glieder * glatt_np(z, 1.35, 0.95)                # Unterschenkel und Fuesse: Hornschilde
     aug = np.minimum(np.linalg.norm(V - AUGE_MITTE, axis=1), np.linalg.norm(V - AUGE_MITTE * np.array((1, -1, 1)), axis=1))
     m["auge"] = glatt_np(aug, 0.13, 0.06)
     return {k: np.clip(w, 0, 1).astype(np.float32) for k, w in m.items()}
@@ -1580,7 +1596,8 @@ def zellen_kante(K, P, groesse, zufall=1.0):
         n.inputs["Randomness"].default_value = zufall
     return a.outputs["Distance"], K.trenne(b.outputs["Color"])[0]
 
-HAUT_ATTR = ("ruecken", "bauch", "mitte", "kopf", "lippe", "mund", "rachen", "zunge", "fuss", "auge", "teil", "spitze")
+HAUT_ATTR = ("ruecken", "bauch", "mitte", "kopf", "lippe", "mund", "rachen", "zunge", "fuss", "auge", "koerper", "bein",
+             "teil", "spitze")
 
 def haut_felder(K):
     """Gemeinsame Felder fuer Farbe, Rauheit und Relief."""
@@ -1595,13 +1612,16 @@ def haut_felder(K):
     fein = zellen_kante(K, P2, 0.014)
     mittel = zellen_kante(K, P2, 0.026)
     gross = zellen_kante(K, P2, 0.055)
+    schild = zellen_kante(K, K.v("MULTIPLY", P2, (1.0, 1.0, 2.4)), 0.05)       # quer liegende Schilde an den Beinen
     feinanteil = K.max(A["bauch"], A["fuss"], K.mul(A["kopf"], 0.7), A["lippe"])
-    return dict(P=P, N=N, x=x, y=y, z=z, A=A, fein=fein, mittel=mittel, gross=gross, feinanteil=feinanteil)
+    return dict(P=P, N=N, x=x, y=y, z=z, A=A, fein=fein, mittel=mittel, gross=gross, schild=schild,
+                feinanteil=feinanteil)
 
 def kanten_mix(K, F):
     """Abstand zur Schuppenkante je Region (fein am Bauch/Kopf, mittel an den Flanken, gross am Rueckgrat)."""
     k = K.add(K.mul(F["mittel"][0], K.m("SUBTRACT", 1.0, F["feinanteil"])), K.mul(F["fein"][0], F["feinanteil"]))
-    return K.add(K.mul(k, K.m("SUBTRACT", 1.0, F["A"]["mitte"])), K.mul(F["gross"][0], F["A"]["mitte"]))
+    k = K.add(K.mul(k, K.m("SUBTRACT", 1.0, F["A"]["mitte"])), K.mul(F["gross"][0], F["A"]["mitte"]))
+    return K.add(K.mul(k, K.m("SUBTRACT", 1.0, F["A"]["bein"])), K.mul(F["schild"][0], F["A"]["bein"]))
 
 def schuppen_hoehe(K, F):
     """Relief 0..1: gewoelbte Schuppen mit Fugen; am Rueckgrat grosse Schilde, am Kopf Hoecker, im Maul glatt."""
@@ -1610,29 +1630,36 @@ def schuppen_hoehe(K, F):
     gross = K.glatt(F["gross"][0], 0.0, 0.16)
     h = K.add(K.mul(mittel, K.m("SUBTRACT", 1.0, F["feinanteil"])), K.mul(fein, F["feinanteil"], 0.7))
     h = K.add(K.mul(h, K.m("SUBTRACT", 1.0, F["A"]["mitte"])), K.mul(gross, F["A"]["mitte"], 1.6))
-    hoecker = K.mul(K.glatt(K.rauschen(F["P"], 9.0, detail=2), 0.56, 0.72), F["A"]["kopf"], 1.4)
+    schild = K.glatt(F["schild"][0], 0.0, 0.14)
+    h = K.add(K.mul(h, K.m("SUBTRACT", 1.0, F["A"]["bein"])), K.mul(schild, F["A"]["bein"], 1.5))
+    hoecker = K.mul(K.glatt(K.rauschen(F["P"], 9.0, detail=2), 0.54, 0.70), F["A"]["kopf"], 1.6)
     h = K.add(h, hoecker, K.mul(K.rauschen(F["P"], 5.0, detail=4), 0.5))
     return K.mul(h, K.m("SUBTRACT", 1.0, F["A"]["mund"]))
 
 def haut_farbe(K, F):
     A = F["A"]
-    c = mischen(K, farb_knoten(K, "#4a3922"), farb_knoten(K, "#261c11"), A["ruecken"])
-    c = mischen(K, c, farb_knoten(K, "#8a7450"), A["bauch"])
-    # Querbaender ueber Ruecken und Schwanz, Flecken an den Flanken
-    welle = K.m("SINE", K.add(K.mul(F["x"], 2 * math.pi / 0.85), K.mul(K.rauschen(F["P"], 0.8, detail=3), 5.0)))
-    band = K.mul(K.glatt(welle, 0.1, 0.6), K.glatt(F["x"], 3.4, 3.0), K.max(A["ruecken"], 0.35),
-                 K.m("SUBTRACT", 1.0, A["bauch"]), 0.65)
-    c = mischen(K, c, farb_knoten(K, "#1f190f"), band)
-    flecken = K.mul(K.glatt(K.rauschen(F["P"], 4.5, detail=3), 0.58, 0.66), K.m("SUBTRACT", 1.0, A["bauch"]), 0.45)
-    c = mischen(K, c, farb_knoten(K, "#2c251b"), flecken)
-    # Kopf: Schnauzenruecken roetlich, um die Augen dunkel, Lippen dunkel; Fuesse dunkler
-    c = mischen(K, c, farb_knoten(K, "#5a3523"), K.mul(A["kopf"], A["ruecken"], 0.6))
-    c = mischen(K, c, farb_knoten(K, "#231b14"), K.mul(A["auge"], 0.75))
-    c = mischen(K, c, farb_knoten(K, "#3e342a"), A["lippe"])
-    c = mischen(K, c, farb_knoten(K, "#353027"), K.mul(A["fuss"], 0.8))
+    c = mischen(K, farb_knoten(K, "#7a6634"), farb_knoten(K, "#4a3f1f"), A["ruecken"])     # Oliv-Ocker, Ruecken dunkler
+    c = mischen(K, c, farb_knoten(K, "#b5a079"), A["bauch"])                              # helle Kehle und Bauch
+    # Dunkle Querstreifen vom Ruecken die Flanken hinunter, am Schwanz als Ringe; unregelmaessige Raender
+    welle = K.m("SINE", K.add(K.mul(F["x"], 2 * math.pi / 0.44), K.mul(K.rauschen(F["P"], 0.9, detail=3), 3.5),
+                              K.mul(K.m("SINE", K.mul(F["z"], 3.0)), 0.6)))
+    rand = K.mul(K.add(K.rauschen(F["P"], 6.0, detail=3), -0.5), 0.6)
+    streifen = K.mul(K.glatt(K.add(welle, rand), 0.12, 0.5), K.glatt(F["x"], 3.8, 3.4), A["koerper"],
+                     K.m("SUBTRACT", 1.0, A["bauch"]), K.add(0.55, K.mul(A["ruecken"], 0.35)))
+    c = mischen(K, c, farb_knoten(K, "#2e2714"), streifen)
+    flecken = K.mul(K.glatt(K.rauschen(F["P"], 4.5, detail=3), 0.6, 0.68), K.m("SUBTRACT", 1.0, A["bauch"]), 0.25)
+    c = mischen(K, c, farb_knoten(K, "#3a321c"), flecken)
+    # Kopf oben dunkler, um die Augen dunkel, Lippen dunkel; Unterschenkel und Fuesse braeunlicher
+    c = mischen(K, c, farb_knoten(K, "#55491f"), K.mul(A["kopf"], A["ruecken"], 0.5))
+    c = mischen(K, c, farb_knoten(K, "#2a2216"), K.mul(A["auge"], 0.7))
+    c = mischen(K, c, farb_knoten(K, "#3e3624"), A["lippe"])
+    c = mischen(K, c, farb_knoten(K, "#5e4d27"), K.mul(A["bein"], 0.55))
+    c = mischen(K, c, farb_knoten(K, "#3a3019"), K.mul(A["mitte"], 0.35))
     # Schuppen: jede Zelle etwas anders, Fugen dunkler, grosse Flaechen leicht wolkig
     zelle = K.add(K.mul(F["mittel"][1], 0.5), K.mul(F["fein"][1], 0.3), K.mul(F["gross"][1], 0.2))
-    c = mischen(K, c, grau(K, K.add(0.86, K.mul(zelle, 0.28))), 1.0, art="MULTIPLY")
+    c = mischen(K, c, grau(K, K.add(0.74, K.mul(zelle, 0.5))), 1.0, art="MULTIPLY")
+    dunkel = K.mul(K.glatt(F["mittel"][1], 0.72, 0.8), K.m("SUBTRACT", 1.0, K.mul(A["bauch"], 0.7)))    # einzelne dunkle
+    c = mischen(K, c, farb_knoten(K, "#2a2312"), K.mul(dunkel, 0.6))                                  # Schuppen
     fuge = K.add(0.66, K.mul(0.34, K.glatt(kanten_mix(K, F), 0.0, 0.2)))
     fuge = K.add(fuge, K.mul(A["mund"], K.m("SUBTRACT", 1.0, fuge)))
     c = mischen(K, c, grau(K, fuge), 1.0, art="MULTIPLY")
