@@ -2054,6 +2054,79 @@ RIG.animation_data.action = AKTIONEN["Idle"]
 scene.frame_set(0)
 log("exportiert:", sorted(f for f in os.listdir(EXPORT) if f != "Texturen"), sorted(os.listdir(TEXDIR)))
 
+# Kleine Fassung zum Verschicken: Texturen 2048 als JPG, FBX ohne eingebettete Texturen (liegen daneben)
+KLEIN = int(os.environ.get("KLEIN", "2048"))
+def klein_exportieren(groesse):
+    kdir = os.path.join(EXPORT, "klein")
+    ktex = os.path.join(kdir, "Texturen")
+    os.makedirs(ktex, exist_ok=True)
+    knoten = [n for m in TREX.data.materials for n in m.node_tree.nodes
+              if n.type == "TEX_IMAGE" and n.image is not None and n.image.name.startswith("T_" + NAME)]
+    kopien = {}
+    originale = {n.image for n in knoten}
+    for img in originale:                        # die kleinen Kopien bekommen die Originalnamen (so heissen sie
+        img.name = img.name + "_gross"           # auch in der FBX und spaeter in Unreal)
+    def kopie(img, datei, gruen_drehen=False):
+        k = img.copy()
+        k.name = datei
+        if k.size[0] > groesse:
+            k.scale(groesse, groesse)
+        if gruen_drehen:
+            px = np.empty(k.size[0] * k.size[1] * 4, dtype=np.float32)
+            k.pixels.foreach_get(px)
+            px = px.reshape(-1, 4)
+            px[:, 1] = 1 - px[:, 1]
+            k.pixels.foreach_set(px.ravel())
+        pfad = os.path.join(ktex, datei + ".jpg")
+        k.file_format = "JPEG"
+        k.filepath_raw = pfad
+        k.save(filepath=pfad, quality=95)
+        return k
+    for n in knoten:
+        if n.image.name not in kopien:
+            kopien[n.image.name] = kopie(n.image, n.image.name[:-len("_gross")])
+    alt = {n: n.image for n in knoten}
+    for n in knoten:
+        n.image = kopien[alt[n].name]
+    auswahl()
+    bpy.ops.export_scene.gltf(filepath=os.path.join(kdir, "SK_" + NAME + ".glb"), export_format="GLB", use_selection=True,
+                              export_yup=True, export_apply=False, export_skins=True, export_animations=True,
+                              export_animation_mode="ACTIONS", export_force_sampling=True, export_frame_range=False,
+                              export_cameras=False, export_lights=False, export_image_format="AUTO")
+    nm = next((n for n in knoten if alt[n].name.endswith("_Normal_gross")), None)
+    dx = None
+    if nm is not None:
+        dx = kopie(alt[nm], "T_" + NAME + "_Normal_DirectX", gruen_drehen=True)
+        nm.image = dx
+    RIG.animation_data.action = None
+    scene.unit_settings.scale_length = 0.01
+    skalieren(100.0)
+    auswahl()
+    bpy.ops.export_scene.fbx(filepath=os.path.join(kdir, "SK_" + NAME + ".fbx"), use_selection=True,
+                             object_types={"ARMATURE", "MESH"}, apply_unit_scale=True, global_scale=1.0,
+                             apply_scale_options="FBX_SCALE_NONE", add_leaf_bones=False, primary_bone_axis="Y",
+                             secondary_bone_axis="X", use_armature_deform_only=True, bake_anim=True,
+                             bake_anim_use_all_bones=True, bake_anim_use_nla_strips=False,
+                             bake_anim_use_all_actions=True, bake_anim_force_startend_keying=True, bake_anim_step=1.0,
+                             bake_anim_simplify_factor=0.0, mesh_smooth_type="FACE", use_mesh_modifiers=False,
+                             use_tspace=True, path_mode="RELATIVE", embed_textures=False)
+    skalieren(0.01)
+    scene.unit_settings.scale_length = 1.0
+    for n, img in alt.items():
+        n.image = img
+    for k in list(kopien.values()) + ([dx] if dx else []):
+        bpy.data.images.remove(k)
+    for img in originale:
+        img.name = img.name[:-len("_gross")]
+    RIG.animation_data.action = AKTIONEN["Idle"]
+    scene.frame_set(0)
+    groessen = {f: os.path.getsize(os.path.join(kdir, f)) / 1e6 for f in os.listdir(kdir) if f.endswith((".fbx", ".glb"))}
+    groessen.update({f: os.path.getsize(os.path.join(ktex, f)) / 1e6 for f in os.listdir(ktex)})
+    log("kleine Fassung:", ", ".join(f"{f} {mb:.1f} MB" for f, mb in sorted(groessen.items())))
+
+if KLEIN:
+    klein_exportieren(KLEIN)
+
 # ---------------- Szenen fuer die Vorschaubilder: Lichtung im Kreidezeit-Wald und Fotostudio ----------------
 # Die Lichtung ist frei erfunden: Farne, Palmfarne, Baumfarne, Schachtelhalme und hohe Nadelbaeume, wie sie in
 # der spaeten Kreidezeit wuchsen, dazu Felsen, ein umgestuerzter Stamm, Bodennebel und Sonnenstrahlen durch das
@@ -2404,7 +2477,7 @@ def fels(rng, name, m):
 # ---------- Gelaende und Verteilung ----------
 LICHTUNG = (-0.8, 0.0, 10.5, 6.8)          # Mitte x, y und Halbachsen der flachen Lichtung
 SICHTACHSEN = [((11.0, -6.2), (1.2, 0.0)), ((8.7, -5.0), (3.4, 0.2))]   # Kamera und Ziel der Dschungelbilder
-SONNE_HOEHE, SONNE_RICHTUNG = math.radians(48), math.radians(14)        # Gegenlicht von hinten links
+SONNE_HOEHE, SONNE_RICHTUNG = math.radians(40), math.radians(27)        # Gegenlicht von hinten links, streift die Flanke
 DACH_H = 21.0                                                          # Hoehe des (unsichtbaren) Blaetterdachs
 
 def sonnen_licht():
@@ -2534,7 +2607,7 @@ def dschungel_bauen():
     vol = nt.nodes.new("ShaderNodeVolumePrincipled")
     P = K.geometrie()[0]
     z = K.trenne(P)[2]
-    dichte = K.add(0.0042, K.mul(0.016, K.m("EXPONENT", K.mul(z, -0.5))),
+    dichte = K.add(0.0036, K.mul(0.016, K.m("EXPONENT", K.mul(z, -0.5))),
                    K.mul(0.006, K.glatt(K.rauschen(P, 0.08, detail=2), 0.4, 0.7), K.m("EXPONENT", K.mul(z, -0.25))))
     K.ein(vol.inputs["Density"], dichte)
     vol.inputs["Color"].default_value = (*hexf("#d9d6c8"), 1)
@@ -2544,7 +2617,7 @@ def dschungel_bauen():
     # Sonne von links hinten (aus Sicht der Hauptkamera) und ein unsichtbares Blaetterdach mit Luecken
     hoehe, richtung = SONNE_HOEHE, SONNE_RICHTUNG
     d = bpy.data.lights.new("Sonne", "SUN")
-    d.energy = 6.0
+    d.energy = 7.0
     d.angle = math.radians(0.6)
     d.color = (1.0, 0.93, 0.82)
     sonne = in_sammlung(bpy.data.objects.new("Sonne", d), c)

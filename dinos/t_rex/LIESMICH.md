@@ -14,6 +14,7 @@ Ein ausgewachsener T. rex als spielfertiges Skeletal Mesh für Unreal Engine 5, 
 ```
 blender -b -P t_rex.py
 blender -b -P pruefe_export.py -- export
+blender -b -P pruefe_export.py -- export/klein
 ```
 
 - Getestet mit Blender 4.5 LTS. Das Skript setzt Blender auf Werkseinstellungen zurück. Starte es deshalb nicht in einem offenen Projekt.
@@ -21,11 +22,12 @@ blender -b -P pruefe_export.py -- export
   - `export/SK_TRex.fbx` für Unreal, in Zentimetern, mit den drei Animationen, Texturen eingebettet
   - `export/SK_TRex.glb` für alle anderen Engines, in Metern, mit den drei Animationen, Texturen eingebettet
   - `export/Texturen/` mit den fünf Texturen als PNG (siehe „Texturen“)
+  - `export/klein/` mit einer kleinen Fassung zum Verschicken: dieselbe FBX und GLB, aber mit Texturen in 2048 als JPG. Die FBX ist dort etwa 9 MB groß und hat die Texturen nicht eingebettet, sie liegen daneben in `klein/Texturen/`. Die GLB hat sie eingebettet und ist etwa 10 MB groß. Zum Vergleich: Die großen Dateien haben 45 MB (FBX) und 54 MB (GLB).
   - `t_rex.blend` mit Tier, Skelett, Animationen und beiden Szenen
   - `t_rex_dschungel.png`, `_bruellen`, `_seite`, `_vorne` und `_kopf`
   - `t_rex_laufen.mp4` und `t_rex_bruellen.mp4`
 - `pruefe_export.py` schreibt am Ende „ALLES OK“ oder eine Liste der Fehler.
-- Laufzeit auf einem Rechner mit vier Kernen (nur CPU): Modell, Skelett, Animationen, Texturen und Export etwa ZEIT_MODELL. Die fünf Bilder in 1920 × 1080 mit Cycles dauern etwa ZEIT_BILDER, die beiden Videos etwa ZEIT_VIDEOS.
+- Laufzeit auf einem Rechner mit vier Kernen (nur CPU): Modell, Skelett, Animationen, Texturen und Export etwa 5 Minuten. Die fünf Bilder in 1920 × 1080 mit Cycles dauern etwa 30 Minuten (die beiden im Dschungel je 10), die beiden Videos zusammen etwa 20 Minuten.
 
 Schalter für schnelle Läufe (Umgebungsvariablen):
 
@@ -37,6 +39,7 @@ Schalter für schnelle Läufe (Umgebungsvariablen):
 | `ATLAS=2048` | Texturen in halber Auflösung backen (Standard 4096) |
 | `FEIN=0.02` | feines Netz für die Normal-Textur nur einmal statt zweimal unterteilen |
 | `HAUT=0` | gar nicht backen: einfarbiges Tier, sehr schnell (zum Testen von Form und Animation) |
+| `KLEIN=1024` | kleine Fassung mit Texturen in 1024 (Standard 2048). `KLEIN=0` lässt sie weg |
 
 ## Vorschaubilder und Videos
 
