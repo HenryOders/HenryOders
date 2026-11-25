@@ -22,7 +22,7 @@ blender -b -P pruefe_export.py -- export/klein
   - `export/SK_TRex.fbx` für Unreal, in Zentimetern, mit den drei Animationen, Texturen eingebettet
   - `export/SK_TRex.glb` für alle anderen Engines, in Metern, mit den drei Animationen, Texturen eingebettet
   - `export/Texturen/` mit den fünf Texturen als PNG (siehe „Texturen“)
-  - `export/klein/` mit einer kleinen Fassung zum Verschicken: dieselbe FBX und GLB, aber mit Texturen in 2048 als JPG. Die FBX ist dort etwa 9 MB groß und hat die Texturen nicht eingebettet, sie liegen daneben in `klein/Texturen/`. Die GLB hat sie eingebettet und ist etwa 10 MB groß. Zum Vergleich: Die großen Dateien haben 45 MB (FBX) und 54 MB (GLB).
+  - `export/klein/` mit einer kleinen Fassung zum Verschicken: dieselbe FBX und GLB, aber mit Texturen in 2048 als JPG. Die FBX ist dort etwa 9 MB groß und hat die Texturen nicht eingebettet, sie liegen daneben in `klein/Texturen/`. Die GLB hat sie eingebettet und ist etwa 11 MB groß. Zum Vergleich: Die großen Dateien haben 45 MB (FBX) und 54 MB (GLB).
   - `t_rex.blend` mit Tier, Skelett, Animationen und beiden Szenen
   - `t_rex_dschungel.png`, `_bruellen`, `_seite`, `_vorne` und `_kopf`
   - `t_rex_laufen.mp4` und `t_rex_bruellen.mp4`
