@@ -66,9 +66,9 @@ Alle Pflanzen sind per Skript gebaut und als verknüpfte Kopien verteilt. Die Sz
 |---|---|
 | Länge | 12,4 m von der Schnauze bis zur Schwanzspitze |
 | Höhe | Hüfte 3,05 m, höchster Punkt 3,84 m (Kopf in der Bindepose) |
-| Breite | 1,97 m (Oberschenkel) |
-| Dreiecke | 112 968 |
-| Ecken | 56 622 |
+| Breite | 2,09 m (Oberschenkel) |
+| Dreiecke | 120 624 |
+| Ecken | 60 449 |
 | Knochen | 36 |
 | Materialien | 2 (`M_TRex_Haut`, `M_TRex_Auge`) |
 | Texturen | 5, siehe unten |
@@ -166,6 +166,6 @@ Das Hautmuster ist prozedural und wird mit Cycles in einen gemeinsamen UV-Atlas 
 
 ## Leistung
 
-- Rund 113 000 Dreiecke und zwei Materialien passen für einen Hauptgegner oder eine Zwischensequenz.
+- Rund 121 000 Dreiecke und zwei Materialien passen für einen Hauptgegner oder eine Zwischensequenz.
 - Für mehrere Tiere gleichzeitig im Skeletal-Mesh-Editor LODs erzeugen lassen, zum Beispiel mit 50, 25 und 12 % der Dreiecke. Die Texturen kannst du in Unreal mit `Maximum Texture Size` auf 2048 begrenzen.
 - Die Zähne kosten zusammen etwa 7 300 Dreiecke. Für weit entfernte LODs kannst du sie weglassen.
